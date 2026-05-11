@@ -51,7 +51,7 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void handleAfterInsert_publishesEveryNewOpportunity() {
+  static void testHandleAfterInsertPublishesEveryNewOpportunity() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
 
@@ -59,14 +59,14 @@ private class OpportunityServiceTest {
     OpportunityService.handleAfterInsert(new List<Opportunity>{ o });
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       JiraPushService.alreadyPublished.contains('Opportunity:' + o.Id),
       'Insert should publish unconditionally'
     );
   }
 
   @IsTest
-  static void handleAfterUpdate_publishesWhenStageNameChanged() {
+  static void testHandleAfterUpdatePublishesWhenStageNameChanged() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true); // preserves Id
@@ -79,14 +79,14 @@ private class OpportunityServiceTest {
     );
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       JiraPushService.alreadyPublished.contains('Opportunity:' + o.Id),
       'StageName change should publish'
     );
   }
 
   @IsTest
-  static void handleAfterUpdate_publishesWhenAmountChanged() {
+  static void testHandleAfterUpdatePublishesWhenAmountChanged() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
@@ -99,14 +99,14 @@ private class OpportunityServiceTest {
     );
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       JiraPushService.alreadyPublished.contains('Opportunity:' + o.Id),
       'Amount change should publish'
     );
   }
 
   @IsTest
-  static void handleAfterUpdate_skipsWhenNoQualifyingFieldChanged() {
+  static void testHandleAfterUpdateSkipsWhenNoQualifyingFieldChanged() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
@@ -120,14 +120,14 @@ private class OpportunityServiceTest {
     );
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       !JiraPushService.alreadyPublished.contains('Opportunity:' + o.Id),
       'Non-qualifying change should not publish'
     );
   }
 
   @IsTest
-  static void handleAfterUpdate_bulkFiltersOnlyChangedRecords() {
+  static void testHandleAfterUpdateBulkFiltersOnlyChangedRecords() {
     silenceFramework();
     List<Opportunity> opps = new List<Opportunity>{
       buildOppty('Prospecting'),
@@ -146,22 +146,22 @@ private class OpportunityServiceTest {
     OpportunityService.handleAfterUpdate(opps, oldMap);
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       JiraPushService.alreadyPublished.contains('Opportunity:' + opps[0].Id),
       'Changed Oppty should publish'
     );
-    System.assert(
+    Assert.isTrue(
       !JiraPushService.alreadyPublished.contains('Opportunity:' + opps[1].Id),
       'Unchanged Oppty #2 should NOT publish'
     );
-    System.assert(
+    Assert.isTrue(
       !JiraPushService.alreadyPublished.contains('Opportunity:' + opps[2].Id),
       'Unchanged Oppty #3 should NOT publish'
     );
   }
 
   @IsTest
-  static void handleAfterUpdate_skipsRecordMissingFromOldMap() {
+  static void testHandleAfterUpdateSkipsRecordMissingFromOldMap() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
 
@@ -172,14 +172,14 @@ private class OpportunityServiceTest {
     );
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       !JiraPushService.alreadyPublished.contains('Opportunity:' + o.Id),
       'Missing oldMap entry should skip safely (no throw, no publish)'
     );
   }
 
   @IsTest
-  static void handlers_emptyAndNullInputAreNoOp() {
+  static void testHandlersEmptyAndNullInputAreNoOp() {
     silenceFramework();
 
     Test.startTest();
@@ -192,6 +192,6 @@ private class OpportunityServiceTest {
     );
     Test.stopTest();
 
-    System.assert(JiraPushService.alreadyPublished.isEmpty());
+    Assert.isTrue(JiraPushService.alreadyPublished.isEmpty());
   }
 }

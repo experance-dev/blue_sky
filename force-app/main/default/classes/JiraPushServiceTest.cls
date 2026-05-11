@@ -50,7 +50,7 @@ private class JiraPushServiceTest {
   }
 
   @IsTest
-  static void publishInserts_marksRecordsAsPublished() {
+  static void testPublishInsertsMarksRecordsAsPublished() {
     silenceDispatcher();
     Account a = JiraPushDispatcherTest.buildAccount();
 
@@ -58,14 +58,14 @@ private class JiraPushServiceTest {
     JiraPushService.publishInserts(new List<Account>{ a });
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       JiraPushService.alreadyPublished.contains('Account:' + a.Id),
       'Insert should mark record as published'
     );
   }
 
   @IsTest
-  static void publishUpdates_marksRecordsAsPublished() {
+  static void testPublishUpdatesMarksRecordsAsPublished() {
     silenceDispatcher();
     Account a = JiraPushDispatcherTest.buildAccount();
 
@@ -73,14 +73,14 @@ private class JiraPushServiceTest {
     JiraPushService.publishUpdates(new List<Account>{ a });
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       JiraPushService.alreadyPublished.contains('Account:' + a.Id),
       'Update should mark record as published'
     );
   }
 
   @IsTest
-  static void publish_recursionGuardSuppressesSecondPublish() {
+  static void testPublishRecursionGuardSuppressesSecondPublish() {
     silenceDispatcher();
     Account a = JiraPushDispatcherTest.buildAccount();
 
@@ -91,7 +91,7 @@ private class JiraPushServiceTest {
     Integer afterSecond = Limits.getPublishImmediateDml();
     Test.stopTest();
 
-    System.assertEquals(
+    Assert.areEqual(
       afterFirst,
       afterSecond,
       'Recursion guard should suppress duplicate publish in same transaction'
@@ -99,7 +99,7 @@ private class JiraPushServiceTest {
   }
 
   @IsTest
-  static void publish_emptyAndNullInputAreNoOp() {
+  static void testPublishEmptyAndNullInputAreNoOp() {
     silenceDispatcher();
 
     Test.startTest();
@@ -109,11 +109,11 @@ private class JiraPushServiceTest {
     JiraPushService.publishUpdates(new List<Account>());
     Test.stopTest();
 
-    System.assert(JiraPushService.alreadyPublished.isEmpty());
+    Assert.isTrue(JiraPushService.alreadyPublished.isEmpty());
   }
 
   @IsTest
-  static void publish_logsApiExceptionWhenEventBusPublishFails() {
+  static void testPublishLogsApiExceptionWhenEventBusPublishFails() {
     // Negative path: every SaveResult comes back failed, so the publish
     // loop hits Logger.logApiException for each event.
     silenceDispatcher();
@@ -125,7 +125,7 @@ private class JiraPushServiceTest {
     JiraPushService.publishInserts(new List<Account>{ a });
     Test.stopTest();
 
-    System.assertEquals(
+    Assert.areEqual(
       1,
       [SELECT COUNT() FROM API_Exception_Log__c],
       'Failed EventBus.publish should produce one log row per event'
@@ -133,7 +133,7 @@ private class JiraPushServiceTest {
   }
 
   @IsTest
-  static void getConfig_queriesCmdtWhenNoOverride() {
+  static void testGetConfigQueriesCmdtWhenNoOverride() {
     // Positive path: with no configCacheOverride set, getConfig runs
     // the real SOQL against Jira_Push_Object__mdt. The deploy seeded
     // Opportunity and Case records, so this should return Opportunity.
@@ -144,13 +144,13 @@ private class JiraPushServiceTest {
     Jira_Push_Object__mdt cfg = JiraPushService.getConfig('Opportunity');
     Test.stopTest();
 
-    System.assertNotEquals(null, cfg, 'CMDT row should exist for Opportunity');
-    System.assertEquals('Opportunity', cfg.SObject_API_Name__c);
-    System.assertEquals(true, cfg.Active__c);
+    Assert.areNotEqual(null, cfg, 'CMDT row should exist for Opportunity');
+    Assert.areEqual('Opportunity', cfg.SObject_API_Name__c);
+    Assert.areEqual(true, cfg.Active__c);
   }
 
   @IsTest
-  static void publish_skipsRecordsWithoutId() {
+  static void testPublishSkipsRecordsWithoutId() {
     silenceDispatcher();
     Account a = new Account(Name = 'NoId'); // not inserted -> Id is null
 
@@ -158,6 +158,6 @@ private class JiraPushServiceTest {
     JiraPushService.publishInserts(new List<Account>{ a });
     Test.stopTest();
 
-    System.assert(JiraPushService.alreadyPublished.isEmpty());
+    Assert.isTrue(JiraPushService.alreadyPublished.isEmpty());
   }
 }

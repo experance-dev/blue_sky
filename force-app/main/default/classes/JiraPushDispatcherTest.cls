@@ -66,7 +66,7 @@ public class JiraPushDispatcherTest {
   }
 
   @IsTest
-  static void process_callsJcfsWithIdOnlyConcreteList() {
+  static void testProcessCallsJcfsWithIdOnlyConcreteList() {
     overrideConfig(accountConfig(true));
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
@@ -84,10 +84,10 @@ public class JiraPushDispatcherTest {
     JiraPushDispatcher.process(new List<Jira_Push_Request__e>{ e });
     Test.stopTest();
 
-    System.assertEquals(1, stub.callCount, 'JCFS called once');
-    System.assertEquals(1, stub.lastRecords.size(), 'one record passed');
-    System.assertEquals(a.Id, stub.lastRecords[0].Id, 'correct Id');
-    System.assertEquals(
+    Assert.areEqual(1, stub.callCount, 'JCFS called once');
+    Assert.areEqual(1, stub.lastRecords.size(), 'one record passed');
+    Assert.areEqual(a.Id, stub.lastRecords[0].Id, 'correct Id');
+    Assert.areEqual(
       Account.SObjectType,
       stub.lastRecords[0].getSObjectType(),
       'runtime type is Account, satisfying JCFS concrete-list requirement'
@@ -95,7 +95,7 @@ public class JiraPushDispatcherTest {
   }
 
   @IsTest
-  static void process_skipsWhenConfigMissing() {
+  static void testProcessSkipsWhenConfigMissing() {
     JiraPushService.configCacheOverride = new Map<String, Jira_Push_Object__mdt>();
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
@@ -115,11 +115,11 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(0, stub.callCount, 'no config -> no JCFS call');
+    Assert.areEqual(0, stub.callCount, 'no config -> no JCFS call');
   }
 
   @IsTest
-  static void process_skipsWhenConfigInactive() {
+  static void testProcessSkipsWhenConfigInactive() {
     overrideConfig(accountConfig(false));
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
@@ -139,11 +139,11 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(0, stub.callCount, 'inactive config -> no JCFS call');
+    Assert.areEqual(0, stub.callCount, 'inactive config -> no JCFS call');
   }
 
   @IsTest
-  static void process_handlesUnknownSObjectGracefully() {
+  static void testProcessHandlesUnknownSObjectGracefully() {
     JiraPushService.configCacheOverride = new Map<String, Jira_Push_Object__mdt>{
       'NotARealSObject__c' => new Jira_Push_Object__mdt(
         MasterLabel = 'X',
@@ -168,11 +168,11 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(0, stub.callCount, 'unknown SObject -> logged, no call');
+    Assert.areEqual(0, stub.callCount, 'unknown SObject -> logged, no call');
   }
 
   @IsTest
-  static void process_skipsBlankEventsAndContinues() {
+  static void testProcessSkipsBlankEventsAndContinues() {
     overrideConfig(accountConfig(true));
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
@@ -193,12 +193,12 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(1, stub.callCount, 'good event still processed');
-    System.assertEquals(1, stub.lastRecords.size());
+    Assert.areEqual(1, stub.callCount, 'good event still processed');
+    Assert.areEqual(1, stub.lastRecords.size());
   }
 
   @IsTest
-  static void process_emptyAndNullInputAreNoOp() {
+  static void testProcessEmptyAndNullInputAreNoOp() {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
@@ -207,11 +207,11 @@ public class JiraPushDispatcherTest {
     JiraPushDispatcher.process(new List<Jira_Push_Request__e>());
     Test.stopTest();
 
-    System.assertEquals(0, stub.callCount);
+    Assert.areEqual(0, stub.callCount);
   }
 
   @IsTest
-  static void process_usesNoOpFallbackWhenAdapterNotDeployed() {
+  static void testProcessUsesNoOpFallbackWhenAdapterNotDeployed() {
     // Negative path: when JcfsApiAdapter isn't in the org, the dispatcher
     // falls back to NoOpJcfsApi at class-load time. By NOT overriding
     // jcfs in this test, we exercise that fallback.
@@ -232,11 +232,11 @@ public class JiraPushDispatcherTest {
     Test.stopTest();
 
     // No exception thrown = NoOpJcfsApi handled the call.
-    System.assert(true, 'NoOpJcfsApi fallback executed without throwing');
+    Assert.isTrue(true, 'NoOpJcfsApi fallback executed without throwing');
   }
 
   @IsTest
-  static void process_logsApiExceptionForMalformedSourceId() {
+  static void testProcessLogsApiExceptionForMalformedSourceId() {
     // Negative path: bad Id string triggers the StringException catch.
     overrideConfig(accountConfig(true));
     RecordingJcfs stub = new RecordingJcfs();
@@ -256,15 +256,15 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(0, stub.callCount, 'malformed Id -> no JCFS call');
-    System.assert(
+    Assert.areEqual(0, stub.callCount, 'malformed Id -> no JCFS call');
+    Assert.isTrue(
       [SELECT COUNT() FROM API_Exception_Log__c] >= 1,
       'malformed Id should produce an API_Exception_Log__c row'
     );
   }
 
   @IsTest
-  static void process_logsApiExceptionWhenJcfsThrows() {
+  static void testProcessLogsApiExceptionWhenJcfsThrows() {
     // Negative path: JCFS-side failure is caught and logged, not propagated.
     overrideConfig(accountConfig(true));
     JiraPushDispatcher.jcfs = new ThrowingJcfsApi();
@@ -284,7 +284,7 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(
+    Assert.areEqual(
       1,
       [SELECT COUNT() FROM API_Exception_Log__c],
       'JCFS push failure should produce an API_Exception_Log__c row'
@@ -292,7 +292,7 @@ public class JiraPushDispatcherTest {
   }
 
   @IsTest
-  static void resolveDefaultAdapter_returnsAdapterWhenClassDeployed() {
+  static void testResolveDefaultAdapterReturnsAdapterWhenClassDeployed() {
     // Positive path for resolveDefaultAdapter: when adapterClassName
     // points at a deployed class implementing IJcfsApi, Type.forName
     // resolves it and newInstance() returns the adapter.
@@ -302,14 +302,14 @@ public class JiraPushDispatcherTest {
     JiraPushDispatcher.IJcfsApi resolved = JiraPushDispatcher.resolveDefaultAdapter();
     Test.stopTest();
 
-    System.assert(
+    Assert.isTrue(
       resolved instanceof RecordingJcfs,
       'Should resolve to the configured adapter class'
     );
   }
 
   @IsTest
-  static void process_logsApiExceptionWhenIdPrefixMismatchesSObject() {
+  static void testProcessLogsApiExceptionWhenIdPrefixMismatchesSObject() {
     // Negative path: sot.newSObject(id) throws when id's prefix doesn't
     // match the SObjectType - drives the list-construction catch block.
     overrideConfig(accountConfig(true));
@@ -331,15 +331,15 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(0, stub.callCount, 'mismatch -> no JCFS call');
-    System.assert(
+    Assert.areEqual(0, stub.callCount, 'mismatch -> no JCFS call');
+    Assert.isTrue(
       [SELECT COUNT() FROM API_Exception_Log__c] >= 1,
       'mismatch should log an API exception'
     );
   }
 
   @IsTest
-  static void process_multipleIdsForOneObjectCollapsedToOneJcfsCall() {
+  static void testProcessMultipleIdsForOneObjectCollapsedToOneJcfsCall() {
     overrideConfig(accountConfig(true));
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
@@ -366,7 +366,7 @@ public class JiraPushDispatcherTest {
     );
     Test.stopTest();
 
-    System.assertEquals(1, stub.callCount, 'one JCFS call per SObject type');
-    System.assertEquals(2, stub.lastRecords.size(), 'both Ids passed in one call');
+    Assert.areEqual(1, stub.callCount, 'one JCFS call per SObject type');
+    Assert.areEqual(2, stub.lastRecords.size(), 'both Ids passed in one call');
   }
 }

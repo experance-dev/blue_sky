@@ -13,7 +13,7 @@
 @IsTest
 private class JiraPushRequestHandlerTest {
   @IsTest
-  static void publishedEventInvokesDispatcherAndJcfs() {
+  static void testPublishedEventInvokesDispatcherAndJcfs() {
     JiraPushService.configCacheOverride = new Map<String, Jira_Push_Object__mdt>{
       'Account' => new Jira_Push_Object__mdt(
         MasterLabel = 'Account',
@@ -39,11 +39,11 @@ private class JiraPushRequestHandlerTest {
     );
     Test.stopTest();
 
-    System.assertEquals(
+    Assert.areEqual(
       1,
       stub.callCount,
       'Trigger -> Handler -> Dispatcher -> JCFS chain should fire once'
     );
-    System.assertEquals(a.Id, stub.lastRecords[0].Id);
+    Assert.areEqual(a.Id, stub.lastRecords[0].Id);
   }
 }
