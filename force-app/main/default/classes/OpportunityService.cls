@@ -8,10 +8,10 @@
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                            |
- * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Add handleAfterInsert/handleAfterUpdate routing the    |
- * |            |          |            | qualifying Opportunity changes to JiraPushService.     |
+ * | Date       | Ticket   | Author     | Description                                                  |
+ * |------------|----------|------------|--------------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Add handleJiraPushInsert / handleJiraPushUpdate routing the  |
+ * |            |          |            | qualifying Opportunity changes to JiraPushService.           |
  */
 public with sharing class OpportunityService {
   // Opportunity fields whose change is worth a Jira sync. Curated for what
@@ -35,7 +35,7 @@ public with sharing class OpportunityService {
    *              so no filter is applied.
    * @param newList Trigger.new from OpportunityTriggerHandler.afterInsert.
    */
-  public static void handleAfterInsert(List<Opportunity> newList) {
+  public static void handleJiraPushInsert(List<Opportunity> newList) {
     if (newList == null || newList.isEmpty()) {
       return;
     }
@@ -49,7 +49,7 @@ public with sharing class OpportunityService {
    * @param newList Trigger.new from OpportunityTriggerHandler.afterUpdate.
    * @param oldMap  Trigger.oldMap from the same trigger.
    */
-  public static void handleAfterUpdate(
+  public static void handleJiraPushUpdate(
     List<Opportunity> newList,
     Map<Id, Opportunity> oldMap
   ) {

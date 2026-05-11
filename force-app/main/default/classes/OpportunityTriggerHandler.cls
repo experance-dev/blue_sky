@@ -15,11 +15,11 @@
  */
 public with sharing class OpportunityTriggerHandler extends TriggerHandler {
   protected override void afterInsert() {
-    OpportunityService.handleAfterInsert((List<Opportunity>) Trigger.new);
+    OpportunityService.handleJiraPushInsert((List<Opportunity>) Trigger.new);
   }
 
   protected override void afterUpdate() {
-    OpportunityService.handleAfterUpdate(
+    OpportunityService.handleJiraPushUpdate(
       (List<Opportunity>) Trigger.new,
       (Map<Id, Opportunity>) Trigger.oldMap
     );

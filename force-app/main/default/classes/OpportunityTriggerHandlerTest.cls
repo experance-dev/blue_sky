@@ -84,6 +84,6 @@ private class OpportunityTriggerHandlerTest {
 
 }
 // Note: the non-qualifying update case (Description change etc.) is covered
-// directly by OpportunityServiceTest.handleAfterUpdate_skipsWhenNoQualifying-
+// directly by OpportunityServiceTest.testHandleJiraPushUpdateSkipsWhenNoQualifying-
 // FieldChanged. Re-testing it through real DML would conflict with the
 // insert's deferred PE delivery and adds no wiring assurance.

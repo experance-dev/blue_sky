@@ -11,8 +11,8 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                                            |
  * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Cover handleAfterInsert (all records publish) and      |
- * |            |          |            | handleAfterUpdate (qualifying-field filter, bulk).     |
+ * | 2026-05-11 | CSI-7162 | David Wood | Cover handleJiraPushInsert (all records publish) and   |
+ * |            |          |            | handleJiraPushUpdate (qualifying-field filter, bulk).  |
  */
 @IsTest
 private class OpportunityServiceTest {
@@ -47,12 +47,12 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void testHandleAfterInsertPublishesEveryNewOpportunity() {
+  static void testHandleJiraPushInsertPublishesEveryNewOpportunity() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
 
     Test.startTest();
-    OpportunityService.handleAfterInsert(new List<Opportunity>{ o });
+    OpportunityService.handleJiraPushInsert(new List<Opportunity>{ o });
     Test.stopTest();
 
     Assert.isTrue(
@@ -62,14 +62,14 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void testHandleAfterUpdatePublishesWhenStageNameChanged() {
+  static void testHandleJiraPushUpdatePublishesWhenStageNameChanged() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true); // preserves Id
     o.StageName = 'Qualification';
 
     Test.startTest();
-    OpportunityService.handleAfterUpdate(
+    OpportunityService.handleJiraPushUpdate(
       new List<Opportunity>{ o },
       new Map<Id, Opportunity>{ o.Id => old }
     );
@@ -82,14 +82,14 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void testHandleAfterUpdatePublishesWhenAmountChanged() {
+  static void testHandleJiraPushUpdatePublishesWhenAmountChanged() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
     o.Amount = 999;
 
     Test.startTest();
-    OpportunityService.handleAfterUpdate(
+    OpportunityService.handleJiraPushUpdate(
       new List<Opportunity>{ o },
       new Map<Id, Opportunity>{ o.Id => old }
     );
@@ -102,7 +102,7 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void testHandleAfterUpdateSkipsWhenNoQualifyingFieldChanged() {
+  static void testHandleJiraPushUpdateSkipsWhenNoQualifyingFieldChanged() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
@@ -110,7 +110,7 @@ private class OpportunityServiceTest {
     o.Description = 'changed but not qualifying';
 
     Test.startTest();
-    OpportunityService.handleAfterUpdate(
+    OpportunityService.handleJiraPushUpdate(
       new List<Opportunity>{ o },
       new Map<Id, Opportunity>{ o.Id => old }
     );
@@ -123,7 +123,7 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void testHandleAfterUpdateBulkFiltersOnlyChangedRecords() {
+  static void testHandleJiraPushUpdateBulkFiltersOnlyChangedRecords() {
     silenceFramework();
     List<Opportunity> opps = new List<Opportunity>{
       buildOppty('Prospecting'),
@@ -139,7 +139,7 @@ private class OpportunityServiceTest {
     opps[0].StageName = 'Closed Won';
 
     Test.startTest();
-    OpportunityService.handleAfterUpdate(opps, oldMap);
+    OpportunityService.handleJiraPushUpdate(opps, oldMap);
     Test.stopTest();
 
     Assert.isTrue(
@@ -157,12 +157,12 @@ private class OpportunityServiceTest {
   }
 
   @IsTest
-  static void testHandleAfterUpdateSkipsRecordMissingFromOldMap() {
+  static void testHandleJiraPushUpdateSkipsRecordMissingFromOldMap() {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
 
     Test.startTest();
-    OpportunityService.handleAfterUpdate(
+    OpportunityService.handleJiraPushUpdate(
       new List<Opportunity>{ o },
       new Map<Id, Opportunity>() // empty - simulates the edge case
     );
@@ -179,10 +179,10 @@ private class OpportunityServiceTest {
     silenceFramework();
 
     Test.startTest();
-    OpportunityService.handleAfterInsert(null);
-    OpportunityService.handleAfterInsert(new List<Opportunity>());
-    OpportunityService.handleAfterUpdate(null, null);
-    OpportunityService.handleAfterUpdate(
+    OpportunityService.handleJiraPushInsert(null);
+    OpportunityService.handleJiraPushInsert(new List<Opportunity>());
+    OpportunityService.handleJiraPushUpdate(null, null);
+    OpportunityService.handleJiraPushUpdate(
       new List<Opportunity>(),
       new Map<Id, Opportunity>()
     );
