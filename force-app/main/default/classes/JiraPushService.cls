@@ -16,6 +16,12 @@
  *              the consume side only; this class does not gate publishes on it.
  *
  * @group Jira Integration
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                                    |
+ * |------------|----------|------------|------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Initial publisher                              |
+ * | 2026-05-11 | CSI-7162 | David Wood | Decouple from domain: publishInserts/Updates   |
  */
 public with sharing class JiraPushService {
   private static final String CLASS_NAME = 'JiraPushService';

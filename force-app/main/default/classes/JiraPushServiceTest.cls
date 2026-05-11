@@ -6,6 +6,11 @@
  *              domain service - so no tests for it here.
  *
  * @group Jira Integration
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                                  |
+ * |------------|----------|------------|----------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Tests for publishInserts/publishUpdates path |
  */
 @IsTest
 private class JiraPushServiceTest {

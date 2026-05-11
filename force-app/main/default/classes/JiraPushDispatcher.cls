@@ -14,6 +14,13 @@
  *                Type.forName('List<' + sobjectName + '>').
  *
  * @group Jira Integration
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                              |
+ * |------------|----------|------------|------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Initial dispatcher with IJcfsApi seam    |
+ * | 2026-05-11 | CSI-7162 | David Wood | Drop selector layer; ID-only SObject build |
+ * | 2026-05-11 | CSI-7162 | David Wood | Use Logger.logApiException on error paths  |
  */
 public with sharing class JiraPushDispatcher {
   private static final String CLASS_NAME = 'JiraPushDispatcher';

@@ -14,6 +14,11 @@
  *              tests don't depend on this stub being called.
  *
  * @group Jira Integration
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                              |
+ * |------------|----------|------------|------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Local dev stub - DO NOT deploy with JCFS |
  */
 public with sharing class JCFS {
   public class API {

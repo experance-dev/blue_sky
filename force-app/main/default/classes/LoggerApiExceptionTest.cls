@@ -3,6 +3,11 @@
  *              row into API_Exception_Log__c and mirror to Logger.error.
  *
  * @group Logger
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                                  |
+ * |------------|----------|------------|----------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Coverage for new Logger.logApiException APIs |
  */
 @IsTest
 private class LoggerApiExceptionTest {

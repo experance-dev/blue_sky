@@ -5,6 +5,11 @@
  *              reuse via JiraPushDispatcherTest.RecordingJcfs.
  *
  * @group Jira Integration
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                              |
+ * |------------|----------|------------|------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Tests for dispatcher and JCFS seam       |
  */
 @IsTest
 private class JiraPushDispatcherTest {

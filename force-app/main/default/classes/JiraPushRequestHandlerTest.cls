@@ -4,6 +4,11 @@
  *              is published via EventBus.
  *
  * @group Jira Integration
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                              |
+ * |------------|----------|------------|------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | E2E test for PE trigger -> dispatcher    |
  */
 @IsTest
 private class JiraPushRequestHandlerTest {
