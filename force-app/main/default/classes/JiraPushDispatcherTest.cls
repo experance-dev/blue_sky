@@ -1,8 +1,13 @@
 /**
  * @description Tests for JiraPushDispatcher: event grouping, config gating,
  *              ID-only SObject construction, type coercion, and JCFS seam.
- *              Houses the shared RecordingJcfs stub that other test classes
- *              reuse via JiraPushDispatcherTest.RecordingJcfs.
+ *              Houses the shared RecordingJcfs stub and buildAccount helper
+ *              that other test classes reuse via JiraPushDispatcherTest.*.
+ *
+ *              DML-less: the dispatcher only needs an Id to call
+ *              SObjectType.newSObject(id) - the record doesn't need to
+ *              exist in the DB. buildAccount() uses TestFactory.getFakeId
+ *              to mint a syntactically-valid Id with zero DML.
  *
  * @group Jira Integration
  *
@@ -26,6 +31,18 @@ private class JiraPushDispatcherTest {
     }
   }
 
+  /**
+   * @description Builds an Account in memory with a fake Id. Shared with
+   *              JiraPushServiceTest, JiraPushRequestHandlerTest, and
+   *              LoggerApiExceptionTest - those classes call this directly
+   *              as JiraPushDispatcherTest.buildAccount().
+   */
+  public static Account buildAccount() {
+    return (Account) TestFactory.createSObject(
+      new Account(Id = TestFactory.getFakeId(Account.SObjectType))
+    );
+  }
+
   private static Jira_Push_Object__mdt accountConfig(Boolean active) {
     return new Jira_Push_Object__mdt(
       MasterLabel = 'Account',
@@ -47,7 +64,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = (Account) TestFactory.createSObject(new Account(), true);
+    Account a = buildAccount();
     Jira_Push_Request__e e = new Jira_Push_Request__e(
       Source_Object__c = 'Account',
       Source_Id__c = String.valueOf(a.Id),
@@ -76,7 +93,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = (Account) TestFactory.createSObject(new Account(), true);
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -100,7 +117,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = (Account) TestFactory.createSObject(new Account(), true);
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -153,7 +170,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = (Account) TestFactory.createSObject(new Account(), true);
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -192,13 +209,8 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    List<Account> accounts = (List<Account>) TestFactory.createSObjectList(
-      new Account(),
-      2,
-      true
-    );
-    Account a1 = accounts[0];
-    Account a2 = accounts[1];
+    Account a1 = buildAccount();
+    Account a2 = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(

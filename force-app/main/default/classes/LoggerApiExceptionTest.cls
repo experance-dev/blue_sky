@@ -13,7 +13,7 @@
 private class LoggerApiExceptionTest {
   @IsTest
   static void logApiException_withException_persistsRowAndCapturesType() {
-    Account a = (Account) TestFactory.createSObject(new Account(), true);
+    Account a = JiraPushDispatcherTest.buildAccount();
 
     Test.startTest();
     try {

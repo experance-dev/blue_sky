@@ -3,11 +3,13 @@
  *              get handed to JiraPushService for insert and update flows,
  *              including bulk and edge cases.
  *
- *              Uses TestFactory.createSObject so org-specific validation-
- *              rule defaults live in TestFactoryDefaults rather than being
- *              hard-coded here. The test only sets the field(s) the
- *              scenario actually needs (e.g. StageName); everything else
- *              is filled by the work-org's OpportunityDefaults.
+ *              DML-less by design: the only thing under test that touches
+ *              an Opportunity Id is the in-memory recursion-guard key and
+ *              the published event payload. TestFactory.getFakeId mints
+ *              a syntactically-valid 18-char Id without DML, so every
+ *              test builds its Opportunities in memory.
+ *
+ *              No @TestSetup: nothing to insert.
  *
  * @group Opportunity
  *
@@ -20,6 +22,8 @@
 private class OpportunityServiceTest {
   // Wires up a RecordingJcfs stub + CMDT override so events published in
   // these tests don't reach the real JCFS managed package during Test.stopTest.
+  // Static state is per-transaction, so this can't live in @TestSetup
+  // (which is its own transaction) - has to be called in each @IsTest.
   private static void silenceFramework() {
     JiraPushDispatcher.jcfs = new JiraPushDispatcherTest.RecordingJcfs();
     JiraPushService.configCacheOverride = new Map<String, Jira_Push_Object__mdt>{
@@ -33,23 +37,23 @@ private class OpportunityServiceTest {
   }
 
   /**
-   * @description One-shot Opportunity builder. Pass the StageName the test
-   *              cares about; TestFactoryDefaults.OpportunityDefaults fills
-   *              the rest (Name, CloseDate, Amount, validation-required
-   *              fields, etc.). The cast is unavoidable because TestFactory
-   *              returns SObject.
+   * @description Builds an Opportunity in memory with a fake Id and the
+   *              StageName the test cares about. TestFactoryDefaults.Opp-
+   *              ortunityDefaults fills the rest. No DML.
    */
-  private static Opportunity makeOppty(String stage) {
+  private static Opportunity buildOppty(String stage) {
     return (Opportunity) TestFactory.createSObject(
-      new Opportunity(StageName = stage),
-      true
+      new Opportunity(
+        Id = TestFactory.getFakeId(Opportunity.SObjectType),
+        StageName = stage
+      )
     );
   }
 
   @IsTest
   static void handleAfterInsert_publishesEveryNewOpportunity() {
     silenceFramework();
-    Opportunity o = makeOppty('Prospecting');
+    Opportunity o = buildOppty('Prospecting');
 
     Test.startTest();
     OpportunityService.handleAfterInsert(new List<Opportunity>{ o });
@@ -64,7 +68,7 @@ private class OpportunityServiceTest {
   @IsTest
   static void handleAfterUpdate_publishesWhenStageNameChanged() {
     silenceFramework();
-    Opportunity o = makeOppty('Prospecting');
+    Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true); // preserves Id
     o.StageName = 'Qualification';
 
@@ -84,7 +88,7 @@ private class OpportunityServiceTest {
   @IsTest
   static void handleAfterUpdate_publishesWhenAmountChanged() {
     silenceFramework();
-    Opportunity o = makeOppty('Prospecting');
+    Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
     o.Amount = 999;
 
@@ -104,7 +108,7 @@ private class OpportunityServiceTest {
   @IsTest
   static void handleAfterUpdate_skipsWhenNoQualifyingFieldChanged() {
     silenceFramework();
-    Opportunity o = makeOppty('Prospecting');
+    Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
     // Description isn't in QUALIFYING_FIELDS - changing it shouldn't trigger sync
     o.Description = 'changed but not qualifying';
@@ -125,13 +129,11 @@ private class OpportunityServiceTest {
   @IsTest
   static void handleAfterUpdate_bulkFiltersOnlyChangedRecords() {
     silenceFramework();
-    // createSObjectList builds a uniquely-named template + N clones,
-    // applies OpportunityDefaults, and bulk-inserts in one DML.
-    List<Opportunity> opps = (List<Opportunity>) TestFactory.createSObjectList(
-      new Opportunity(StageName = 'Prospecting'),
-      3,
-      true
-    );
+    List<Opportunity> opps = new List<Opportunity>{
+      buildOppty('Prospecting'),
+      buildOppty('Prospecting'),
+      buildOppty('Prospecting')
+    };
 
     Map<Id, Opportunity> oldMap = new Map<Id, Opportunity>();
     for (Opportunity o : opps) {
@@ -161,7 +163,7 @@ private class OpportunityServiceTest {
   @IsTest
   static void handleAfterUpdate_skipsRecordMissingFromOldMap() {
     silenceFramework();
-    Opportunity o = makeOppty('Prospecting');
+    Opportunity o = buildOppty('Prospecting');
 
     Test.startTest();
     OpportunityService.handleAfterUpdate(
