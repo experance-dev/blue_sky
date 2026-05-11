@@ -1,0 +1,107 @@
+/**
+ * @description Service layer for Opportunity. Owns the domain decision of
+ *              which Opportunity changes warrant a Jira sync and hands the
+ *              qualifying records to the generic JiraPushService. Keeping
+ *              this knowledge here (and not in the framework) is what lets
+ *              JiraPushService stay object-agnostic.
+ *
+ * @group Opportunity
+ *
+ * Change Log:
+ * | Date       | Ticket   | Author     | Description                                         |
+ * |------------|----------|------------|-----------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Initial: route Opportunity changes to JiraPushService |
+ */
+public with sharing class OpportunityService {
+  // Opportunity fields whose change is worth a Jira sync. Curated for what
+  // downstream Jira issue tracking actually mirrors (stage, value, owner,
+  // timing). Each entry incurs one platform event per qualifying record;
+  // add/remove deliberately.
+  @TestVisible
+  private static final Set<String> QUALIFYING_FIELDS = new Set<String>{
+    'StageName',
+    'Amount',
+    'CloseDate',
+    'AccountId',
+    'OwnerId',
+    'Probability'
+  };
+
+  /**
+   * @description After-insert entry point. Every newly-created Opportunity
+   *              gets pushed - the initial sync establishes the Jira link,
+   *              so no filter is applied.
+   * @param newList Trigger.new from OpportunityTriggerHandler.afterInsert.
+   */
+  public static void handleAfterInsert(List<Opportunity> newList) {
+    if (newList == null || newList.isEmpty()) {
+      return;
+    }
+    JiraPushService.publishInserts(newList);
+  }
+
+  /**
+   * @description After-update entry point. Filters newList down to records
+   *              where at least one QUALIFYING_FIELDS field changed, then
+   *              delegates the publish.
+   * @param newList Trigger.new from OpportunityTriggerHandler.afterUpdate.
+   * @param oldMap  Trigger.oldMap from the same trigger.
+   */
+  public static void handleAfterUpdate(
+    List<Opportunity> newList,
+    Map<Id, Opportunity> oldMap
+  ) {
+    if (newList == null || newList.isEmpty() || oldMap == null) {
+      return;
+    }
+
+    /**
+     *
+     * Step 1: filter newList down to records where at least one Jira-
+     * relevant field actually changed. Anything else (Description edits,
+     * touch-only updates, etc.) is noise we don't want syncing to Jira.
+     *
+     */
+    List<Opportunity> changed = new List<Opportunity>();
+    for (Opportunity o : newList) {
+      // oldMap can be missing the record in undelete / programmatic-update
+      // edge cases. Skip rather than throw - leaving the record un-synced
+      // is safer than aborting the whole batch on one anomaly.
+      Opportunity old = oldMap.get(o.Id);
+      if (old == null) {
+        continue;
+      }
+      if (anyQualifyingFieldChanged(o, old)) {
+        changed.add(o);
+      }
+    }
+
+    /**
+     *
+     * Step 2: hand the filtered records to the generic publisher.
+     *
+     */
+    if (!changed.isEmpty()) {
+      JiraPushService.publishUpdates(changed);
+    }
+  }
+
+  /**
+   * @description Returns true if any field listed in QUALIFYING_FIELDS
+   *              differs between the new and old record. Uses generic
+   *              SObject.get(fieldName) so the field set above is the
+   *              single source of truth - no parallel hard-coded list.
+   */
+  @TestVisible
+  private static Boolean anyQualifyingFieldChanged(
+    Opportunity newRec,
+    Opportunity oldRec
+  ) {
+    for (String fieldName : QUALIFYING_FIELDS) {
+      if (newRec.get(fieldName) != oldRec.get(fieldName)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
