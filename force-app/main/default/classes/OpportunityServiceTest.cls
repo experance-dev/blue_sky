@@ -110,7 +110,7 @@ private class OpportunityServiceTest {
     silenceFramework();
     Opportunity o = buildOppty('Prospecting');
     Opportunity old = o.clone(true, true, true, true);
-    // Description isn't in QUALIFYING_FIELDS - changing it shouldn't trigger sync
+    // Description isn't in JIRA_QUALIFYING_FIELDS - changing it shouldn't trigger sync
     o.Description = 'changed but not qualifying';
 
     Test.startTest();
