@@ -71,7 +71,7 @@ public with sharing class OpportunityService {
       if (old == null) {
         continue;
       }
-      if (anyQualifyingFieldChanged(o, old)) {
+      if (anyQualifyingFieldChanged(o, old, QUALIFYING_FIELDS)) {
         changed.add(o);
       }
     }
@@ -87,17 +87,21 @@ public with sharing class OpportunityService {
   }
 
   /**
-   * @description Returns true if any field listed in QUALIFYING_FIELDS
-   *              differs between the new and old record. Uses generic
-   *              SObject.get(fieldName) so the field set above is the
-   *              single source of truth - no parallel hard-coded list.
+   * @description Returns true if any field in `fields` differs between the
+   *              new and old record. Pure function over a record pair and a
+   *              field set - reusable by any domain service that needs the
+   *              same change-detection semantics.
+   * @param newRec The post-update record.
+   * @param oldRec The pre-update record (from Trigger.oldMap).
+   * @param fields Field API names to compare. Caller owns this set.
    */
   @TestVisible
   private static Boolean anyQualifyingFieldChanged(
     Opportunity newRec,
-    Opportunity oldRec
+    Opportunity oldRec,
+    Set<String> fields
   ) {
-    for (String fieldName : QUALIFYING_FIELDS) {
+    for (String fieldName : fields) {
       if (newRec.get(fieldName) != oldRec.get(fieldName)) {
         return true;
       }
