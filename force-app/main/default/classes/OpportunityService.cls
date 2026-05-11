@@ -1,16 +1,17 @@
 /**
- * @description Service layer for Opportunity. Owns the domain decision of
- *              which Opportunity changes warrant a Jira sync and hands the
- *              qualifying records to the generic JiraPushService. Keeping
- *              this knowledge here (and not in the framework) is what lets
- *              JiraPushService stay object-agnostic.
+ * @description Service layer for Opportunity. Owns the domain-level
+ *              decisions about Opportunity behavior - anything that
+ *              doesn't belong in the trigger handler or the selector
+ *              lives here. The trigger handler delegates each phase
+ *              to a method on this class.
  *
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                         |
- * |------------|----------|------------|-----------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial: route Opportunity changes to JiraPushService |
+ * | Date       | Ticket   | Author     | Description                                            |
+ * |------------|----------|------------|--------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Add handleAfterInsert/handleAfterUpdate routing the    |
+ * |            |          |            | qualifying Opportunity changes to JiraPushService.     |
  */
 public with sharing class OpportunityService {
   // Opportunity fields whose change is worth a Jira sync. Curated for what

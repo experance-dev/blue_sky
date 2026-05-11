@@ -1,22 +1,18 @@
 /**
- * @description Tests for OpportunityService - verifies which Opportunities
- *              get handed to JiraPushService for insert and update flows,
- *              including bulk and edge cases.
+ * @description Tests for OpportunityService. Each test exercises one
+ *              public method of the service in isolation.
  *
- *              DML-less by design: the only thing under test that touches
- *              an Opportunity Id is the in-memory recursion-guard key and
- *              the published event payload. TestFactory.getFakeId mints
- *              a syntactically-valid 18-char Id without DML, so every
- *              test builds its Opportunities in memory.
- *
- *              No @TestSetup: nothing to insert.
+ *              DML-less by design: tests build Opportunities in memory
+ *              with TestFactory.getFakeId so they don't trip on org
+ *              validation rules or hit DML limits.
  *
  * @group Opportunity
  *
  * Change Log:
  * | Date       | Ticket   | Author     | Description                                            |
  * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial - covers insert (all), update (filtered), bulk |
+ * | 2026-05-11 | CSI-7162 | David Wood | Cover handleAfterInsert (all records publish) and      |
+ * |            |          |            | handleAfterUpdate (qualifying-field filter, bulk).     |
  */
 @IsTest
 private class OpportunityServiceTest {

@@ -1,20 +1,17 @@
 /**
- * @description End-to-end test for the Opportunity trigger pipeline:
- *              real Opportunity DML -> OpportunityTrigger fires ->
- *              OpportunityTriggerHandler runs -> OpportunityService
- *              filters -> JiraPushService publishes -> PE trigger ->
- *              JiraPushDispatcher -> JCFS stub records the call.
- *
- *              The only test in the suite that does DML. Verifies the
- *              whole chain actually wires together with real trigger
- *              context rather than direct method calls.
+ * @description End-to-end tests for the Opportunity trigger pipeline.
+ *              Real Opportunity DML drives the trigger, the handler
+ *              delegates to OpportunityService, and downstream side-
+ *              effects are observed via stubs. Verifies the whole
+ *              chain wires together rather than testing pieces in
+ *              isolation (those are covered by OpportunityServiceTest).
  *
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                              |
- * |------------|----------|------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | E2E coverage for handler + trigger glue  |
+ * | Date       | Ticket   | Author     | Description                                            |
+ * |------------|----------|------------|--------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | E2E coverage of the Opportunity -> Jira-push pipeline. |
  */
 @IsTest
 private class OpportunityTriggerHandlerTest {

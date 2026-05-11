@@ -1,16 +1,17 @@
 /**
  * @description Trigger handler for Opportunity. Extends the generic
- *              TriggerHandler framework and delegates each phase to
- *              OpportunityService, which owns the domain decisions.
- *              Add additional afterInsert/afterUpdate side-effects to
- *              OpportunityService - the handler stays a thin dispatcher.
+ *              TriggerHandler framework and delegates each phase to the
+ *              OpportunityService domain layer. The handler stays a
+ *              thin dispatcher - add new side-effects on Opportunity
+ *              by adding methods to OpportunityService, not here.
  *
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                              |
- * |------------|----------|------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial implementation                   |
+ * | Date       | Ticket   | Author     | Description                                            |
+ * |------------|----------|------------|--------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Initial handler; wire afterInsert / afterUpdate to     |
+ * |            |          |            | OpportunityService for Jira-push integration.          |
  */
 public with sharing class OpportunityTriggerHandler extends TriggerHandler {
   protected override void afterInsert() {
