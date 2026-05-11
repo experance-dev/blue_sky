@@ -12,3 +12,9 @@ package.xml
 **/__tests__/**
 
 node_modules/
+
+# Local-dev stub for the Appfire JCFS managed-package namespace.
+# DO NOT deploy to any org where the real JCFS package is installed —
+# a local class shadows the managed namespace and silently no-ops pushes.
+force-app/main/default/classes/JCFS.cls
+force-app/main/default/classes/JCFS.cls-meta.xml
