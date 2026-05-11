@@ -32,11 +32,33 @@ public with sharing class JiraPushDispatcher {
   }
 
   @TestVisible
-  private static IJcfsApi jcfs = new JcfsApiAdapter();
+  private static IJcfsApi jcfs = resolveDefaultAdapter();
 
-  private class JcfsApiAdapter implements IJcfsApi {
+  /**
+   * @description Picks the production JcfsApiAdapter via Type.forName when
+   *              it's deployed, otherwise falls back to a logging no-op.
+   *              This keeps the JCFS.API reference compartmentalized to
+   *              JcfsApiAdapter.cls so scratch orgs without the managed
+   *              package can still compile and run tests.
+   */
+  private static IJcfsApi resolveDefaultAdapter() {
+    Type adapterType = Type.forName('JcfsApiAdapter');
+    if (adapterType != null) {
+      return (IJcfsApi) adapterType.newInstance();
+    }
+    return new NoOpJcfsApi();
+  }
+
+  /** Fallback when JcfsApiAdapter isn't deployed (e.g. JCFS-less scratch). */
+  private class NoOpJcfsApi implements IJcfsApi {
     public void pushUpdates(List<SObject> records) {
-      JCFS.API.pushUpdatesToJira(records, new List<SObject>());
+      Logger.warn(
+        'JcfsApiAdapter not deployed - skipping JCFS push of ' +
+          (records == null ? 0 : records.size()) +
+          ' record(s)',
+        CLASS_NAME,
+        'NoOpJcfsApi.pushUpdates'
+      );
     }
   }
 

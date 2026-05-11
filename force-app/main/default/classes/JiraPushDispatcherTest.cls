@@ -17,7 +17,7 @@
  * | 2026-05-11 | CSI-7162 | David Wood | Tests for dispatcher and JCFS seam       |
  */
 @IsTest
-private class JiraPushDispatcherTest {
+public class JiraPushDispatcherTest {
   /** Records the typed list passed to JCFS for assertion. */
   public class RecordingJcfs implements JiraPushDispatcher.IJcfsApi {
     public Integer callCount = 0;

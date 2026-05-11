@@ -10,5 +10,4 @@
     <length>80</length>
     <required>true</required>
     <type>Text</type>
-    <unicode>false</unicode>
 </CustomField>

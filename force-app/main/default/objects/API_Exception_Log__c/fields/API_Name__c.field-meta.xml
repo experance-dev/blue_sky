@@ -8,5 +8,4 @@
     <required>true</required>
     <trackTrending>false</trackTrending>
     <type>Text</type>
-    <unicode>false</unicode>
 </CustomField>
