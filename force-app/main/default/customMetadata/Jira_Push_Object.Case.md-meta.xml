@@ -7,10 +7,6 @@
         <value xsi:type="xsd:string">Case</value>
     </values>
     <values>
-        <field>Qualifying_Fields__c</field>
-        <value xsi:type="xsd:string">Status,Priority,OwnerId,AccountId,Subject</value>
-    </values>
-    <values>
         <field>Active__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>

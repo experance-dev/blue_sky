@@ -7,10 +7,6 @@
         <value xsi:type="xsd:string">Opportunity</value>
     </values>
     <values>
-        <field>Qualifying_Fields__c</field>
-        <value xsi:type="xsd:string">StageName,Amount,CloseDate,AccountId,OwnerId,Probability</value>
-    </values>
-    <values>
         <field>Active__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>

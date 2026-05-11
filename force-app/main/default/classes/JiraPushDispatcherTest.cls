@@ -26,7 +26,6 @@ private class JiraPushDispatcherTest {
       MasterLabel = 'Account',
       DeveloperName = 'Account',
       SObject_API_Name__c = 'Account',
-      Qualifying_Fields__c = 'Name',
       Active__c = active
     );
   }
