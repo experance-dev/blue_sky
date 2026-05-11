@@ -55,9 +55,13 @@ public with sharing class OpportunityService {
       return;
     }
 
-    // Step 1: filter newList down to records where at least one Jira-
-    // relevant field actually changed. Anything else (Description edits,
-    // touch-only updates, etc.) is noise we don't want syncing to Jira.
+    /**
+     *
+     * Step 1: filter newList down to records where at least one Jira-
+     * relevant field actually changed. Anything else (Description edits,
+     * touch-only updates, etc.) is noise we don't want syncing to Jira.
+     *
+     */
     List<Opportunity> changed = new List<Opportunity>();
     for (Opportunity o : newList) {
       // oldMap can be missing the record in undelete / programmatic-update
@@ -72,7 +76,11 @@ public with sharing class OpportunityService {
       }
     }
 
-    // Step 2: hand the filtered records to the generic publisher.
+    /**
+     *
+     * Step 2: hand the filtered records to the generic publisher.
+     *
+     */
     if (!changed.isEmpty()) {
       JiraPushService.publishUpdates(changed);
     }
