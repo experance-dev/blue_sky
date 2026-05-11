@@ -16,15 +16,16 @@ public with sharing class OpportunityService {
   // Opportunity fields whose change is worth a Jira sync. Curated for what
   // downstream Jira issue tracking actually mirrors (stage, value, owner,
   // timing). Each entry incurs one platform event per qualifying record;
-  // add/remove deliberately.
+  // add/remove deliberately. Schema.SObjectField tokens (not String names)
+  // so a typo or rename is caught at compile time.
   @TestVisible
-  private static final Set<String> QUALIFYING_FIELDS = new Set<String>{
-    'StageName',
-    'Amount',
-    'CloseDate',
-    'AccountId',
-    'OwnerId',
-    'Probability'
+  private static final Set<Schema.SObjectField> JIRA_QUALIFYING_FIELDS = new Set<Schema.SObjectField>{
+    Opportunity.StageName,
+    Opportunity.Amount,
+    Opportunity.CloseDate,
+    Opportunity.AccountId,
+    Opportunity.OwnerId,
+    Opportunity.Probability
   };
 
   /**
@@ -71,7 +72,7 @@ public with sharing class OpportunityService {
       if (old == null) {
         continue;
       }
-      if (anyQualifyingFieldChanged(o, old, QUALIFYING_FIELDS)) {
+      if (anyQualifyingFieldChanged(o, old, JIRA_QUALIFYING_FIELDS)) {
         changed.add(o);
       }
     }
@@ -89,20 +90,20 @@ public with sharing class OpportunityService {
   /**
    * @description Returns true if any field in `fields` differs between the
    *              new and old record. Pure function over a record pair and a
-   *              field set - reusable by any domain service that needs the
-   *              same change-detection semantics.
+   *              field-token set - reusable by any domain service that needs
+   *              the same change-detection semantics.
    * @param newRec The post-update record.
    * @param oldRec The pre-update record (from Trigger.oldMap).
-   * @param fields Field API names to compare. Caller owns this set.
+   * @param fields Schema.SObjectField tokens to compare. Caller owns this set.
    */
   @TestVisible
   private static Boolean anyQualifyingFieldChanged(
     Opportunity newRec,
     Opportunity oldRec,
-    Set<String> fields
+    Set<Schema.SObjectField> fields
   ) {
-    for (String fieldName : fields) {
-      if (newRec.get(fieldName) != oldRec.get(fieldName)) {
+    for (Schema.SObjectField field : fields) {
+      if (newRec.get(field) != oldRec.get(field)) {
         return true;
       }
     }
