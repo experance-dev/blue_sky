@@ -9,9 +9,9 @@
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                            |
- * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | E2E coverage of the Opportunity -> Jira-push pipeline. |
+ * | Date       | Ticket   | Author     | Description                                                       |
+ * |------------|----------|------------|-------------------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Add end-to-end coverage of the Opportunity -> Jira-push pipeline. |
  */
 @IsTest
 private class OpportunityTriggerHandlerTest {

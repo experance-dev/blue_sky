@@ -8,10 +8,10 @@
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                            |
- * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial handler; wire afterInsert / afterUpdate to     |
- * |            |          |            | OpportunityService for Jira-push integration.          |
+ * | Date       | Ticket   | Author     | Description                                                                |
+ * |------------|----------|------------|----------------------------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Wire afterInsert / afterUpdate to OpportunityService.handleJiraPushX for   |
+ * |            |          |            | the Jira-push integration.                                                 |
  */
 public with sharing class OpportunityTriggerHandler extends TriggerHandler {
   protected override void afterInsert() {

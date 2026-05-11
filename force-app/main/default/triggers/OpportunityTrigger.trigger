@@ -6,10 +6,10 @@
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                            |
- * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial trigger; routes after-insert / after-update to |
- * |            |          |            | OpportunityTriggerHandler for Jira-push integration.   |
+ * | Date       | Ticket   | Author     | Description                                                                 |
+ * |------------|----------|------------|-----------------------------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Route after-insert / after-update to OpportunityTriggerHandler for the      |
+ * |            |          |            | Jira-push integration.                                                      |
  */
 trigger OpportunityTrigger on Opportunity(after insert, after update) {
   new OpportunityTriggerHandler().run();

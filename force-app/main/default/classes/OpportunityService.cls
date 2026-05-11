@@ -8,10 +8,10 @@
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                                  |
- * |------------|----------|------------|--------------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Add handleJiraPushInsert / handleJiraPushUpdate routing the  |
- * |            |          |            | qualifying Opportunity changes to JiraPushService.           |
+ * | Date       | Ticket   | Author     | Description                                                                       |
+ * |------------|----------|------------|-----------------------------------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Add handleJiraPushInsert / handleJiraPushUpdate to route qualifying Opportunity   |
+ * |            |          |            | changes to JiraPushService.                                                       |
  */
 public with sharing class OpportunityService {
   // Opportunity fields whose change is worth a Jira sync. Curated for what

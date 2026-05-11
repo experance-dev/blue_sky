@@ -9,10 +9,9 @@
  * @group Opportunity
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                            |
- * |------------|----------|------------|--------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Cover handleJiraPushInsert (all records publish) and   |
- * |            |          |            | handleJiraPushUpdate (qualifying-field filter, bulk).  |
+ * | Date       | Ticket   | Author     | Description                                                          |
+ * |------------|----------|------------|----------------------------------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Add tests for handleJiraPushInsert / handleJiraPushUpdate routing.   |
  */
 @IsTest
 private class OpportunityServiceTest {
