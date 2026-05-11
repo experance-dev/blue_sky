@@ -1,13 +1,13 @@
 /**
- * @description Tests for ApiExceptionEndpoint - exception and string overloads
- *              both insert a row into API_Exception_Log__c.
+ * @description Tests for Logger.logApiException - both overloads insert a
+ *              row into API_Exception_Log__c and mirror to Logger.error.
  *
  * @group Logger
  */
 @IsTest
-private class ApiExceptionEndpointTest {
+private class LoggerApiExceptionTest {
   @IsTest
-  static void log_withException_persistsRowAndCapturesType() {
+  static void logApiException_withException_persistsRowAndCapturesType() {
     Account a = new Account(Name = 'Test');
     insert a;
 
@@ -15,7 +15,7 @@ private class ApiExceptionEndpointTest {
     try {
       throw new DmlException('boom');
     } catch (Exception ex) {
-      ApiExceptionEndpoint.log(
+      Logger.logApiException(
         'JCFS',
         'JCFS.API.pushUpdatesToJira',
         'Opportunity',
@@ -52,9 +52,9 @@ private class ApiExceptionEndpointTest {
   }
 
   @IsTest
-  static void log_withStringMessage_persistsRowWithoutExceptionFields() {
+  static void logApiException_withStringMessage_persistsRowWithoutExceptionFields() {
     Test.startTest();
-    ApiExceptionEndpoint.log(
+    Logger.logApiException(
       'JCFS',
       'EventBus.publish',
       'Opportunity',
@@ -75,9 +75,9 @@ private class ApiExceptionEndpointTest {
   }
 
   @IsTest
-  static void log_withNullException_doesNotThrow() {
+  static void logApiException_withNullException_doesNotThrow() {
     Test.startTest();
-    ApiExceptionEndpoint.log('JCFS', 'op', 'Opportunity', null, null, (Exception) null);
+    Logger.logApiException('JCFS', 'op', 'Opportunity', null, null, (Exception) null);
     Test.stopTest();
 
     System.assertEquals(1, [SELECT COUNT() FROM API_Exception_Log__c]);

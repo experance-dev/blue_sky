@@ -153,6 +153,63 @@ public inherited sharing class Logger {
     }
   }
 
+  /**
+   * @description Persists an API_Exception_Log__c row and mirrors the message
+   *              to Logger.error. Endpoint for outbound integration failures
+   *              (Jira, Slack, Workday, …) so support can report on what
+   *              broke without scavenging debug logs. Self-wraps DML so the
+   *              caller never needs a try/catch.
+   * @param apiName        Logical API / integration name (e.g. 'JCFS').
+   * @param operation      Specific method or step that failed.
+   * @param sourceObject   SObject API name the failure was about (nullable).
+   * @param sourceRecordId Record Id the failure was about (nullable).
+   * @param transactionId  System.Request.getCurrent().getRequestId() (nullable).
+   * @param ex             The thrown Apex exception.
+   */
+  public static void logApiException(
+    String apiName,
+    String operation,
+    String sourceObject,
+    Id sourceRecordId,
+    String transactionId,
+    Exception ex
+  ) {
+    writeApiException(
+      apiName,
+      operation,
+      sourceObject,
+      sourceRecordId,
+      transactionId,
+      ex == null ? null : ex.getMessage(),
+      ex == null ? null : ex.getTypeName(),
+      ex == null ? null : ex.getStackTraceString()
+    );
+  }
+
+  /**
+   * @description Same endpoint as the Exception overload, but for non-exception
+   *              error conditions (invalid payload, missing config, etc.).
+   */
+  public static void logApiException(
+    String apiName,
+    String operation,
+    String sourceObject,
+    Id sourceRecordId,
+    String transactionId,
+    String message
+  ) {
+    writeApiException(
+      apiName,
+      operation,
+      sourceObject,
+      sourceRecordId,
+      transactionId,
+      message,
+      null,
+      null
+    );
+  }
+
   // ─── Private helpers ──────────────────────────────────────────────────────────
 
   private static void logDebugWithObject(
@@ -181,6 +238,45 @@ public inherited sharing class Logger {
         message + '\n' + objectToParse,
         className,
         methodName
+      );
+    }
+  }
+
+  @SuppressWarnings('PMD.ExcessiveParameterList')
+  private static void writeApiException(
+    String apiName,
+    String operation,
+    String sourceObject,
+    Id sourceRecordId,
+    String transactionId,
+    String message,
+    String exceptionType,
+    String stackTrace
+  ) {
+    error(
+      '[' + apiName + '/' + operation + '] ' + message,
+      'Logger',
+      'logApiException'
+    );
+    try {
+      insert new API_Exception_Log__c(
+        API_Name__c = apiName,
+        Operation__c = operation,
+        Source_Object__c = sourceObject,
+        Source_Record_Id__c = sourceRecordId == null
+          ? null
+          : String.valueOf(sourceRecordId),
+        Transaction_Id__c = transactionId,
+        Severity__c = 'ERROR',
+        Message__c = message,
+        Exception_Type__c = exceptionType,
+        Stack_Trace__c = stackTrace
+      );
+    } catch (Exception writeFail) {
+      error(
+        'Could not persist API_Exception_Log__c: ' + writeFail.getMessage(),
+        'Logger',
+        'logApiException'
       );
     }
   }

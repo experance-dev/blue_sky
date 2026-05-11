@@ -57,7 +57,7 @@ public with sharing class JiraPushDispatcher {
       try {
         recId = (Id) e.Source_Id__c;
       } catch (System.StringException ex) {
-        ApiExceptionEndpoint.log(
+        Logger.logApiException(
           'JCFS',
           'Jira_Push_Request__e.process',
           e.Source_Object__c,
@@ -92,7 +92,7 @@ public with sharing class JiraPushDispatcher {
 
     Schema.SObjectType sot = Schema.getGlobalDescribe().get(sobjectName);
     if (sot == null) {
-      ApiExceptionEndpoint.log(
+      Logger.logApiException(
         'JCFS',
         'pushOne',
         sobjectName,
@@ -116,7 +116,7 @@ public with sharing class JiraPushDispatcher {
         typed.add(sot.newSObject(recId));
       }
     } catch (Exception ex) {
-      ApiExceptionEndpoint.log(
+      Logger.logApiException(
         'JCFS',
         'pushOne (list construction)',
         sobjectName,
@@ -130,7 +130,7 @@ public with sharing class JiraPushDispatcher {
     try {
       jcfs.pushUpdates(typed);
     } catch (Exception ex) {
-      ApiExceptionEndpoint.log(
+      Logger.logApiException(
         'JCFS',
         'JCFS.API.pushUpdatesToJira',
         sobjectName,

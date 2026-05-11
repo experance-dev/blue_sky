@@ -101,7 +101,7 @@ public with sharing class JiraPushService {
     List<Database.SaveResult> results = EventBus.publish(events);
     for (Integer i = 0; i < results.size(); i++) {
       if (!results[i].isSuccess()) {
-        ApiExceptionEndpoint.log(
+        Logger.logApiException(
           'JCFS',
           'EventBus.publish(Jira_Push_Request__e)',
           sobjectName,
