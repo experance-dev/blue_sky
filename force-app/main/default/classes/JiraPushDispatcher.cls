@@ -18,9 +18,7 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                              |
  * |------------|----------|------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial dispatcher with IJcfsApi seam    |
- * | 2026-05-11 | CSI-7162 | David Wood | Drop selector layer; ID-only SObject build |
- * | 2026-05-11 | CSI-7162 | David Wood | Use Logger.logApiException on error paths  |
+ * | 2026-05-11 | CSI-7162 | David Wood | Initial implementation                   |
  */
 public with sharing class JiraPushDispatcher {
   private static final String CLASS_NAME = 'JiraPushDispatcher';
@@ -48,18 +46,24 @@ public with sharing class JiraPushDispatcher {
    * @param events Trigger.new from JiraPushRequestTrigger.
    */
   public static void process(List<Jira_Push_Request__e> events) {
+    // Bail out early on empty/null batches - nothing to dispatch.
     if (events == null || events.isEmpty()) {
       return;
     }
 
+    // Step 1: group event Ids by Source_Object__c so we make exactly one
+    // JCFS call per SObject type, no matter how many records came in.
     Map<String, Set<Id>> idsByObject = new Map<String, Set<Id>>();
     for (Jira_Push_Request__e e : events) {
+      // Skip malformed events (empty source) but keep processing the rest.
       if (
         String.isBlank(e.Source_Object__c) ||
         String.isBlank(e.Source_Id__c)
       ) {
         continue;
       }
+      // Validate the Id cast. Anything that isn't a real 15/18-char Id
+      // gets logged to API_Exception_Log__c and skipped.
       Id recId;
       try {
         recId = (Id) e.Source_Id__c;
@@ -80,6 +84,7 @@ public with sharing class JiraPushDispatcher {
       idsByObject.get(e.Source_Object__c).add(recId);
     }
 
+    // Step 2: dispatch each SObject's Id set in a single JCFS call.
     for (String sobjectName : idsByObject.keySet()) {
       pushOne(sobjectName, idsByObject.get(sobjectName));
     }
@@ -87,6 +92,8 @@ public with sharing class JiraPushDispatcher {
 
   @TestVisible
   private static void pushOne(String sobjectName, Set<Id> ids) {
+    // Step 1: gate on CMDT. Admins can flip Active__c to suspend Jira sync
+    // per SObject without a deploy. Missing or inactive -> skip quietly.
     Jira_Push_Object__mdt cfg = JiraPushService.getConfig(sobjectName);
     if (cfg == null || cfg.Active__c != true) {
       Logger.warn(
@@ -97,6 +104,7 @@ public with sharing class JiraPushDispatcher {
       return;
     }
 
+    // Step 2: resolve the SObjectType so we can mint empty records by Id.
     Schema.SObjectType sot = Schema.getGlobalDescribe().get(sobjectName);
     if (sot == null) {
       Logger.logApiException(
@@ -110,6 +118,11 @@ public with sharing class JiraPushDispatcher {
       return;
     }
 
+    // Step 3: build a *concretely-typed* list (e.g. List<Opportunity>) via
+    // reflection and populate each entry with just its Id. JCFS inspects
+    // the runtime list type and requires it match the SObject - a generic
+    // List<SObject> is rejected. Jira pulls field values back from
+    // Salesforce after the push, so we don't need to populate anything else.
     List<SObject> typed;
     try {
       Type listType = Type.forName('List<' + sobjectName + '>');
@@ -134,6 +147,8 @@ public with sharing class JiraPushDispatcher {
       return;
     }
 
+    // Step 4: hand the typed list to JCFS. The IJcfsApi seam wraps the
+    // real JCFS.API.pushUpdatesToJira so tests can stub it.
     try {
       jcfs.pushUpdates(typed);
     } catch (Exception ex) {

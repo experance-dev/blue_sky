@@ -18,10 +18,9 @@
  * @group Jira Integration
  *
  * Change Log:
- * | Date       | Ticket   | Author     | Description                                    |
- * |------------|----------|------------|------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial publisher                              |
- * | 2026-05-11 | CSI-7162 | David Wood | Decouple from domain: publishInserts/Updates   |
+ * | Date       | Ticket   | Author     | Description                              |
+ * |------------|----------|------------|------------------------------------------|
+ * | 2026-05-11 | CSI-7162 | David Wood | Initial implementation                   |
  */
 public with sharing class JiraPushService {
   private static final String CLASS_NAME = 'JiraPushService';
@@ -69,10 +68,18 @@ public with sharing class JiraPushService {
       return;
     }
 
+    // Step 1: capture metadata that applies to every event in this batch.
+    // All records must share an SObject type (caller guarantees this by
+    // passing a homogeneous trigger list).
     String sobjectName = records[0].getSObjectType().getDescribe().getName();
     String txnId = System.Request.getCurrent().getRequestId();
     Datetime nowUtc = Datetime.now();
 
+    // Step 2: build one platform event per record. Two filters apply:
+    //  - records without an Id (not yet inserted) are skipped silently
+    //  - records already published in this transaction are suppressed by
+    //    the recursion guard so the same record can't double-publish
+    //    when downstream Apex re-fires the trigger.
     List<Jira_Push_Request__e> events = new List<Jira_Push_Request__e>();
     for (SObject rec : records) {
       if (rec.Id == null) {
@@ -98,6 +105,8 @@ public with sharing class JiraPushService {
       return;
     }
 
+    // Step 3: log the batch summary - first line of triage when someone
+    // asks "why didn't Jira get the update?".
     Logger.debug(
       'Publishing ' +
         events.size() +
@@ -110,7 +119,13 @@ public with sharing class JiraPushService {
       'publish'
     );
 
+    // Step 4: publish all events at once. PublishAfterCommit on the PE
+    // means delivery happens only if the originating DML commits, so a
+    // rolled-back Opportunity save can never leak a phantom Jira sync.
     List<Database.SaveResult> results = EventBus.publish(events);
+
+    // Step 5: any publish failures land in API_Exception_Log__c + debug
+    // log; they don't propagate back to the originating transaction.
     for (Integer i = 0; i < results.size(); i++) {
       if (!results[i].isSuccess()) {
         Logger.logApiException(
