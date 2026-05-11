@@ -47,8 +47,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Acme');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
     Jira_Push_Request__e e = new Jira_Push_Request__e(
       Source_Object__c = 'Account',
       Source_Id__c = String.valueOf(a.Id),
@@ -77,8 +76,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'NoCfg');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -102,8 +100,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Off');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -156,8 +153,7 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Good');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -196,9 +192,13 @@ private class JiraPushDispatcherTest {
     RecordingJcfs stub = new RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a1 = new Account(Name = 'A1');
-    Account a2 = new Account(Name = 'A2');
-    insert new List<Account>{ a1, a2 };
+    List<Account> accounts = (List<Account>) TestFactory.createSObjectList(
+      new Account(),
+      2,
+      true
+    );
+    Account a1 = accounts[0];
+    Account a2 = accounts[1];
 
     Test.startTest();
     JiraPushDispatcher.process(

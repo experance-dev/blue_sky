@@ -3,6 +3,12 @@
  *              get handed to JiraPushService for insert and update flows,
  *              including bulk and edge cases.
  *
+ *              Uses TestFactory.createSObject so org-specific validation-
+ *              rule defaults live in TestFactoryDefaults rather than being
+ *              hard-coded here. The test only sets the field(s) the
+ *              scenario actually needs (e.g. StageName); everything else
+ *              is filled by the work-org's OpportunityDefaults.
+ *
  * @group Opportunity
  *
  * Change Log:
@@ -26,12 +32,17 @@ private class OpportunityServiceTest {
     };
   }
 
+  /**
+   * @description One-shot Opportunity builder. Pass the StageName the test
+   *              cares about; TestFactoryDefaults.OpportunityDefaults fills
+   *              the rest (Name, CloseDate, Amount, validation-required
+   *              fields, etc.). The cast is unavoidable because TestFactory
+   *              returns SObject.
+   */
   private static Opportunity makeOppty(String stage) {
-    return new Opportunity(
-      Name = 'OppT ' + Math.mod(Crypto.getRandomLong(), 1000000),
-      StageName = stage,
-      CloseDate = Date.today().addDays(30),
-      Amount = 100
+    return (Opportunity) TestFactory.createSObject(
+      new Opportunity(StageName = stage),
+      true
     );
   }
 
@@ -39,7 +50,6 @@ private class OpportunityServiceTest {
   static void handleAfterInsert_publishesEveryNewOpportunity() {
     silenceFramework();
     Opportunity o = makeOppty('Prospecting');
-    insert o;
 
     Test.startTest();
     OpportunityService.handleAfterInsert(new List<Opportunity>{ o });
@@ -55,7 +65,6 @@ private class OpportunityServiceTest {
   static void handleAfterUpdate_publishesWhenStageNameChanged() {
     silenceFramework();
     Opportunity o = makeOppty('Prospecting');
-    insert o;
     Opportunity old = o.clone(true, true, true, true); // preserves Id
     o.StageName = 'Qualification';
 
@@ -76,7 +85,6 @@ private class OpportunityServiceTest {
   static void handleAfterUpdate_publishesWhenAmountChanged() {
     silenceFramework();
     Opportunity o = makeOppty('Prospecting');
-    insert o;
     Opportunity old = o.clone(true, true, true, true);
     o.Amount = 999;
 
@@ -97,7 +105,6 @@ private class OpportunityServiceTest {
   static void handleAfterUpdate_skipsWhenNoQualifyingFieldChanged() {
     silenceFramework();
     Opportunity o = makeOppty('Prospecting');
-    insert o;
     Opportunity old = o.clone(true, true, true, true);
     // Description isn't in QUALIFYING_FIELDS - changing it shouldn't trigger sync
     o.Description = 'changed but not qualifying';
@@ -118,12 +125,13 @@ private class OpportunityServiceTest {
   @IsTest
   static void handleAfterUpdate_bulkFiltersOnlyChangedRecords() {
     silenceFramework();
-    List<Opportunity> opps = new List<Opportunity>{
-      makeOppty('Prospecting'),
-      makeOppty('Prospecting'),
-      makeOppty('Prospecting')
-    };
-    insert opps;
+    // createSObjectList builds a uniquely-named template + N clones,
+    // applies OpportunityDefaults, and bulk-inserts in one DML.
+    List<Opportunity> opps = (List<Opportunity>) TestFactory.createSObjectList(
+      new Opportunity(StageName = 'Prospecting'),
+      3,
+      true
+    );
 
     Map<Id, Opportunity> oldMap = new Map<Id, Opportunity>();
     for (Opportunity o : opps) {
@@ -154,7 +162,6 @@ private class OpportunityServiceTest {
   static void handleAfterUpdate_skipsRecordMissingFromOldMap() {
     silenceFramework();
     Opportunity o = makeOppty('Prospecting');
-    insert o;
 
     Test.startTest();
     OpportunityService.handleAfterUpdate(

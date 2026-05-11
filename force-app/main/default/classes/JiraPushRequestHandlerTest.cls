@@ -25,8 +25,7 @@ private class JiraPushRequestHandlerTest {
     JiraPushDispatcherTest.RecordingJcfs stub = new JiraPushDispatcherTest.RecordingJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'E2E');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     EventBus.publish(

@@ -30,8 +30,7 @@ private class JiraPushServiceTest {
   @IsTest
   static void publishInserts_marksRecordsAsPublished() {
     silenceDispatcher();
-    Account a = new Account(Name = 'New');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     JiraPushService.publishInserts(new List<Account>{ a });
@@ -46,8 +45,7 @@ private class JiraPushServiceTest {
   @IsTest
   static void publishUpdates_marksRecordsAsPublished() {
     silenceDispatcher();
-    Account a = new Account(Name = 'Updated');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     JiraPushService.publishUpdates(new List<Account>{ a });
@@ -62,8 +60,7 @@ private class JiraPushServiceTest {
   @IsTest
   static void publish_recursionGuardSuppressesSecondPublish() {
     silenceDispatcher();
-    Account a = new Account(Name = 'Once');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     JiraPushService.publishUpdates(new List<Account>{ a });

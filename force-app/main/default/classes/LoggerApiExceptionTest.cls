@@ -13,8 +13,7 @@
 private class LoggerApiExceptionTest {
   @IsTest
   static void logApiException_withException_persistsRowAndCapturesType() {
-    Account a = new Account(Name = 'Test');
-    insert a;
+    Account a = (Account) TestFactory.createSObject(new Account(), true);
 
     Test.startTest();
     try {
