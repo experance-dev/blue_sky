@@ -57,10 +57,13 @@ public with sharing class JiraPushDispatcher {
       try {
         recId = (Id) e.Source_Id__c;
       } catch (System.StringException ex) {
-        Logger.error(
-          'Invalid Source_Id__c on event: ' + e.Source_Id__c,
-          CLASS_NAME,
-          'process'
+        ApiExceptionEndpoint.log(
+          'JCFS',
+          'Jira_Push_Request__e.process',
+          e.Source_Object__c,
+          null,
+          e.Transaction_Id__c,
+          'Invalid Source_Id__c: ' + e.Source_Id__c
         );
         continue;
       }
@@ -89,10 +92,13 @@ public with sharing class JiraPushDispatcher {
 
     Schema.SObjectType sot = Schema.getGlobalDescribe().get(sobjectName);
     if (sot == null) {
-      Logger.error(
-        'Unknown SObject type: ' + sobjectName,
-        CLASS_NAME,
-        'pushOne'
+      ApiExceptionEndpoint.log(
+        'JCFS',
+        'pushOne',
+        sobjectName,
+        null,
+        null,
+        'Unknown SObject type: ' + sobjectName
       );
       return;
     }
@@ -110,13 +116,13 @@ public with sharing class JiraPushDispatcher {
         typed.add(sot.newSObject(recId));
       }
     } catch (Exception ex) {
-      Logger.error(
-        'Could not construct List<' +
-          sobjectName +
-          '>: ' +
-          ex.getMessage(),
-        CLASS_NAME,
-        'pushOne'
+      ApiExceptionEndpoint.log(
+        'JCFS',
+        'pushOne (list construction)',
+        sobjectName,
+        null,
+        null,
+        ex
       );
       return;
     }
@@ -124,15 +130,13 @@ public with sharing class JiraPushDispatcher {
     try {
       jcfs.pushUpdates(typed);
     } catch (Exception ex) {
-      Logger.error(
-        'JCFS.API.pushUpdatesToJira failed for ' +
-          sobjectName +
-          ' (' +
-          typed.size() +
-          ' records): ' +
-          ex.getMessage(),
-        CLASS_NAME,
-        'pushOne'
+      ApiExceptionEndpoint.log(
+        'JCFS',
+        'JCFS.API.pushUpdatesToJira',
+        sobjectName,
+        null,
+        null,
+        ex
       );
     }
   }

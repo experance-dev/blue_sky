@@ -101,15 +101,13 @@ public with sharing class JiraPushService {
     List<Database.SaveResult> results = EventBus.publish(events);
     for (Integer i = 0; i < results.size(); i++) {
       if (!results[i].isSuccess()) {
-        Logger.error(
-          'Failed to publish Jira_Push_Request__e for ' +
-            sobjectName +
-            ' ' +
-            events[i].Source_Id__c +
-            ': ' +
-            results[i].getErrors(),
-          CLASS_NAME,
-          'publishIfQualifies'
+        ApiExceptionEndpoint.log(
+          'JCFS',
+          'EventBus.publish(Jira_Push_Request__e)',
+          sobjectName,
+          (Id) events[i].Source_Id__c,
+          txnId,
+          'EventBus.publish failed: ' + results[i].getErrors()
         );
       }
     }
