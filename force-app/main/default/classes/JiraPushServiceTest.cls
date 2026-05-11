@@ -14,6 +14,28 @@
  */
 @IsTest
 private class JiraPushServiceTest {
+  /**
+   * @description IEventPublisher stub that fabricates Database.SaveResult
+   *              failure results without actually publishing - lets us
+   *              exercise JiraPushService's publish-failure branch (which
+   *              calls Logger.logApiException).
+   */
+  public class FailingPublisher implements JiraPushService.IEventPublisher {
+    public List<Database.SaveResult> publish(List<SObject> events) {
+      List<Database.SaveResult> results = new List<Database.SaveResult>();
+      String failJson =
+        '{"success":false,"errors":[' +
+        '{"statusCode":"FIELD_CUSTOM_VALIDATION_EXCEPTION",' +
+        '"message":"forced","fields":[]}]}';
+      for (Integer i = 0; i < events.size(); i++) {
+        results.add(
+          (Database.SaveResult) JSON.deserialize(failJson, Database.SaveResult.class)
+        );
+      }
+      return results;
+    }
+  }
+
   /** Quiets the dispatcher so PE delivery in stopTest doesn't try real JCFS. */
   private static void silenceDispatcher() {
     JiraPushDispatcher.jcfs = new JiraPushDispatcherTest.RecordingJcfs();
@@ -88,6 +110,43 @@ private class JiraPushServiceTest {
     Test.stopTest();
 
     System.assert(JiraPushService.alreadyPublished.isEmpty());
+  }
+
+  @IsTest
+  static void publish_logsApiExceptionWhenEventBusPublishFails() {
+    // Negative path: every SaveResult comes back failed, so the publish
+    // loop hits Logger.logApiException for each event.
+    silenceDispatcher();
+    JiraPushService.eventPublisher = new FailingPublisher();
+
+    Account a = JiraPushDispatcherTest.buildAccount();
+
+    Test.startTest();
+    JiraPushService.publishInserts(new List<Account>{ a });
+    Test.stopTest();
+
+    System.assertEquals(
+      1,
+      [SELECT COUNT() FROM API_Exception_Log__c],
+      'Failed EventBus.publish should produce one log row per event'
+    );
+  }
+
+  @IsTest
+  static void getConfig_queriesCmdtWhenNoOverride() {
+    // Positive path: with no configCacheOverride set, getConfig runs
+    // the real SOQL against Jira_Push_Object__mdt. The deploy seeded
+    // Opportunity and Case records, so this should return Opportunity.
+    JiraPushService.configCacheOverride = null;
+    JiraPushService.configCache = null;
+
+    Test.startTest();
+    Jira_Push_Object__mdt cfg = JiraPushService.getConfig('Opportunity');
+    Test.stopTest();
+
+    System.assertNotEquals(null, cfg, 'CMDT row should exist for Opportunity');
+    System.assertEquals('Opportunity', cfg.SObject_API_Name__c);
+    System.assertEquals(true, cfg.Active__c);
   }
 
   @IsTest

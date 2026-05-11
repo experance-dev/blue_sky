@@ -32,6 +32,9 @@ public with sharing class JiraPushDispatcher {
   }
 
   @TestVisible
+  private static String adapterClassName = 'JcfsApiAdapter';
+
+  @TestVisible
   private static IJcfsApi jcfs = resolveDefaultAdapter();
 
   /**
@@ -39,10 +42,12 @@ public with sharing class JiraPushDispatcher {
    *              it's deployed, otherwise falls back to a logging no-op.
    *              This keeps the JCFS.API reference compartmentalized to
    *              JcfsApiAdapter.cls so scratch orgs without the managed
-   *              package can still compile and run tests.
+   *              package can still compile and run tests. Class name is
+   *              @TestVisible so tests can point at a stub.
    */
+  @TestVisible
   private static IJcfsApi resolveDefaultAdapter() {
-    Type adapterType = Type.forName('JcfsApiAdapter');
+    Type adapterType = Type.forName(adapterClassName);
     if (adapterType != null) {
       return (IJcfsApi) adapterType.newInstance();
     }
@@ -169,13 +174,10 @@ public with sharing class JiraPushDispatcher {
     List<SObject> typed;
     try {
       Type listType = Type.forName('List<' + sobjectName + '>');
-      if (listType == null) {
-        throw new JiraPushDispatcherException(
-          'Could not resolve List type for ' + sobjectName
-        );
-      }
       typed = (List<SObject>) listType.newInstance();
       for (Id recId : ids) {
+        // newSObject throws SObjectException when recId's key prefix
+        // doesn't match sot - caught below and logged as an api exception.
         typed.add(sot.newSObject(recId));
       }
     } catch (Exception ex) {

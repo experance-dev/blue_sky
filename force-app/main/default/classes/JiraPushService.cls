@@ -47,6 +47,24 @@ public with sharing class JiraPushService {
   private static Map<String, Jira_Push_Object__mdt> configCacheOverride;
 
   /**
+   * @description Test seam wrapping EventBus.publish so unit tests can
+   *              inject hand-crafted Database.SaveResult lists (including
+   *              failure cases) without actually publishing platform events.
+   */
+  public interface IEventPublisher {
+    List<Database.SaveResult> publish(List<SObject> events);
+  }
+
+  @TestVisible
+  private static IEventPublisher eventPublisher = new EventBusPublisher();
+
+  private class EventBusPublisher implements IEventPublisher {
+    public List<Database.SaveResult> publish(List<SObject> events) {
+      return EventBus.publish(events);
+    }
+  }
+
+  /**
    * @description Publish Jira push events for newly-inserted records.
    * @param records Records the caller has determined warrant a Jira push.
    */
@@ -138,7 +156,7 @@ public with sharing class JiraPushService {
      * rolled-back Opportunity save can never leak a phantom Jira sync.
      *
      */
-    List<Database.SaveResult> results = EventBus.publish(events);
+    List<Database.SaveResult> results = eventPublisher.publish(events);
 
     /**
      *

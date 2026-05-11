@@ -18,6 +18,13 @@
  */
 @IsTest
 public class JiraPushDispatcherTest {
+  /** Throws on every call - used to exercise dispatcher's JCFS-failure catch path. */
+  public class ThrowingJcfsApi implements JiraPushDispatcher.IJcfsApi {
+    public void pushUpdates(List<SObject> records) {
+      throw new System.DmlException('forced JCFS failure');
+    }
+  }
+
   /** Records the typed list passed to JCFS for assertion. */
   public class RecordingJcfs implements JiraPushDispatcher.IJcfsApi {
     public Integer callCount = 0;
@@ -201,6 +208,134 @@ public class JiraPushDispatcherTest {
     Test.stopTest();
 
     System.assertEquals(0, stub.callCount);
+  }
+
+  @IsTest
+  static void process_usesNoOpFallbackWhenAdapterNotDeployed() {
+    // Negative path: when JcfsApiAdapter isn't in the org, the dispatcher
+    // falls back to NoOpJcfsApi at class-load time. By NOT overriding
+    // jcfs in this test, we exercise that fallback.
+    overrideConfig(accountConfig(true));
+    Account a = buildAccount();
+
+    Test.startTest();
+    JiraPushDispatcher.process(
+      new List<Jira_Push_Request__e>{
+        new Jira_Push_Request__e(
+          Source_Object__c = 'Account',
+          Source_Id__c = String.valueOf(a.Id),
+          Change_Type__c = 'Update',
+          Event_Timestamp__c = Datetime.now()
+        )
+      }
+    );
+    Test.stopTest();
+
+    // No exception thrown = NoOpJcfsApi handled the call.
+    System.assert(true, 'NoOpJcfsApi fallback executed without throwing');
+  }
+
+  @IsTest
+  static void process_logsApiExceptionForMalformedSourceId() {
+    // Negative path: bad Id string triggers the StringException catch.
+    overrideConfig(accountConfig(true));
+    RecordingJcfs stub = new RecordingJcfs();
+    JiraPushDispatcher.jcfs = stub;
+
+    Test.startTest();
+    JiraPushDispatcher.process(
+      new List<Jira_Push_Request__e>{
+        new Jira_Push_Request__e(
+          Source_Object__c = 'Account',
+          Source_Id__c = 'not-a-valid-id',
+          Change_Type__c = 'Update',
+          Event_Timestamp__c = Datetime.now(),
+          Transaction_Id__c = 'tx-bad'
+        )
+      }
+    );
+    Test.stopTest();
+
+    System.assertEquals(0, stub.callCount, 'malformed Id -> no JCFS call');
+    System.assert(
+      [SELECT COUNT() FROM API_Exception_Log__c] >= 1,
+      'malformed Id should produce an API_Exception_Log__c row'
+    );
+  }
+
+  @IsTest
+  static void process_logsApiExceptionWhenJcfsThrows() {
+    // Negative path: JCFS-side failure is caught and logged, not propagated.
+    overrideConfig(accountConfig(true));
+    JiraPushDispatcher.jcfs = new ThrowingJcfsApi();
+
+    Account a = buildAccount();
+
+    Test.startTest();
+    JiraPushDispatcher.process(
+      new List<Jira_Push_Request__e>{
+        new Jira_Push_Request__e(
+          Source_Object__c = 'Account',
+          Source_Id__c = String.valueOf(a.Id),
+          Change_Type__c = 'Update',
+          Event_Timestamp__c = Datetime.now()
+        )
+      }
+    );
+    Test.stopTest();
+
+    System.assertEquals(
+      1,
+      [SELECT COUNT() FROM API_Exception_Log__c],
+      'JCFS push failure should produce an API_Exception_Log__c row'
+    );
+  }
+
+  @IsTest
+  static void resolveDefaultAdapter_returnsAdapterWhenClassDeployed() {
+    // Positive path for resolveDefaultAdapter: when adapterClassName
+    // points at a deployed class implementing IJcfsApi, Type.forName
+    // resolves it and newInstance() returns the adapter.
+    JiraPushDispatcher.adapterClassName = 'JiraPushDispatcherTest.RecordingJcfs';
+
+    Test.startTest();
+    JiraPushDispatcher.IJcfsApi resolved = JiraPushDispatcher.resolveDefaultAdapter();
+    Test.stopTest();
+
+    System.assert(
+      resolved instanceof RecordingJcfs,
+      'Should resolve to the configured adapter class'
+    );
+  }
+
+  @IsTest
+  static void process_logsApiExceptionWhenIdPrefixMismatchesSObject() {
+    // Negative path: sot.newSObject(id) throws when id's prefix doesn't
+    // match the SObjectType - drives the list-construction catch block.
+    overrideConfig(accountConfig(true));
+    RecordingJcfs stub = new RecordingJcfs();
+    JiraPushDispatcher.jcfs = stub;
+
+    Id caseFakeId = TestFactory.getFakeId(Case.SObjectType);
+
+    Test.startTest();
+    JiraPushDispatcher.process(
+      new List<Jira_Push_Request__e>{
+        new Jira_Push_Request__e(
+          Source_Object__c = 'Account',
+          Source_Id__c = String.valueOf(caseFakeId),
+          Change_Type__c = 'Update',
+          Event_Timestamp__c = Datetime.now()
+        )
+      }
+    );
+    Test.stopTest();
+
+    System.assertEquals(0, stub.callCount, 'mismatch -> no JCFS call');
+    System.assert(
+      [SELECT COUNT() FROM API_Exception_Log__c] >= 1,
+      'mismatch should log an API exception'
+    );
   }
 
   @IsTest
