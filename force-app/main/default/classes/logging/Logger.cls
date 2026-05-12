@@ -7,7 +7,7 @@
  * @group Logger
  * @since September 2024
  * @author David Wood
- * @last May 2026 — conformance refactor
+ * @last May 2026 — CSI-7162: writeApiException uses Database.insert(..., AccessLevel.SYSTEM_MODE) by deliberate policy (see method ApexDoc)
  */
 public inherited sharing class Logger {
   // ─── Core dispatch ───────────────────────────────────────────────────────────
@@ -159,6 +159,23 @@ public inherited sharing class Logger {
    *              (Jira, Slack, Workday, …) so support can report on what
    *              broke without scavenging debug logs. Self-wraps DML so the
    *              caller never needs a try/catch.
+   *
+   *              Sharing/permissions: the row is persisted via
+   *              `Database.insert(..., AccessLevel.SYSTEM_MODE)` by
+   *              deliberate policy decision. An error logger MUST capture
+   *              failures regardless of caller perms - if a user without
+   *              FLS on Stack_Trace__c (or without CRUD on
+   *              API_Exception_Log__c) triggers an exception, we still
+   *              need the row written or support loses every error that
+   *              user generates. Routing this through
+   *              DMLManager.insertAsUser would silently drop those rows;
+   *              DMLManager doesn't expose a true SYSTEM_MODE overload
+   *              (its insertAsSystem still uses AccessLevel.USER_MODE on
+   *              the underlying Database.insert), so we call
+   *              Database.insert directly here. This is the documented
+   *              "log layer needs elevated DML" exception to the
+   *              "all DML through DMLManager" rule in
+   *              best-practices/apex.md.
    * @param apiName        Logical API / integration name (e.g. 'JCFS').
    * @param operation      Specific method or step that failed.
    * @param sourceObject   SObject API name the failure was about (nullable).
@@ -259,18 +276,26 @@ public inherited sharing class Logger {
       'logApiException'
     );
     try {
-      insert new API_Exception_Log__c(
-        API_Name__c = apiName,
-        Operation__c = operation,
-        Source_Object__c = sourceObject,
-        Source_Record_Id__c = sourceRecordId == null
-          ? null
-          : String.valueOf(sourceRecordId),
-        Transaction_Id__c = transactionId,
-        Severity__c = 'ERROR',
-        Message__c = message,
-        Exception_Type__c = exceptionType,
-        Stack_Trace__c = stackTrace
+      // Direct Database.insert with AccessLevel.SYSTEM_MODE - DMLManager does
+      // not expose a true system-mode overload (insertAsSystem still runs the
+      // underlying DML at AccessLevel.USER_MODE), and an error logger must
+      // capture the row regardless of caller FLS. See class header + method
+      // ApexDoc for the policy rationale.
+      Database.insert(
+        new API_Exception_Log__c(
+          API_Name__c = apiName,
+          Operation__c = operation,
+          Source_Object__c = sourceObject,
+          Source_Record_Id__c = sourceRecordId == null
+            ? null
+            : String.valueOf(sourceRecordId),
+          Transaction_Id__c = transactionId,
+          Severity__c = 'ERROR',
+          Message__c = message,
+          Exception_Type__c = exceptionType,
+          Stack_Trace__c = stackTrace
+        ),
+        AccessLevel.SYSTEM_MODE
       );
     } catch (Exception writeFail) {
       error(

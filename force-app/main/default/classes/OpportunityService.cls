@@ -12,6 +12,7 @@
  * |------------|----------|------------|-----------------------------------------------------------------------------------|
  * | 2026-05-11 | CSI-7162 | David Wood | Add handleJiraPushInsert / handleJiraPushUpdate to route qualifying Opportunity   |
  * |            |          |            | changes to JiraPushService.                                                       |
+ * | 2026-05-12 | CSI-7162 | Boomer     | L3: convert inline ApexDoc-style flow comments to block-comment dividers.         |
  */
 public with sharing class OpportunityService {
   // Opportunity fields whose change is worth a Jira sync. Curated for what
@@ -57,13 +58,9 @@ public with sharing class OpportunityService {
       return;
     }
 
-    /**
-     *
-     * Step 1: filter newList down to records where at least one Jira-
-     * relevant field actually changed. Anything else (Description edits,
-     * touch-only updates, etc.) is noise we don't want syncing to Jira.
-     *
-     */
+    // ─── Step 1: filter newList to records with a qualifying-field change ────
+    // Anything else (Description edits, touch-only updates, etc.) is noise
+    // we don't want syncing to Jira.
     List<Opportunity> changed = new List<Opportunity>();
     for (Opportunity o : newList) {
       // oldMap can be missing the record in undelete / programmatic-update
@@ -78,11 +75,7 @@ public with sharing class OpportunityService {
       }
     }
 
-    /**
-     *
-     * Step 2: hand the filtered records to the generic publisher.
-     *
-     */
+    // ─── Step 2: hand the filtered records to the generic publisher ──────────
     if (!changed.isEmpty()) {
       JiraPushService.publishUpdates(changed);
     }
@@ -103,6 +96,10 @@ public with sharing class OpportunityService {
     Opportunity oldRec,
     Set<Schema.SObjectField> fields
   ) {
+    // Object != Object does value equality for boxed primitives (Date,
+    // Decimal, Double, Id, String, Boolean), and null != null is false -
+    // so null-to-value and value-to-null both return true, no special
+    // casing required for any field in JIRA_QUALIFYING_FIELDS.
     for (Schema.SObjectField field : fields) {
       if (newRec.get(field) != oldRec.get(field)) {
         return true;

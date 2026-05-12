@@ -10,4 +10,12 @@
         <field>Active__c</field>
         <value xsi:type="xsd:boolean">true</value>
     </values>
+    <values>
+        <field>Jira_Project_Id__c</field>
+        <value xsi:type="xsd:string">CSI</value>
+    </values>
+    <values>
+        <field>Jira_Issue_Type__c</field>
+        <value xsi:type="xsd:string">Story</value>
+    </values>
 </CustomMetadata>
