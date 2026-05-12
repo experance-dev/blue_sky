@@ -10,10 +10,9 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                                                                       |
  * |------------|----------|------------|-----------------------------------------------------------------------------------|
- * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events; add               |
- * |            |          |            | PE_Provider_Opportunity record-type precondition (filter the broken-and-unwired  |
- * |            |          |            | dwood_z OpportunityJiraSyncService was meant to enforce, lifted into the domain  |
- * |            |          |            | layer). Cached RT lookup, no SOQL.                                                |
+ * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events. v1 ships          |
+ * |            |          |            | filter-free (publishes for every Opportunity); business-rule filters layered on  |
+ * |            |          |            | in a follow-up modification when business supplies them.                          |
  */
 public with sharing class OpportunityService {
   private static final String ALREADY_CLONED = 'Already_Cloned__c';
@@ -35,48 +34,37 @@ public with sharing class OpportunityService {
     Opportunity.Probability
   };
 
-  // Only opportunities of this developer-named RecordType push to Jira.
-  // Preserves the business rule the (broken, unwired) dwood_z
-  // OpportunityJiraSyncService was meant to enforce: Jira sync is opt-in by
-  // record type, not org-wide. If MI wants a wider net later, add more
-  // developer names to JIRA_PUSH_RT_DEVELOPER_NAMES — or surface this set
-  // to CMDT (Jira_Push_Object__mdt already gates by SObject; a per-RT
-  // sub-gate would be the next iteration).
-  @TestVisible
-  private static final Set<String> JIRA_PUSH_RT_DEVELOPER_NAMES = new Set<String>{
-    'PE_Provider_Opportunity'
-  };
-
-  // Per-transaction cache so the RT->Id lookup is one Schema describe call,
-  // not one per record. Schema describes are themselves cheap but the cache
-  // matters in 200-record batches.
-  @TestVisible
-  private static Set<Id> jiraPushRecordTypeIdsCache;
-
   /**
-   * @description After-insert entry point. Filters newList to records whose
-   *              RecordType is in JIRA_PUSH_RT_DEVELOPER_NAMES, then publishes
-   *              every survivor. Insert path doesn't field-filter — first
-   *              sync establishes the Jira link.
+   * @description After-insert entry point. Every newly-created Opportunity
+   *              gets pushed - the initial sync establishes the Jira link,
+   *              so no filter is applied.
+   *
+   *              v1 design choice (CSI-7162): no business-rule filter
+   *              precondition. The pipeline publishes for ALL Opportunities
+   *              by record type. David will supply the actual filter rules
+   *              from the business in a follow-up modification; this method
+   *              will be patched then to add the precondition. Keeping it
+   *              empty for now is intentional scope discipline — ship the
+   *              pipeline first, layer the rules on top.
    * @param newList Trigger.new from OpportunityTriggerHandler.afterInsert.
    */
   public static void handleJiraPushInsert(List<Opportunity> newList) {
     if (newList == null || newList.isEmpty()) {
       return;
     }
-    List<Opportunity> filtered = filterToJiraPushRecordTypes(newList);
-    if (filtered.isEmpty()) {
-      return;
-    }
-    JiraPushService.publishInserts(filtered);
+    JiraPushService.publishInserts(newList);
   }
 
   /**
-   * @description After-update entry point. Two-stage filter:
-   *              (1) drop records whose RecordType is not in
-   *                  JIRA_PUSH_RT_DEVELOPER_NAMES,
-   *              (2) drop records whose qualifying fields didn't change.
-   *              Survivors go to the generic publisher.
+   * @description After-update entry point. Filters newList down to records
+   *              where at least one QUALIFYING_FIELDS field changed, then
+   *              delegates the publish.
+   *
+   *              v1 design choice (CSI-7162): no business-rule filter
+   *              precondition. The pipeline publishes for any Opportunity
+   *              with a qualifying-field change. David's follow-up
+   *              modification will add the business filter precondition;
+   *              shape unknown until he gets the rules from the business.
    * @param newList Trigger.new from OpportunityTriggerHandler.afterUpdate.
    * @param oldMap  Trigger.oldMap from the same trigger.
    */
@@ -88,20 +76,11 @@ public with sharing class OpportunityService {
       return;
     }
 
-    // ─── Step 1: filter to opted-in record types ─────────────────────────────
-    // Lifts the gate the broken dwood_z OpportunityJiraSyncService was
-    // supposed to enforce. RT filter runs first so the (more expensive)
-    // field-change check only runs on records that could possibly publish.
-    List<Opportunity> rtFiltered = filterToJiraPushRecordTypes(newList);
-    if (rtFiltered.isEmpty()) {
-      return;
-    }
-
-    // ─── Step 2: filter rtFiltered to records with a qualifying-field change ─
+    // ─── Step 1: filter newList to records with a qualifying-field change ────
     // Anything else (Description edits, touch-only updates, etc.) is noise
     // we don't want syncing to Jira.
     List<Opportunity> changed = new List<Opportunity>();
-    for (Opportunity o : rtFiltered) {
+    for (Opportunity o : newList) {
       // oldMap can be missing the record in undelete / programmatic-update
       // edge cases. Skip rather than throw - leaving the record un-synced
       // is safer than aborting the whole batch on one anomaly.
@@ -114,64 +93,10 @@ public with sharing class OpportunityService {
       }
     }
 
-    // ─── Step 3: hand the filtered records to the generic publisher ──────────
+    // ─── Step 2: hand the filtered records to the generic publisher ──────────
     if (!changed.isEmpty()) {
       JiraPushService.publishUpdates(changed);
     }
-  }
-
-  /**
-   * @description Returns the input list filtered to records whose
-   *              RecordTypeId resolves to a developer name in
-   *              JIRA_PUSH_RT_DEVELOPER_NAMES. Records with a null
-   *              RecordTypeId (no record-type assigned, or an org where
-   *              Opportunity has no record types) are dropped — the
-   *              business rule is opt-in, so unrecognized RTs don't push.
-   * @param input Records to filter.
-   * @return The subset of `input` whose RecordType is opted into Jira push.
-   */
-  @TestVisible
-  private static List<Opportunity> filterToJiraPushRecordTypes(
-    List<Opportunity> input
-  ) {
-    Set<Id> jiraPushRtIds = getJiraPushRecordTypeIds();
-    if (jiraPushRtIds.isEmpty()) {
-      // Org has no matching RecordType deployed. Refuse to publish anything
-      // rather than fail open — the dwood_z parity rule is "PE_Provider_-
-      // Opportunity only" and an absent RT means we can't honor that.
-      return new List<Opportunity>();
-    }
-    List<Opportunity> out = new List<Opportunity>();
-    for (Opportunity o : input) {
-      if (o.RecordTypeId != null && jiraPushRtIds.contains(o.RecordTypeId)) {
-        out.add(o);
-      }
-    }
-    return out;
-  }
-
-  /**
-   * @description Cached lookup of RecordTypeIds for every developer name in
-   *              JIRA_PUSH_RT_DEVELOPER_NAMES. Computed once per transaction.
-   *              Uses Schema.SObjectType.Opportunity.getRecordTypeInfosBy-
-   *              DeveloperName() — describes only, no SOQL.
-   * @return Set of RecordTypeIds opted into Jira push (possibly empty).
-   */
-  @TestVisible
-  private static Set<Id> getJiraPushRecordTypeIds() {
-    if (jiraPushRecordTypeIdsCache != null) {
-      return jiraPushRecordTypeIdsCache;
-    }
-    Map<String, Schema.RecordTypeInfo> rtByDevName = Schema.SObjectType.Opportunity.getRecordTypeInfosByDeveloperName();
-    Set<Id> ids = new Set<Id>();
-    for (String devName : JIRA_PUSH_RT_DEVELOPER_NAMES) {
-      Schema.RecordTypeInfo info = rtByDevName.get(devName);
-      if (info != null) {
-        ids.add(info.getRecordTypeId());
-      }
-    }
-    jiraPushRecordTypeIdsCache = ids;
-    return ids;
   }
 
   /**
