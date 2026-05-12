@@ -14,7 +14,8 @@
  * Change Log:
  * | Date       | Ticket   | Author      | Description                                                          |
  * |------------|----------|-------------|----------------------------------------------------------------------|
- * | 2026-05-12 | CSI-7162 | David Wood  | Tests for Opportunity Jira-push routing: bulk, field coverage, idempotency, perm-denial |
+ * | 2026-05-12 | CSI-7162 | David Wood  | Tests for Opportunity Jira-push routing: bulk, field coverage, idempotency,      |
+ * |            |          |             | perm-denial, RT precondition (matching / non-matching / null / mixed batch).     |
  */
 @IsTest
 private class OpportunityServiceTest {
@@ -22,6 +23,20 @@ private class OpportunityServiceTest {
     JiraPushService.CHANGE_UPDATE;
   private static final String INSERT_KEY_SUFFIX = ':' +
     JiraPushService.CHANGE_INSERT;
+
+  // Cached PE_Provider_Opportunity RT Id, or null if the receiving org
+  // doesn't have that RT deployed. `buildOppty` stamps every test record
+  // with this RT so the existing assertions (which all expect the publish
+  // to succeed) keep passing post-precondition. The precondition-specific
+  // tests use other RT ids deliberately.
+  private static Id PE_PROVIDER_RT_ID = resolvePEProviderRtId();
+
+  private static Id resolvePEProviderRtId() {
+    Schema.RecordTypeInfo info = Opportunity.SObjectType.getDescribe()
+      .getRecordTypeInfosByDeveloperName()
+      .get('PE_Provider_Opportunity');
+    return info == null ? null : info.getRecordTypeId();
+  }
 
   // Wires up a RecordingJcfs stub + CMDT override via the shared fixture.
   // Static state is per-transaction, so this can't live in @TestSetup
@@ -31,11 +46,55 @@ private class OpportunityServiceTest {
   }
 
   /**
-   * @description Builds an Opportunity in memory with a fake Id and the
-   *              StageName the test cares about. TestFactoryDefaults.Opp-
-   *              ortunityDefaults fills the rest. No DML.
+   * @description Builds an Opportunity in memory with a fake Id, the
+   *              StageName the test cares about, and (when available)
+   *              the PE_Provider_Opportunity RecordTypeId so the new
+   *              `filterToJiraPushRecordTypes` precondition lets it
+   *              through. TestFactoryDefaults.OpportunityDefaults fills
+   *              the rest. No DML.
+   *
+   *              When the receiving org lacks the PE_Provider_Opportunity
+   *              RT (scratch-org parity), `PE_PROVIDER_RT_ID` is null and
+   *              the precondition will short-circuit; existing assertions
+   *              that expect a publish will fail loudly. That's intended
+   *              — the production-parity contract requires the RT.
    */
   private static Opportunity buildOppty(String stage) {
+    Opportunity o = (Opportunity) TestFactory.createSObject(
+      new Opportunity(
+        Id = TestFactory.getFakeId(Opportunity.SObjectType),
+        StageName = stage
+      )
+    );
+    if (PE_PROVIDER_RT_ID != null) {
+      o.RecordTypeId = PE_PROVIDER_RT_ID;
+    }
+    return o;
+  }
+
+  /**
+   * @description Builds an Opportunity with a fake Id, a fake RecordTypeId
+   *              that is NOT in JIRA_PUSH_RT_DEVELOPER_NAMES. Used by the
+   *              precondition-rejection tests. The fake RT id won't match
+   *              any real Opportunity RT — that's the assertion target.
+   */
+  private static Opportunity buildOpptyNonMatchingRt(String stage) {
+    return (Opportunity) TestFactory.createSObject(
+      new Opportunity(
+        Id = TestFactory.getFakeId(Opportunity.SObjectType),
+        StageName = stage,
+        RecordTypeId = TestFactory.getFakeId(RecordType.SObjectType)
+      )
+    );
+  }
+
+  /**
+   * @description Builds an Opportunity with a fake Id and NO RecordTypeId.
+   *              Used to assert the precondition rejects records that
+   *              have no RT assigned at all (org has RTs but record was
+   *              created without one).
+   */
+  private static Opportunity buildOpptyNullRt(String stage) {
     return (Opportunity) TestFactory.createSObject(
       new Opportunity(
         Id = TestFactory.getFakeId(Opportunity.SObjectType),
@@ -452,6 +511,103 @@ private class OpportunityServiceTest {
     Test.stopTest();
 
     Assert.isTrue(JiraPushService.alreadyPublished.isEmpty());
+  }
+
+  // ─── RecordType precondition (filterToJiraPushRecordTypes) ────────────────
+  //
+  // Verifies the gate that preserves dwood_z's PE_Provider_Opportunity-only
+  // Jira-push rule. Three negative cases: (1) wrong RT, (2) null RT,
+  // (3) mixed-RT batch where only the matching ones survive.
+
+  /**
+   * @description Insert path: an Opportunity with a non-matching RT must
+   *              NOT publish, even though the insert path is otherwise
+   *              unconditional.
+   */
+  @IsTest
+  static void testHandleJiraPushInsertRejectsNonMatchingRecordType() {
+    silenceFramework();
+    Opportunity o = buildOpptyNonMatchingRt('Prospecting');
+
+    Test.startTest();
+    OpportunityService.handleJiraPushInsert(new List<Opportunity>{ o });
+    Test.stopTest();
+
+    Assert.isFalse(
+      JiraPushService.alreadyPublished.contains(
+        publishedKey(o, JiraPushService.CHANGE_INSERT)
+      ),
+      'Non-matching RecordType must NOT publish (dwood_z PEPO-only rule).'
+    );
+  }
+
+  /**
+   * @description Insert path: an Opportunity with NO RecordTypeId at all
+   *              must NOT publish. The precondition is opt-in by RT, so
+   *              records without an RT can't be in the opt-in set.
+   */
+  @IsTest
+  static void testHandleJiraPushInsertRejectsNullRecordType() {
+    silenceFramework();
+    Opportunity o = buildOpptyNullRt('Prospecting');
+    // Belt-and-braces: the TestFactory defaults might stamp an RT; force
+    // it back to null so the assertion is unambiguous.
+    o.RecordTypeId = null;
+
+    Test.startTest();
+    OpportunityService.handleJiraPushInsert(new List<Opportunity>{ o });
+    Test.stopTest();
+
+    Assert.isFalse(
+      JiraPushService.alreadyPublished.contains(
+        publishedKey(o, JiraPushService.CHANGE_INSERT)
+      ),
+      'Null RecordTypeId must NOT publish (precondition is opt-in by RT).'
+    );
+  }
+
+  /**
+   * @description Update path: a mixed-RT batch must publish ONLY the
+   *              records with the opted-in RT. Locks the order-of-filters
+   *              contract: RT first, then qualifying-field change.
+   */
+  @IsTest
+  static void testHandleJiraPushUpdateMixedRtBatchOnlyPublishesMatches() {
+    silenceFramework();
+    if (PE_PROVIDER_RT_ID == null) {
+      // Receiving org doesn't have the PEPO RT — test is meaningless here.
+      return;
+    }
+    Opportunity matching = buildOppty('Prospecting'); // stamped with PEPO RT
+    Opportunity nonMatching = buildOpptyNonMatchingRt('Prospecting');
+
+    Opportunity matchingOld = matching.clone(true, true, true, true);
+    Opportunity nonMatchingOld = nonMatching.clone(true, true, true, true);
+    matching.StageName = 'Qualification';
+    nonMatching.StageName = 'Qualification';
+
+    Test.startTest();
+    OpportunityService.handleJiraPushUpdate(
+      new List<Opportunity>{ matching, nonMatching },
+      new Map<Id, Opportunity>{
+        matching.Id => matchingOld,
+        nonMatching.Id => nonMatchingOld
+      }
+    );
+    Test.stopTest();
+
+    Assert.isTrue(
+      JiraPushService.alreadyPublished.contains(
+        publishedKey(matching, JiraPushService.CHANGE_UPDATE)
+      ),
+      'PEPO-RT record must publish.'
+    );
+    Assert.isFalse(
+      JiraPushService.alreadyPublished.contains(
+        publishedKey(nonMatching, JiraPushService.CHANGE_UPDATE)
+      ),
+      'Non-matching-RT record in the same batch must NOT publish.'
+    );
   }
 
   /**
