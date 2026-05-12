@@ -1,19 +1,12 @@
 {
   "packageDirectories": [
     {
-      "versionName": "ver 0.1",
-      "versionNumber": "0.1.0.NEXT",
       "path": "force-app",
-      "default": true,
-      "package": "CSI-7162 Jira Push",
-      "versionDescription": "Opportunity to Platform Event to Jira push pipeline (CSI-7162)"
+      "default": true
     }
   ],
   "name": "Zelis",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "66.0",
-  "packageAliases": {
-    "CSI-7162 Jira Push": "0HoKe0000004C98KAE"
-  }
+  "sourceApiVersion": "66.0"
 }
