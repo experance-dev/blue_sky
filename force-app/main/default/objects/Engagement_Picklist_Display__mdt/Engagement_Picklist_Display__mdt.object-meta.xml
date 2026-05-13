@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  @author       David Wood
+  @description  Maps a (Field API Name, API Value) pair to a non-default display label.
+                Q8 — lets admins maintain LWC pretty-label vs Apex/REST API-value
+                divergence without code changes. Read by Tex's render paths.
+-->
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Engagement Picklist Display</label>
+    <pluralLabel>Engagement Picklist Displays</pluralLabel>
+    <visibility>Public</visibility>
+</CustomObject>

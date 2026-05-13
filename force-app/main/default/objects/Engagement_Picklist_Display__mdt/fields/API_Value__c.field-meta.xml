@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>API_Value__c</fullName>
+    <description>@author David Wood. The stored picklist API value (e.g. "Page View"). Render paths look up rows by (Field_API_Name__c, API_Value__c) to swap in Display_Label__c.</description>
+    <externalId>false</externalId>
+    <fieldManageability>SubscriberControlled</fieldManageability>
+    <inlineHelpText>Stored API value of the picklist (e.g. Page View).</inlineHelpText>
+    <label>API Value</label>
+    <length>120</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

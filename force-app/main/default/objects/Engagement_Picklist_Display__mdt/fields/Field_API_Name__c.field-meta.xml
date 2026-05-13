@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Field_API_Name__c</fullName>
+    <description>@author David Wood. API name of the picklist field this row applies to (e.g. Engagement_Touch__c.Touch_Type__c). Together with API_Value__c forms the lookup key.</description>
+    <externalId>false</externalId>
+    <fieldManageability>SubscriberControlled</fieldManageability>
+    <inlineHelpText>Object.Field API name (e.g. Engagement_Touch__c.Touch_Type__c).</inlineHelpText>
+    <label>Field API Name</label>
+    <length>120</length>
+    <required>true</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

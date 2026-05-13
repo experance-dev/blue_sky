@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  @author       David Wood
+  @description  Admin permset for Engagement Attribution (Q9 split).
+                Grants Touch_Topic__c create/edit, Engagement Admin app access,
+                CMDT edit perms (Touch_Routing_Rule__mdt, Engagement_Picklist_Display__mdt).
+                Intended to be assigned IN ADDITION to Engagement_Attribution_User
+                for users who need admin rights — User is the base, Admin is the overlay.
+
+                TODO: Add fieldPermissions / objectPermissions / classAccesses /
+                tabSettings / applicationVisibilities for Touch_Topic__c create/edit,
+                Engagement Admin app + tab, EngagementAdminController access, and
+                CMDT modifyAll once the Engagement Attribution feature is deployed
+                to this org. Until then, this permset declares the admin-side label
+                only so it can be assigned and validated.
+
+                Migration: every user currently on the combined Engagement_Attribution_User
+                permset who needs admin rights should also be assigned this permset.
+-->
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Admin/config rights for Engagement Attribution: Touch_Topic__c CRUD, Engagement Admin app + tab, CMDT edit (Touch_Routing_Rule__mdt, Engagement_Picklist_Display__mdt). Layered ON TOP OF Engagement_Attribution_User. Split from prior combined permset (Q9).</description>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Engagement Attribution Admin</label>
+</PermissionSet>
