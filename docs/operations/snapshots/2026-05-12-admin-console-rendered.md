@@ -1,0 +1,214 @@
+- generic [active]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - link "Skip to Navigation" [ref=e5] [cursor=pointer]:
+        - /url: javascript:void(0);
+      - link "Skip to Main Content" [ref=e6] [cursor=pointer]:
+        - /url: javascript:void(0);
+      - generic [ref=e10]:
+        - generic [ref=e14]:
+          - button "Toggle Panel" [ref=e18] [cursor=pointer]:
+            - img [ref=e22]
+            - generic [ref=e25]: Menu
+          - generic [ref=e30]:
+            - img [ref=e34]
+            - generic [ref=e37]: Scratch Org
+        - button "Show menu" [ref=e46] [cursor=pointer]:
+          - img [ref=e48]
+          - generic [ref=e51]: Show menu
+      - generic [ref=e52]:
+        - button "Search" [ref=e58]:
+          - img [ref=e60]
+          - text: Search...
+        - navigation "Global Header" [ref=e63]:
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - group [ref=e67]:
+                - button "Add favorite" [ref=e69] [cursor=pointer]:
+                  - generic [ref=e70]:
+                    - img [ref=e74]
+                    - tooltip "Add favorite"
+                - button "Favorites list" [ref=e78] [cursor=pointer]:
+                  - generic [ref=e79]:
+                    - img [ref=e83]
+                    - tooltip "Favorites list"
+            - listitem [ref=e86]:
+              - button "Global Actions" [ref=e92] [cursor=pointer]:
+                - generic [ref=e93]:
+                  - img [ref=e97]
+                  - tooltip "Global Actions"
+            - listitem [ref=e100]:
+              - button "Guidance Center" [ref=e102] [cursor=pointer]:
+                - generic [ref=e103]:
+                  - img [ref=e107]
+                  - tooltip "Guidance Center"
+            - listitem [ref=e110]:
+              - button "Salesforce Help" [ref=e113] [cursor=pointer]:
+                - generic [ref=e114]:
+                  - img [ref=e118]
+                  - tooltip "Salesforce Help"
+            - listitem [ref=e121]:
+              - button "Setup" [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]:
+                  - img [ref=e132]
+                  - tooltip "Setup"
+            - listitem [ref=e135]:
+              - button "Notifications" [ref=e138] [cursor=pointer]:
+                - generic [ref=e139]:
+                  - img [ref=e144]
+                  - tooltip "Notifications"
+            - listitem [ref=e148]:
+              - button "View profile" [ref=e151] [cursor=pointer]:
+                - generic [ref=e152]:
+                  - tooltip "View profile"
+    - generic [ref=e156]:
+      - generic [ref=e159]:
+        - generic [ref=e161]:
+          - navigation "App" [ref=e162]:
+            - button "App Launcher" [ref=e164] [cursor=pointer]:
+              - generic [ref=e175]: App Launcher
+          - heading "Sales" [level=1] [ref=e176]:
+            - generic "Sales" [ref=e177]
+        - navigation "Global" [ref=e180]:
+          - list [ref=e181]:
+            - listitem [ref=e182]:
+              - link "Home" [ref=e183] [cursor=pointer]:
+                - /url: /lightning/page/home
+                - generic [ref=e184]: Home
+            - listitem [ref=e185]:
+              - link "Chatter" [ref=e186] [cursor=pointer]:
+                - /url: /lightning/page/chatter
+                - generic [ref=e187]: Chatter
+            - listitem [ref=e188]:
+              - link "Opportunities" [ref=e189] [cursor=pointer]:
+                - /url: /lightning/o/Opportunity/home
+                - generic [ref=e190]: Opportunities
+              - button "Opportunities List" [ref=e194] [cursor=pointer]:
+                - img [ref=e198]
+                - generic [ref=e201]: Opportunities List
+            - listitem [ref=e202]:
+              - link "Leads" [ref=e203] [cursor=pointer]:
+                - /url: /lightning/o/Lead/home
+                - generic [ref=e204]: Leads
+              - button "Leads List" [ref=e208] [cursor=pointer]:
+                - img [ref=e212]
+                - generic [ref=e215]: Leads List
+            - listitem [ref=e216]:
+              - link "Tasks" [ref=e217] [cursor=pointer]:
+                - /url: /lightning/o/Task/home
+                - generic [ref=e218]: Tasks
+              - button "Tasks List" [ref=e222] [cursor=pointer]:
+                - img [ref=e226]
+                - generic [ref=e229]: Tasks List
+            - listitem [ref=e230]:
+              - link "Files" [ref=e231] [cursor=pointer]:
+                - /url: /lightning/o/ContentDocument/home
+                - generic [ref=e232]: Files
+              - button "Files List" [ref=e236] [cursor=pointer]:
+                - img [ref=e240]
+                - generic [ref=e243]: Files List
+            - listitem [ref=e244]:
+              - link "Accounts" [ref=e245] [cursor=pointer]:
+                - /url: /lightning/o/Account/home
+                - generic [ref=e246]: Accounts
+              - button "Accounts List" [ref=e250] [cursor=pointer]:
+                - img [ref=e254]
+                - generic [ref=e257]: Accounts List
+            - listitem [ref=e258]:
+              - link "Contacts" [ref=e259] [cursor=pointer]:
+                - /url: /lightning/o/Contact/home
+                - generic [ref=e260]: Contacts
+              - button "Contacts List" [ref=e264] [cursor=pointer]:
+                - img [ref=e268]
+                - generic [ref=e271]: Contacts List
+            - listitem [ref=e272] [cursor=pointer]:
+              - link "\* Engagement Admin" [ref=e273]:
+                - /url: /lightning/n/Engagement_Admin_Console
+                - generic "Not added to nav bar" [ref=e274]: "\*"
+                - generic [ref=e275]: Engagement Admin
+              - button "Engagement Admin List" [ref=e279]:
+                - img [ref=e283]
+                - generic [ref=e286]: Engagement Admin List
+              - button "Close tab" [ref=e287]:
+                - img [ref=e291]
+                - generic [ref=e294]: Close tab
+            - listitem [ref=e295]:
+              - button "Show more navigation items" [ref=e297] [cursor=pointer]:
+                - generic [ref=e298]: More
+                - img [ref=e302]
+                - generic [ref=e305]: Show more navigation items
+            - listitem [ref=e306]:
+              - button "Edit nav items" [ref=e308] [cursor=pointer]:
+                - img [ref=e310]
+                - generic [ref=e313]: Edit nav items
+      - main [ref=e315]:
+        - generic [ref=e323]:
+          - heading "Engagement Admin" [level=1] [ref=e330]
+          - generic [ref=e337]:
+            - article [ref=e341]:
+              - generic [ref=e344]:
+                - heading "Test-a-Touch" [level=2] [ref=e345]:
+                  - generic [ref=e346]: Test-a-Touch
+                - paragraph [ref=e347]: Synthesize an Engagement Touch and observe the identity-resolution + routing outcome.
+              - generic [ref=e349]:
+                - generic [ref=e352]:
+                  - generic [ref=e353]: "\*Email"
+                  - textbox "Email" [ref=e355]
+                - generic [ref=e358]:
+                  - generic [ref=e359]: Topic external code
+                  - textbox "Topic external code" [ref=e361]:
+                    - /placeholder: e.g. TOPIC_NETWORK_MGMT
+                - generic [ref=e363]:
+                  - generic [ref=e365]: Touch type
+                  - generic [ref=e369]:
+                    - combobox "Touch type" [ref=e370] [cursor=pointer]
+                    - img [ref=e375]
+                  - status
+                - generic [ref=e379]:
+                  - generic [ref=e381]: Persona
+                  - generic [ref=e385]:
+                    - combobox "Persona" [ref=e386] [cursor=pointer]
+                    - img [ref=e391]
+                  - status
+                - generic [ref=e395]:
+                  - generic [ref=e397]: Intent level
+                  - generic [ref=e401]:
+                    - combobox "Intent level" [ref=e402] [cursor=pointer]
+                    - img [ref=e407]
+                  - status
+                - generic [ref=e412]:
+                  - generic [ref=e413]: Asset name
+                  - textbox "Asset name" [ref=e415]
+                - generic [ref=e416]:
+                  - generic:
+                    - button "Run Test" [disabled]
+            - article [ref=e420]:
+              - generic [ref=e423]:
+                - heading "Rule Coverage" [level=2] [ref=e424]:
+                  - generic [ref=e425]: Rule Coverage
+                - paragraph [ref=e426]: Active routing rules and the signals they have produced in the last 30 days. Rules with zero coverage are highlighted — they may be misconfigured or dead.
+              - generic [ref=e427]:
+                - alert [ref=e428]:
+                  - generic [ref=e429]: 4 rules produced zero signals in the last 30 days.
+                - generic [ref=e430]:
+                  - generic [ref=e431]: Navigation Mode
+                  - grid [ref=e435]:
+                    - rowgroup
+                    - rowgroup [ref=e513]
+            - article [ref=e667]:
+              - generic [ref=e669]:
+                - generic [ref=e670]:
+                  - heading "Error Queue" [level=2] [ref=e671]:
+                    - generic [ref=e672]: Error Queue
+                  - paragraph [ref=e673]: Touches that are unresolved, ambiguous, or errored. Retry once the upstream data is corrected, or ignore to archive.
+                - generic [ref=e674]: 0 touches pending review
+              - paragraph [ref=e676]: No touches require attention.
+    - generic:
+      - contentinfo "Utility Bar":
+        - list [ref=e679]:
+          - listitem [ref=e680]:
+            - button "To Do List" [ref=e683] [cursor=pointer]:
+              - img [ref=e687]
+              - generic [ref=e690]: To Do List
+  - generic:
+    - status

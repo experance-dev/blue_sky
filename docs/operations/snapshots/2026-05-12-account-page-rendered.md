@@ -1,0 +1,183 @@
+- generic [active]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - link "Skip to Navigation" [ref=e5] [cursor=pointer]:
+        - /url: javascript:void(0);
+      - link "Skip to Main Content" [ref=e6] [cursor=pointer]:
+        - /url: javascript:void(0);
+      - generic [ref=e10]:
+        - generic [ref=e14]:
+          - button "Toggle Panel" [ref=e18] [cursor=pointer]:
+            - img [ref=e22]
+            - generic [ref=e25]: Menu
+          - generic [ref=e30]:
+            - img [ref=e34]
+            - generic [ref=e37]: Scratch Org
+        - button "Show menu" [ref=e46] [cursor=pointer]:
+          - img [ref=e48]
+          - generic [ref=e51]: Show menu
+      - generic [ref=e52]:
+        - button "Search" [ref=e58]:
+          - img [ref=e60]
+          - text: Search...
+        - navigation "Global Header" [ref=e63]:
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - group [ref=e67]:
+                - button "Add favorite" [ref=e69] [cursor=pointer]
+                - button "Favorites list" [ref=e78] [cursor=pointer]
+            - listitem [ref=e86]:
+              - button "Global Actions" [ref=e92] [cursor=pointer]:
+                - generic [ref=e93]
+            - listitem [ref=e100]:
+              - button "Guidance Center" [ref=e102] [cursor=pointer]:
+                - generic [ref=e103]
+            - listitem [ref=e110]:
+              - button "Salesforce Help" [ref=e113] [cursor=pointer]:
+                - generic [ref=e114]
+            - listitem [ref=e121]:
+              - button "Setup" [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]
+            - listitem [ref=e135]:
+              - button "Notifications" [ref=e138] [cursor=pointer]:
+                - generic [ref=e139]
+            - listitem [ref=e148]:
+              - button "View profile" [ref=e151] [cursor=pointer]:
+                - generic [ref=e152]
+    - generic [ref=e156]:
+      - generic [ref=e159]:
+        - generic [ref=e161]:
+          - navigation "App" [ref=e162]:
+            - button "App Launcher" [ref=e164] [cursor=pointer]:
+              - generic [ref=e175]: App Launcher
+          - heading "Sales" [level=1] [ref=e176]:
+            - generic "Sales" [ref=e177]
+        - navigation "Global" [ref=e180]:
+          - list [ref=e181]:
+            - listitem [ref=e182]:
+              - link "Home" [ref=e183] [cursor=pointer]:
+                - /url: /lightning/page/home
+                - generic [ref=e184]: Home
+            - listitem [ref=e185]:
+              - link "Chatter" [ref=e186] [cursor=pointer]:
+                - /url: /lightning/page/chatter
+                - generic [ref=e187]: Chatter
+            - listitem [ref=e188]:
+              - link "Opportunities" [ref=e189] [cursor=pointer]:
+                - /url: /lightning/o/Opportunity/home
+                - generic [ref=e190]: Opportunities
+              - button "Opportunities List" [ref=e194] [cursor=pointer]:
+                - img [ref=e198]
+                - generic [ref=e201]: Opportunities List
+            - listitem [ref=e202]:
+              - link "Leads" [ref=e203] [cursor=pointer]:
+                - /url: /lightning/o/Lead/home
+                - generic [ref=e204]: Leads
+              - button "Leads List" [ref=e208] [cursor=pointer]:
+                - img [ref=e212]
+                - generic [ref=e215]: Leads List
+            - listitem [ref=e216]:
+              - link "Tasks" [ref=e217] [cursor=pointer]:
+                - /url: /lightning/o/Task/home
+                - generic [ref=e218]: Tasks
+              - button "Tasks List" [ref=e222] [cursor=pointer]:
+                - img [ref=e226]
+                - generic [ref=e229]: Tasks List
+            - listitem [ref=e230]:
+              - link "Files" [ref=e231] [cursor=pointer]:
+                - /url: /lightning/o/ContentDocument/home
+                - generic [ref=e232]: Files
+              - button "Files List" [ref=e236] [cursor=pointer]:
+                - img [ref=e240]
+                - generic [ref=e243]: Files List
+            - listitem [ref=e244] [cursor=pointer]:
+              - link "Accounts" [ref=e245]:
+                - /url: /lightning/o/Account/home
+                - generic [ref=e246]: Accounts
+              - button "Accounts List" [ref=e250]:
+                - img [ref=e254]
+                - generic [ref=e257]: Accounts List
+            - listitem [ref=e258]:
+              - link "Contacts" [ref=e259] [cursor=pointer]:
+                - /url: /lightning/o/Contact/home
+                - generic [ref=e260]: Contacts
+              - button "Contacts List" [ref=e264] [cursor=pointer]:
+                - img [ref=e268]
+                - generic [ref=e271]: Contacts List
+            - listitem [ref=e272]:
+              - link "Campaigns" [ref=e273] [cursor=pointer]:
+                - /url: /lightning/o/Campaign/home
+                - generic [ref=e274]: Campaigns
+              - button "Campaigns List" [ref=e278] [cursor=pointer]:
+                - img [ref=e282]
+                - generic [ref=e285]: Campaigns List
+            - listitem [ref=e286]:
+              - button "Show more navigation items" [ref=e288] [cursor=pointer]:
+                - generic [ref=e289]: More
+                - img [ref=e293]
+                - generic [ref=e296]: Show more navigation items
+            - listitem [ref=e297]:
+              - button "Edit nav items" [ref=e299] [cursor=pointer]:
+                - img [ref=e301]
+                - generic [ref=e304]: Edit nav items
+      - main [ref=e306]:
+        - generic [ref=e322]:
+          - generic [ref=e331]:
+            - generic [ref=e332]:
+              - generic [ref=e333]:
+                - heading "Account United Healthcare" [level=1] [ref=e343]
+                - button "View Account Hierarchy" [ref=e357] [cursor=pointer]
+              - button "Follow" [ref=e367] [cursor=pointer]:
+                - generic [ref=e368]
+              - generic [ref=e377]:
+                - generic "Edit" [ref=e378]
+                - generic "New Contact" [ref=e384]
+                - generic "New Case" [ref=e390]
+                - button "Show more actions" [ref=e397] [cursor=pointer]
+            - generic [ref=e403]:
+              - generic [ref=e405]:
+                - paragraph [ref=e406]: Type
+                - paragraph [ref=e407]
+              - generic [ref=e410]:
+                - paragraph [ref=e411]: Phone
+                - paragraph
+              - generic [ref=e413]:
+                - paragraph [ref=e414]: Website
+                - paragraph
+              - generic [ref=e416]:
+                - paragraph [ref=e417]: Account Owner
+                - paragraph [ref=e418]
+              - generic [ref=e449]:
+                - paragraph [ref=e450]: Account Site
+                - paragraph
+              - generic [ref=e452]:
+                - paragraph [ref=e453]: Industry
+                - paragraph [ref=e454]
+          - generic [ref=e457]:
+            - generic [ref=e463]:
+              - heading "Tabs" [level=2] [ref=e464]
+              - generic "Tabs" [ref=e465]:
+                - generic [ref=e466]
+            - generic [ref=e933]:
+              - article [ref=e937]:
+                - generic [ref=e939]
+                - generic [ref=e956]: People Engaged · 7
+                - generic [ref=e957]
+                - generic [ref=e969]
+                - generic [ref=e981]
+                - generic [ref=e993]
+                - generic [ref=e1004]
+                - generic [ref=e1015]
+                - generic [ref=e1026]
+              - generic [ref=e1040]:
+                - heading "Tabs" [level=2] [ref=e1041]
+                - generic "Tabs" [ref=e1042]
+    - generic:
+      - contentinfo "Utility Bar":
+        - list [ref=e1177]:
+          - listitem [ref=e1178]:
+            - button "To Do List" [ref=e1181] [cursor=pointer]:
+              - img [ref=e1185]
+              - generic [ref=e1188]: To Do List
+  - generic:
+    - status

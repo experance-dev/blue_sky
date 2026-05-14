@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Account — Engagement (wireframe v2)</title>
+    <style>
+      :root {
+        --slds-blue: #0176d3;
+        --slds-blue-dark: #014486;
+        --bg-page: #f3f3f3;
+        --bg-card: #ffffff;
+        --bg-section: #fafaf9;
+        --border: #c9c9c9;
+        --border-light: #e5e5e5;
+        --text: #181818;
+        --text-muted: #706e6b;
+        --text-subtle: #8c8c8c;
+        --consultant: #6a4dc7;
+        --consultant-bg: #f1ecff;
+        --acr: #06a59a;
+        --acr-bg: #e8f6f5;
+        --repeat: #b25700;
+        --repeat-bg: #fef5e8;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg-page);
+        color: var(--text);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      .wireframe-note {
+        background: #fff3cd;
+        color: #664d03;
+        padding: 8px 16px;
+        border-bottom: 1px solid #ffe69c;
+        font-size: 12px;
+      }
+      .page-wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      .acc-header {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 12px 16px;
+        margin-bottom: 12px;
+      }
+      .acc-header h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .acc-header .sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      .lwc {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .lwc-header {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-light);
+        background: var(--bg-section);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .lwc-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .lwc-title .icon {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border-radius: 3px;
+        background: var(--slds-blue);
+        color: #fff;
+        text-align: center;
+        line-height: 18px;
+        font-size: 11px;
+        margin-right: 6px;
+        vertical-align: -3px;
+      }
+      .lwc-subtitle {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 2px;
+      }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-light);
+        background: #fff;
+      }
+      .toolbar .group-by {
+        display: inline-flex;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .toolbar .group-by button {
+        padding: 6px 12px;
+        font-size: 12px;
+        background: #fff;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+      }
+      .toolbar .group-by button.active {
+        background: var(--slds-blue);
+        color: #fff;
+      }
+      .toolbar .label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      .toolbar .spacer {
+        flex: 1;
+      }
+      .toolbar .filter {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      /* Row */
+      .person-row,
+      .campaign-row {
+        display: grid;
+        grid-template-columns: 20px 32px 1.6fr 1.4fr 0.6fr 0.6fr auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border-light);
+        cursor: pointer;
+      }
+      .person-row:hover,
+      .campaign-row:hover {
+        background: #fafafa;
+      }
+      .caret {
+        display: inline-block;
+        width: 12px;
+        transition: transform 0.15s;
+        color: var(--text-muted);
+      }
+      .open .caret {
+        transform: rotate(90deg);
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--slds-blue);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .avatar.consultant {
+        background: var(--consultant);
+      }
+      .avatar.acr {
+        background: var(--acr);
+      }
+      .name {
+        font-weight: 600;
+      }
+      .name .title {
+        display: block;
+        font-weight: 400;
+        color: var(--text-muted);
+        font-size: 11px;
+        margin-top: 1px;
+      }
+      .tag-line {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+      .tag-line .tag {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 11px;
+        margin-right: 4px;
+      }
+      .tag.acr {
+        background: var(--acr-bg);
+        color: var(--acr);
+      }
+      .tag.consultant {
+        background: var(--consultant-bg);
+        color: var(--consultant);
+      }
+      .tag.topic {
+        background: #eef;
+        color: var(--slds-blue-dark);
+      }
+      .stat {
+        font-size: 12px;
+      }
+      .stat .num {
+        font-weight: 600;
+      }
+      .stat .label {
+        display: block;
+        color: var(--text-muted);
+        font-size: 11px;
+      }
+
+      /* Touch list (expanded under a person) */
+      .touch-detail {
+        background: #fbfbfb;
+        border-bottom: 1px solid var(--border-light);
+        padding: 4px 16px 8px 64px;
+        display: none;
+      }
+      .open + .touch-detail {
+        display: block;
+      }
+      .touch-detail .asset-row {
+        display: grid;
+        grid-template-columns: 80px 1fr 60px 100px;
+        gap: 12px;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--border-light);
+        font-size: 12px;
+      }
+      .touch-detail .asset-row:last-child {
+        border-bottom: none;
+      }
+      .touch-detail .asset-row .type {
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+      }
+      .touch-detail .asset-row .title {
+        color: var(--text);
+      }
+      .touch-detail .asset-row .title .campaign-ref {
+        display: block;
+        color: var(--text-subtle);
+        font-size: 11px;
+        margin-top: 1px;
+      }
+      .touch-detail .asset-row .count {
+        text-align: right;
+      }
+      .touch-detail .asset-row .count .badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 9px;
+        background: var(--repeat-bg);
+        color: var(--repeat);
+        font-weight: 600;
+        font-size: 11px;
+      }
+      .touch-detail .asset-row .date {
+        color: var(--text-muted);
+        text-align: right;
+        font-size: 11px;
+      }
+
+      /* Add to Deal Team button */
+      .btn {
+        padding: 5px 10px;
+        border-radius: 3px;
+        font-size: 12px;
+        cursor: pointer;
+        border: 1px solid var(--slds-blue);
+        background: #fff;
+        color: var(--slds-blue);
+        font-weight: 500;
+      }
+      .btn:hover {
+        background: var(--slds-blue);
+        color: #fff;
+      }
+      .btn.disabled {
+        border-color: var(--border);
+        color: var(--text-muted);
+        cursor: default;
+        background: #fff;
+      }
+      .btn.disabled:hover {
+        background: #fff;
+        color: var(--text-muted);
+      }
+
+      /* Campaign view rows look slightly different */
+      .campaign-row {
+        grid-template-columns: 20px 32px 2fr 1fr 0.7fr 0.7fr;
+      }
+      .campaign-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        background: #f3f3f3;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        font-size: 14px;
+      }
+      .open + .campaign-detail {
+        display: block;
+      }
+      .campaign-detail {
+        display: none;
+        background: #fbfbfb;
+        border-bottom: 1px solid var(--border-light);
+        padding: 4px 16px 8px 64px;
+      }
+      .campaign-detail .person-mini {
+        display: grid;
+        grid-template-columns: 24px 1.4fr 1fr 60px 100px auto;
+        gap: 12px;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px dashed var(--border-light);
+        font-size: 12px;
+      }
+      .campaign-detail .person-mini:last-child {
+        border-bottom: none;
+      }
+      .person-mini .av {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: var(--slds-blue);
+        color: #fff;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+      }
+      .person-mini .av.consultant {
+        background: var(--consultant);
+      }
+      .person-mini .av.acr {
+        background: var(--acr);
+      }
+
+      .footer {
+        padding: 8px 16px;
+        background: var(--bg-section);
+        font-size: 11px;
+        color: var(--text-subtle);
+        border-top: 1px solid var(--border-light);
+        display: flex;
+        justify-content: space-between;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wireframe-note">
+      <strong>Wireframe v2 — Account Engagement.</strong> Mock data; layout
+      intent only. Click a row caret to see the per-asset breakdown.
+    </div>
+
+    <div class="page-wrap">
+      <div class="acc-header">
+        <h1>Acme Corp</h1>
+        <div class="sub">Healthcare Payer · Customer · Owner: Alex Rivera</div>
+      </div>
+
+      <div class="lwc">
+        <div class="lwc-header">
+          <div>
+            <div class="lwc-title"><span class="icon">EA</span>Engagement</div>
+            <div class="lwc-subtitle">
+              7 people engaged · 23 touches in last 30 days · Last touch: 2h ago
+            </div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <span class="label">Group by</span>
+          <div class="group-by">
+            <button class="active">Person</button>
+            <button>Campaign</button>
+          </div>
+          <span class="spacer"></span>
+          <span class="filter">Last 30 days · All topics</span>
+        </div>
+
+        <!-- ===== PERSON VIEW (default) ===== -->
+
+        <!-- Person 1 — ACR Customer Champion, on a deal team -->
+        <div class="person-row open">
+          <span class="caret">▶</span>
+          <div class="avatar acr">JS</div>
+          <div>
+            <div class="name">
+              Jane Smith<span class="title">CRO · Acme Corp</span>
+            </div>
+            <div class="tag-line">
+              <span class="tag acr">ACR · Champion</span
+              ><span class="tag topic">Pricing</span
+              ><span class="tag topic">Integration</span>
+            </div>
+          </div>
+          <div class="tag-line">
+            On 1 deal team: <strong>Pricing Implementation</strong>
+          </div>
+          <div class="stat">
+            <span class="num">5</span><span class="label">touches</span>
+          </div>
+          <div class="stat">
+            <span class="num">3d ago</span><span class="label">last touch</span>
+          </div>
+          <div><button class="btn disabled">On Deal Team</button></div>
+        </div>
+        <div class="touch-detail">
+          <div class="asset-row">
+            <div class="type">Download</div>
+            <div class="title">
+              Zelis Pricing &amp; Packaging Whitepaper<span class="campaign-ref"
+                >Campaign: Q2 Zelis Pricing Promo</span
+              >
+            </div>
+            <div class="count"><span class="badge">2×</span></div>
+            <div class="date">3d ago · 11d ago</div>
+          </div>
+          <div class="asset-row">
+            <div class="type">Webinar</div>
+            <div class="title">
+              API Integration Deep Dive<span class="campaign-ref"
+                >Campaign: Integration Webinar Series</span
+              >
+            </div>
+            <div class="count">1×</div>
+            <div class="date">9d ago</div>
+          </div>
+          <div class="asset-row">
+            <div class="type">Form</div>
+            <div class="title">
+              Pricing inquiry form submission<span class="campaign-ref"
+                >Campaign: Q2 Zelis Pricing Promo</span
+              >
+            </div>
+            <div class="count">1×</div>
+            <div class="date">14d ago</div>
+          </div>
+          <div class="asset-row">
+            <div class="type">Page View</div>
+            <div class="title">
+              /products/zelis-pricing<span class="campaign-ref"
+                >No campaign</span
+              >
+            </div>
+            <div class="count">1×</div>
+            <div class="date">22d ago</div>
+          </div>
+        </div>
+
+        <!-- Person 2 — Consultant (ACR external actor) -->
+        <div class="person-row">
+          <span class="caret">▶</span>
+          <div class="avatar consultant">MW</div>
+          <div>
+            <div class="name">
+              Marcus Webb<span class="title"
+                >Implementation Consultant · Deloitte</span
+              >
+            </div>
+            <div class="tag-line">
+              <span class="tag consultant">ACR · Consultant</span
+              ><span class="tag topic">Competitive</span
+              ><span class="tag topic">Implementation</span>
+            </div>
+          </div>
+          <div class="tag-line">Not on any deal team</div>
+          <div class="stat">
+            <span class="num">3</span><span class="label">touches</span>
+          </div>
+          <div class="stat">
+            <span class="num">1d ago</span><span class="label">last touch</span>
+          </div>
+          <div><button class="btn">+ Add to Deal Team</button></div>
+        </div>
+        <div class="touch-detail">
+          <div class="asset-row">
+            <div class="type">Download</div>
+            <div class="title">
+              Zelis vs Competitor Comparison Brief<span class="campaign-ref"
+                >Campaign: Competitive Positioning</span
+              >
+            </div>
+            <div class="count">1×</div>
+            <div class="date">1d ago</div>
+          </div>
+          <div class="asset-row">
+            <div class="type">Download</div>
+            <div class="title">
+              Implementation Playbook<span class="campaign-ref"
+                >Campaign: Customer Success Library</span
+              >
+            </div>
+            <div class="count">1×</div>
+            <div class="date">6d ago</div>
+          </div>
+          <div class="asset-row">
+            <div class="type">Webinar</div>
+            <div class="title">
+              Best Practices Roundtable<span class="campaign-ref"
+                >Campaign: Customer Success Library</span
+              >
+            </div>
+            <div class="count">1×</div>
+            <div class="date">12d ago</div>
+          </div>
+        </div>
+
+        <!-- Person 3 — CFO, not on ACR, high signal -->
+        <div class="person-row">
+          <span class="caret">▶</span>
+          <div class="avatar">SJ</div>
+          <div>
+            <div class="name">
+              Sarah Johnson<span class="title">CFO · Acme Corp</span>
+            </div>
+            <div class="tag-line"><span class="tag topic">Pricing</span></div>
+          </div>
+          <div class="tag-line">Not on any deal team</div>
+          <div class="stat">
+            <span class="num">4</span><span class="label">touches</span>
+          </div>
+          <div class="stat">
+            <span class="num">2h ago</span><span class="label">last touch</span>
+          </div>
+          <div><button class="btn">+ Add to Deal Team</button></div>
+        </div>
+        <div class="touch-detail">
+          <div class="asset-row">
+            <div class="type">Download</div>
+            <div class="title">
+              Zelis Pricing &amp; Packaging Whitepaper<span class="campaign-ref"
+                >Campaign: Q2 Zelis Pricing Promo</span
+              >
+            </div>
+            <div class="count"><span class="badge">3×</span></div>
+            <div class="date">2h ago · 1d ago · 4d ago</div>
+          </div>
+          <div class="asset-row">
+            <div class="type">Page View</div>
+            <div class="title">
+              /pricing/calculator<span class="campaign-ref">No campaign</span>
+            </div>
+            <div class="count">1×</div>
+            <div class="date">2h ago</div>
+          </div>
+        </div>
+
+        <!-- Person 4 — VP Eng -->
+        <div class="person-row">
+          <span class="caret">▶</span>
+          <div class="avatar">RC</div>
+          <div>
+            <div class="name">
+              Robert Chen<span class="title">VP Engineering · Acme Corp</span>
+            </div>
+            <div class="tag-line">
+              <span class="tag topic">Integration</span>
+            </div>
+          </div>
+          <div class="tag-line">
+            On 1 deal team: <strong>Pricing Implementation</strong>
+          </div>
+          <div class="stat">
+            <span class="num">2</span><span class="label">touches</span>
+          </div>
+          <div class="stat">
+            <span class="num">7d ago</span><span class="label">last touch</span>
+          </div>
+          <div><button class="btn disabled">On Deal Team</button></div>
+        </div>
+
+        <!-- Person 5 — VP Ops -->
+        <div class="person-row">
+          <span class="caret">▶</span>
+          <div class="avatar">DP</div>
+          <div>
+            <div class="name">
+              David Park<span class="title">VP Operations · Acme Corp</span>
+            </div>
+            <div class="tag-line">
+              <span class="tag topic">Implementation</span>
+            </div>
+          </div>
+          <div class="tag-line">Not on any deal team</div>
+          <div class="stat">
+            <span class="num">1</span><span class="label">touch</span>
+          </div>
+          <div class="stat">
+            <span class="num">5d ago</span><span class="label">last touch</span>
+          </div>
+          <div><button class="btn">+ Add to Deal Team</button></div>
+        </div>
+
+        <!-- Person 6 — Procurement (low engagement, on a deal team) -->
+        <div class="person-row">
+          <span class="caret">▶</span>
+          <div class="avatar">PK</div>
+          <div>
+            <div class="name">
+              Priya Kumar<span class="title"
+                >Director of Procurement · Acme Corp</span
+              >
+            </div>
+            <div class="tag-line">
+              <span class="tag topic">Compliance</span>
+            </div>
+          </div>
+          <div class="tag-line">
+            On 1 deal team: <strong>Compliance Module</strong>
+          </div>
+          <div class="stat">
+            <span class="num">1</span><span class="label">touch</span>
+          </div>
+          <div class="stat">
+            <span class="num">22d ago</span
+            ><span class="label">last touch</span>
+          </div>
+          <div><button class="btn disabled">On Deal Team</button></div>
+        </div>
+
+        <!-- Person 7 — External advisor consultant -->
+        <div class="person-row">
+          <span class="caret">▶</span>
+          <div class="avatar consultant">LP</div>
+          <div>
+            <div class="name">
+              Linda Park<span class="title">Independent Advisor</span>
+            </div>
+            <div class="tag-line">
+              <span class="tag consultant">ACR · Advisor</span
+              ><span class="tag topic">Integration</span>
+            </div>
+          </div>
+          <div class="tag-line">Not on any deal team</div>
+          <div class="stat">
+            <span class="num">2</span><span class="label">touches</span>
+          </div>
+          <div class="stat">
+            <span class="num">8d ago</span><span class="label">last touch</span>
+          </div>
+          <div><button class="btn">+ Add to Deal Team</button></div>
+        </div>
+
+        <div class="footer">
+          <span
+            >Scope: ACR-related contacts + engaged contacts at Acme Corp</span
+          >
+          <span>Add to Deal Team → asks Opportunity + Role</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
