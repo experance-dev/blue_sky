@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Default field-value sets for every SObject type used in tests.
  *              Inner-class names follow the convention `[ObjectName]Defaults` and
