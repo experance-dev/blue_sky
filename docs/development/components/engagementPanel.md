@@ -46,6 +46,43 @@ All three events are `bubbles: true, composed: true` so they cross the shadow bo
 
 Both wires return `List<EngagementDTO>` — see [`EngagementDTO.cls`](../../../force-app/main/default/classes/engagement/EngagementDTO.cls) for the frozen shape. The Opportunity wire partitions the result via the `onOcr` flag on each DTO; the panel rendering layer reads `dealTeam` / `notOnDealTeam` getters off `engagements`.
 
+## Permission gating
+
+Two custom permissions gate this component. Pattern + rationale in [`lwc-visibility-patterns.md`](../lwc-visibility-patterns.md); this section is the engagementPanel-specific cheatsheet.
+
+| Custom permission                                                                                                                              | Imported as        | Controls                                                                                    |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------- |
+| [`Marketing_Influence_View`](../../../force-app/main/default/customPermissions/Marketing_Influence_View.customPermission-meta.xml)             | `hasViewPerm`      | `canViewPanel` getter — wraps the entire `<article>`. No perm = panel hidden.               |
+| [`Marketing_Influence_Power_User`](../../../force-app/main/default/customPermissions/Marketing_Influence_Power_User.customPermission-meta.xml) | `hasPowerUserPerm` | `canActOnPanel` getter — wraps **View all**, **+ Add**, **Dismiss**. View tier = read-only. |
+
+Both perms use strict `=== true` comparison in the getters — see [`engagementPanel.js` lines 113–119](../../../force-app/main/default/lwc/engagementPanel/engagementPanel.js).
+
+### What each tier sees
+
+| Tier                                             | Panel container | Contact rows + chips + badges | View all | + Add   | Dismiss |
+| ------------------------------------------------ | --------------- | ----------------------------- | -------- | ------- | ------- |
+| No MI permset                                    | hidden          | hidden                        | hidden   | hidden  | hidden  |
+| `Permset_Marketing_Influence_View`               | visible         | visible                       | hidden   | hidden  | hidden  |
+| `Permset_Marketing_Influence_Power_User` / Admin | visible         | visible                       | visible  | visible | visible |
+
+### FlexiPage Component Visibility (first line of defense)
+
+In addition to the intra-LWC gating, every FlexiPage that hosts `c:engagementPanel` carries a `visibilityRule` on the `Marketing_Influence_View` custom permission. Users without the View perm don't render the panel at all — defense-in-depth against an edited FlexiPage and a saved bandwidth round-trip on the wires. The five FlexiPages currently carrying the panel:
+
+- [`Opportunity_Engagement_Record_Page`](../../../force-app/main/default/flexipages/Opportunity_Engagement_Record_Page.flexipage-meta.xml) — MI-owned
+- [`Account_Engagement_Record_Page`](../../../force-app/main/default/flexipages/Account_Engagement_Record_Page.flexipage-meta.xml) — MI-owned
+- [`Account_Record_Page_Provider`](../../../force-app/main/default/flexipages/Account_Record_Page_Provider.flexipage-meta.xml) — Zelis-owned, contributed additively
+- [`PE_Payer_Record_Page`](../../../force-app/main/default/flexipages/PE_Payer_Record_Page.flexipage-meta.xml) — Zelis-owned, contributed additively
+- [`PE_Provider_Account_Record_Page`](../../../force-app/main/default/flexipages/PE_Provider_Account_Record_Page.flexipage-meta.xml) — Zelis-owned, contributed additively
+
+If you add a sixth FlexiPage, copy the `visibilityRule` block from any of the above — the `$Permission.CustomPermission.Marketing_Influence_View` form is FlexiPage-specific. Details in [`lwc-visibility-patterns.md` Step 4](../lwc-visibility-patterns.md).
+
+### Test files (one per perm combination)
+
+- [`engagementPanel.test.js`](../../../force-app/main/default/lwc/engagementPanel/__tests__/engagementPanel.test.js) — both perms granted (Power User render path).
+- [`engagementPanel.perm-view.test.js`](../../../force-app/main/default/lwc/engagementPanel/__tests__/engagementPanel.perm-view.test.js) — View granted, Power User not (read-only render path).
+- [`engagementPanel.perm-none.test.js`](../../../force-app/main/default/lwc/engagementPanel/__tests__/engagementPanel.perm-none.test.js) — neither granted (outer `lwc:if` blocks the panel).
+
 ## Modal flows
 
 Three modal subclasses are chained from the panel — all opened via `LightningModal.open(...)`, all closed with `{ result, payload }`:
@@ -117,5 +154,6 @@ Keyboard map: standard Tab order — record link → "+ Add" → dismiss `×` �
 - DTO: [`EngagementDTO.cls`](../../../force-app/main/default/classes/engagement/EngagementDTO.cls)
 - Modal chain: [`addToDealTeamModal`](./addToDealTeamModal.md) · [`alreadyAddedModal`](./alreadyAddedModal.md) · [`engagementDetailModal`](./engagementDetailModal.md)
 - Conventions: [`docs/development/lwc-conventions.md`](../lwc-conventions.md)
+- Visibility gating: [`docs/development/lwc-visibility-patterns.md`](../lwc-visibility-patterns.md)
 - Demo flow: [`docs/users/DEMO.md`](../../users/DEMO.md)
 - User-facing guide: [`docs/users/sales-rep-guide.md`](../../users/sales-rep-guide.md)

@@ -110,6 +110,7 @@ The point: **don't treat `alreadyExists` as a failure**. It's a normal outcome. 
 
 - [`best-practices/lwc.md`](../../best-practices/lwc.md) — canonical conventions
 - [`best-practices/architecture.md`](../../best-practices/architecture.md) — Selector/Service/Domain
+- [`docs/development/lwc-visibility-patterns.md`](./lwc-visibility-patterns.md) — permset-gating pattern for record-page LWCs in OWD Private
 - [`docs/development/components/`](./components/) — per-component reference (this team's LWCs)
 - [`docs/development/apex-conventions.md`](./apex-conventions.md) — Apex side (Marlowe)
 
