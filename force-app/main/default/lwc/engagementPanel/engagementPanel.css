@@ -1,0 +1,119 @@
+/*
+ * Engagement Panel — compact right-rail layout.
+ * Visual contract: docs/wireframes/sales-console-{opportunity,account}.html.
+ * Avoid bespoke spacing/typography where SLDS utilities already cover it.
+ */
+
+.engagement-panel {
+  --eng-row-border: #f3f3f3;
+  --eng-row-hover: #fafafa;
+  --eng-section-bg: #fafafa;
+  --eng-section-border: #ecebea;
+  --eng-section-color: #706e6b;
+  --eng-deal-color: #0070d2;
+  --eng-consultant-bg: #6a4dc7;
+  --eng-acr-bg: #06a59a;
+}
+
+.eng-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--eng-section-color);
+  padding: 6px 12px;
+  background: var(--eng-section-bg);
+  border-bottom: 1px solid var(--eng-section-border);
+  border-top: 1px solid var(--eng-section-border);
+}
+
+.eng-section-label.deal {
+  color: var(--eng-deal-color);
+}
+
+.eng-row {
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--eng-row-border);
+}
+
+.eng-row:last-child {
+  border-bottom: none;
+}
+
+.eng-row:hover {
+  background: var(--eng-row-hover);
+}
+
+.eng-row__body {
+  min-width: 0;
+}
+
+.eng-row__topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.eng-topic-chip {
+  font-size: 10px;
+}
+
+.eng-topic-chip_more {
+  font-style: italic;
+}
+
+/* Avatar tint variants beyond stock SLDS — match wireframe. */
+.av-consultant {
+  background: var(--eng-consultant-bg) !important;
+}
+
+.av-acr {
+  background: var(--eng-acr-bg) !important;
+}
+
+/*
+ * Row actions cluster — the +Add / on-team badge plus the × dismiss button.
+ * Dismiss is hidden by default; revealed on row hover or when focus enters
+ * the row. Keyboard tab order is preserved by using opacity (not display)
+ * so screen-reader users can still reach the control.
+ */
+.eng-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dismiss-button {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.eng-row:hover .dismiss-button,
+.eng-row:focus-within .dismiss-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/*
+ * Contact hotlink — name renders as an anchor so the Lightning record
+ * hovercard (which scans the DOM for /lightning/r/{Object}/{Id}/view
+ * URLs) attaches automatically. Visual treatment stays subtle until
+ * hover so the row still reads like a list.
+ */
+.contact-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+  color: #2e75b6;
+}

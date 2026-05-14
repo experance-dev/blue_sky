@@ -1,0 +1,24 @@
+.signal-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.confidence-bar {
+  flex: 1;
+  height: 8px;
+  background: rgb(243, 243, 243);
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 0 0.5rem;
+}
+
+.confidence-bar__fill {
+  height: 100%;
+  background: rgb(46, 117, 182);
+}
+
+.result-panel {
+  padding-top: 0.5rem;
+}

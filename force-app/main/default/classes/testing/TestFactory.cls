@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Provides factory methods for generating test SObjects and test users.
  *              Registered defaults live in TestFactoryDefaults; call createSObject(sObj)
@@ -5,7 +10,7 @@
  * @group Testing
  * @author David Wood
  * @since December 2020
- * @last May 2026 — Wave 2 conformance: sharing modifier, SYSTEM_MODE DML, exception base, header normalisation
+ * @last May 2026 — initial port into Zelis engagement-attribution worktree
  */
 @IsTest
 @SuppressWarnings(
@@ -21,7 +26,6 @@ public without sharing class TestFactory {
     Lead.SObjectType => Lead.LastName,
     Case.SObjectType => Case.CaseNumber,
     OpportunityLineItem.SObjectType => OpportunityLineItem.Description,
-    QuoteLineItem.SObjectType => QuoteLineItem.Description,
     User.SObjectType => User.LastName
   };
 
@@ -64,7 +68,9 @@ public without sharing class TestFactory {
   public static SObject createSObject(SObject sObj, String defaultClassName) {
     Type t = Type.forName(defaultClassName);
     if (t == null) {
-      throw new TestFactoryException('Invalid defaults class: ' + defaultClassName);
+      throw new TestFactoryException(
+        'Invalid defaults class: ' + defaultClassName
+      );
     }
     FieldDefaults defaults = (FieldDefaults) t.newInstance();
     addFieldDefaults(sObj, defaults.getFieldDefaults());
@@ -233,19 +239,6 @@ public without sharing class TestFactory {
   }
 
   /**
-   * @return The default test user with BasePermissionsApex and TEST_USER_PERMISSION assigned.
-   */
-  public static User createTestUser() {
-    User u = createMinAccessUser(false);
-    System.runAs(getAdminUser()) {
-      Database.insert(u, AccessLevel.SYSTEM_MODE);
-      assignPermSetToUser(u, 'BasePermissionsApex');
-      assignPermSetToUser(u, TestFactoryDefaults.TEST_USER_PERMISSION);
-    }
-    return u;
-  }
-
-  /**
    * @param permissionSetName Permission set to assign after creating the user.
    * @return The created test user.
    */
@@ -327,13 +320,6 @@ public without sharing class TestFactory {
       ORDER BY CreatedDate DESC
       LIMIT 1
     ];
-  }
-
-  /**
-   * @return Most recently created test user matching TestFactoryDefaults.TEST_USER_PERMISSION.
-   */
-  public static User getCreatedTestUser() {
-    return getCreatedTestUser(TestFactoryDefaults.TEST_USER_PERMISSION);
   }
 
   /**
@@ -419,7 +405,8 @@ public without sharing class TestFactory {
   // ── Inner types ──────────────────────────────────────────────────────────
 
   /** @description Thrown when a defaults class name cannot be resolved or is otherwise invalid. */
-  public class TestFactoryException extends UtilitiesModuleException {}
+  public class TestFactoryException extends UtilitiesModuleException {
+  }
 
   /** @description Implement this interface in any inner class of TestFactoryDefaults to supply field defaults. */
   public interface FieldDefaults {

@@ -1,0 +1,44 @@
+<template>
+  <lightning-modal-header label="Already Added"></lightning-modal-header>
+
+  <lightning-modal-body>
+    <p class="slds-text-body_regular">
+      <strong>{contactName}</strong> was already added to this Deal Team by
+      <strong>{addedByUserName}</strong> at
+      <lightning-formatted-date-time
+        value={addedAt}
+        year="numeric"
+        month="short"
+        day="2-digit"
+        hour="2-digit"
+        minute="2-digit"
+      ></lightning-formatted-date-time
+      >.
+    </p>
+    <p class="slds-text-body_regular slds-m-top_small">
+      Would you like to view the OCR record?
+    </p>
+  </lightning-modal-body>
+
+  <lightning-modal-footer>
+    <!--
+            "No" rendered first so LightningModal's focus trap places initial
+            focus on it (per US-D3 default-focus requirement).
+        -->
+    <lightning-button
+      variant="neutral"
+      label="No"
+      title="Close without navigating"
+      data-button="no"
+      onclick={handleNo}
+    ></lightning-button>
+    <lightning-button
+      variant="brand"
+      label="Yes, view OCR"
+      title="Open the OpportunityContactRole record"
+      data-button="yes"
+      class="slds-m-left_x-small"
+      onclick={handleYes}
+    ></lightning-button>
+  </lightning-modal-footer>
+</template>

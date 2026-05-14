@@ -37,8 +37,8 @@
     "**/{aura,lwc}/**/*.js": [
       "eslint"
     ],
-    "**/lwc/**": [
-        "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
+    "**/lwc/**/*.js": [
+      "sfdx-lwc-jest -- --bail --findRelatedTests --passWithNoTests"
     ]
   }
 }

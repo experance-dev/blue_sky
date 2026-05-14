@@ -1,13 +1,20 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Centralized logging utility for Salesforce applications.
  *              Provides a simple interface to log messages with varying levels of severity.
  *              Supports logging the originating class and method names.
- *              The `printLogs` flag (driven by Log_Setting__mdt) gates debug-level output;
- *              info/warn/error always write. `logException` captures message + stack trace.
+ *              The `printLogs` flag (driven by Log_Setting__mdt when present) gates debug-level
+ *              output; info/warn/error always write. `logException` captures message + stack trace.
+ *              When Log_Setting__mdt is absent from the org, printLogs defaults to true so
+ *              Logger remains usable in scratch / partial orgs without configuration.
  * @group Logger
  * @since September 2024
  * @author David Wood
- * @last May 2026 — conformance refactor
+ * @last May 2026 — unconfigured-org safe defaults for Log_Setting__mdt
  */
 public inherited sharing class Logger {
   // ─── Core dispatch ───────────────────────────────────────────────────────────
@@ -218,18 +225,50 @@ public inherited sharing class Logger {
   // ─── Infrastructure ───────────────────────────────────────────────────────────
 
   /**
-   * @return True if debug output is enabled (driven by Log_Setting__mdt)
+   * @description Sentinel set to true when Log_Setting__mdt is not deployed in the
+   *              target org. Tests can assert against this to confirm graceful fallback.
+   */
+  @TestVisible
+  private static Boolean logSettingUnconfigured = false;
+
+  /**
+   * @return True if debug output is enabled. Reads from Log_Setting__mdt 'defaults' when
+   *         present; falls back to true (and flips `logSettingUnconfigured`) when the
+   *         CMDT type or record is absent at runtime — so an unconfigured org still logs.
    */
   @TestVisible
   private static Boolean printLogs {
     get {
       if (printLogs == null) {
-        printLogs = Log_Setting__mdt.getInstance('defaults')
-          ?.Print_Debug_Logs__c ?? true;
+        printLogs = resolvePrintLogsDefault();
       }
       return printLogs;
     }
     set;
+  }
+
+  /**
+   * @description Resolves the Print_Debug_Logs__c value via dynamic SOQL so an org missing
+   *              the Log_Setting__mdt type or its 'defaults' record never blocks compilation
+   *              or execution. Any failure path defaults to true and marks the sentinel.
+   * @return True when the CMDT is absent / unreadable, or the configured value otherwise.
+   */
+  @TestVisible
+  private static Boolean resolvePrintLogsDefault() {
+    try {
+      List<SObject> records = Database.query(
+        'SELECT Print_Debug_Logs__c FROM Log_Setting__mdt WHERE DeveloperName = \'defaults\' LIMIT 1'
+      );
+      if (records.isEmpty()) {
+        logSettingUnconfigured = true;
+        return true;
+      }
+      Object raw = records[0].get('Print_Debug_Logs__c');
+      return raw == null ? true : (Boolean) raw;
+    } catch (Exception ex) {
+      logSettingUnconfigured = true;
+      return true;
+    }
   }
 
   /**

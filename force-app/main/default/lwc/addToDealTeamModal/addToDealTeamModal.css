@@ -1,0 +1,7 @@
+:host {
+  display: block;
+}
+
+lightning-modal-body p {
+  line-height: 1.4;
+}

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Resolves a mixed list of plain email addresses and Public Group developer names
  *              into a flat set of member email addresses, following nested groups up to
@@ -22,7 +27,8 @@ public without sharing class GroupMemberEmailRetriever {
   private static Set<Id> userIds = new Set<Id>();
 
   /** Custom exception for this class. */
-  public class GroupMemberEmailRetrieverException extends UtilitiesModuleException {}
+  public class GroupMemberEmailRetrieverException extends UtilitiesModuleException {
+  }
 
   /**
    * @param inputs List of strings containing email addresses or group developer names.

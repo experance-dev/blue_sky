@@ -1,0 +1,180 @@
+<template>
+  <article class="slds-card">
+    <div class="slds-card__header slds-grid">
+      <header class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__body">
+          <h2 class="slds-card__header-title">
+            <span>Test-a-Touch</span>
+          </h2>
+          <p class="slds-text-body_small slds-text-color_weak">
+            Synthesize an Engagement Touch and observe the identity-resolution +
+            routing outcome.
+          </p>
+        </div>
+      </header>
+    </div>
+
+    <div class="slds-card__body slds-card__body_inner">
+      <template if:true={showForm}>
+        <form onsubmit={handleSubmit} data-test="form">
+          <lightning-input
+            type="email"
+            label="Email"
+            required
+            value={form.email}
+            data-field="email"
+            data-test="input-email"
+            onchange={handleFieldChange}
+          ></lightning-input>
+
+          <lightning-input
+            type="text"
+            label="Topic external code"
+            placeholder="e.g. TOPIC_NETWORK_MGMT"
+            value={form.topicExternalCode}
+            data-field="topicExternalCode"
+            data-test="input-topic"
+            onchange={handleFieldChange}
+          ></lightning-input>
+
+          <lightning-combobox
+            label="Touch type"
+            value={form.touchType}
+            options={touchTypeOptions}
+            data-field="touchType"
+            data-test="input-touchType"
+            onchange={handleFieldChange}
+          ></lightning-combobox>
+
+          <lightning-combobox
+            label="Persona"
+            value={form.persona}
+            options={personaOptions}
+            data-field="persona"
+            data-test="input-persona"
+            onchange={handleFieldChange}
+          ></lightning-combobox>
+
+          <lightning-combobox
+            label="Intent level"
+            value={form.intentLevel}
+            options={intentOptions}
+            data-field="intentLevel"
+            data-test="input-intent"
+            onchange={handleFieldChange}
+          ></lightning-combobox>
+
+          <lightning-input
+            type="text"
+            label="Asset name"
+            value={form.assetName}
+            data-field="assetName"
+            data-test="input-asset"
+            onchange={handleFieldChange}
+          ></lightning-input>
+
+          <div class="slds-m-top_medium">
+            <lightning-button
+              label="Run Test"
+              variant="brand"
+              type="submit"
+              disabled={submitDisabled}
+              data-test="submit-btn"
+            ></lightning-button>
+          </div>
+
+          <template if:true={error}>
+            <div
+              class="slds-text-color_error slds-m-top_small"
+              data-test="form-error"
+            >
+              {error}
+            </div>
+          </template>
+        </form>
+      </template>
+
+      <template if:true={hasResult}>
+        <div class="result-panel" data-test="result-panel">
+          <div class="slds-grid slds-grid_align-spread slds-m-bottom_small">
+            <h3 class="slds-text-heading_small">Result</h3>
+            <span class={statusBadgeClass} data-test="status-badge">
+              {statusLabel}
+            </span>
+          </div>
+
+          <template if:true={result.contactId}>
+            <p>
+              Contact:
+              <a href={contactUrl} target="_top" data-test="contact-link">
+                {result.contactName}
+              </a>
+            </p>
+          </template>
+          <template if:true={result.accountId}>
+            <p>
+              Account:
+              <a href={accountUrl} target="_top" data-test="account-link">
+                {result.accountName}
+              </a>
+            </p>
+          </template>
+
+          <p class="slds-text-title slds-m-top_small" data-test="signal-count">
+            {signalCountLabel}
+          </p>
+
+          <template if:true={hasSignals}>
+            <ul
+              class="slds-list_vertical slds-has-dividers_around-space"
+              data-test="signal-list"
+            >
+              <template for:each={signalRows} for:item="row">
+                <li
+                  key={row.key}
+                  class="slds-item signal-row"
+                  data-test="signal-row"
+                >
+                  <a href={row.opportunityUrl} target="_top">
+                    {row.opportunityName}
+                  </a>
+                  <span class="slds-badge slds-m-left_x-small">
+                    {row.matchPath}
+                  </span>
+                  <div class="confidence-bar">
+                    <div
+                      class="confidence-bar__fill"
+                      style={row.confidenceStyle}
+                    ></div>
+                  </div>
+                  <span class="slds-text-body_small">
+                    {row.confidenceLabel}
+                  </span>
+                </li>
+              </template>
+            </ul>
+          </template>
+
+          <template if:true={messages.length}>
+            <ul
+              class="slds-list_vertical slds-text-body_small slds-m-top_small slds-text-color_weak"
+              data-test="messages"
+            >
+              <template for:each={messages} for:item="m">
+                <li key={m.key}>{m.text}</li>
+              </template>
+            </ul>
+          </template>
+
+          <div class="slds-m-top_medium">
+            <lightning-button
+              label="Run another test"
+              onclick={handleReset}
+              data-test="reset-btn"
+            ></lightning-button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </article>
+</template>

@@ -1,0 +1,67 @@
+<template>
+  <article class="slds-card">
+    <div class="slds-card__header slds-grid">
+      <header class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__body">
+          <h2 class="slds-card__header-title">
+            <span>Rule Coverage</span>
+          </h2>
+          <p class="slds-text-body_small slds-text-color_weak">
+            Active routing rules and the signals they have produced in the last
+            30 days. Rules with zero coverage are highlighted — they may be
+            misconfigured or dead.
+          </p>
+        </div>
+      </header>
+    </div>
+
+    <div class="slds-card__body slds-card__body_inner">
+      <template if:true={isLoading}>
+        <div class="slds-align_absolute-center slds-p-around_medium">
+          <lightning-spinner alternative-text="Loading"></lightning-spinner>
+        </div>
+      </template>
+
+      <template if:true={hasError}>
+        <div
+          class="slds-text-color_error slds-p-around_small"
+          data-test="error"
+        >
+          {errorMessage}
+        </div>
+      </template>
+
+      <template if:true={hasDeadRules}>
+        <div
+          class="slds-notify slds-notify_alert slds-theme_warning slds-m-bottom_small"
+          role="alert"
+          data-test="dead-rule-banner"
+        >
+          <span>{deadRuleBanner}</span>
+        </div>
+      </template>
+
+      <template if:true={hasData}>
+        <template if:true={isEmpty}>
+          <p
+            class="slds-text-body_regular slds-text-align_center slds-p-around_medium"
+            data-test="empty"
+          >
+            No active routing rules found.
+          </p>
+        </template>
+
+        <template if:false={isEmpty}>
+          <lightning-datatable
+            key-field="key"
+            data={rows}
+            columns={columns}
+            hide-checkbox-column
+            suppress-bottom-bar
+            data-test="rules-table"
+          ></lightning-datatable>
+        </template>
+      </template>
+    </div>
+  </article>
+</template>

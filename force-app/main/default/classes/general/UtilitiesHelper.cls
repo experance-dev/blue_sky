@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description This helper class provides methods to create dynamic maps for SObjects based on specified keys.
  * @license Licensed under Creative Commons Attribution 4.0 International. Use, distribute, and modify this code as you see fit.

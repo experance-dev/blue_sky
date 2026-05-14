@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Utility class for managing the standard pricebook in Salesforce.
  *              Provides lazy-loaded access to the standard pricebook Id for use

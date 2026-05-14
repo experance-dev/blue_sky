@@ -1,0 +1,330 @@
+<template>
+  <article class="slds-card slds-card_boundary engagement-panel">
+    <div class="slds-card__header slds-grid">
+      <header class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__figure">
+          <span
+            class="slds-icon_container slds-icon-standard-lead"
+            title="Engagement Intelligence"
+          >
+            <lightning-icon
+              icon-name="standard:lead"
+              size="small"
+              alternative-text="Engagement"
+            ></lightning-icon>
+          </span>
+        </div>
+        <div class="slds-media__body">
+          <h2 class="slds-card__header-title">
+            <span class="slds-text-heading_small">Engagement Intelligence</span>
+          </h2>
+          <template lwc:if={hasData}>
+            <p
+              class="slds-text-body_small slds-text-color_weak"
+              data-test="count-summary"
+            >
+              {countBadgeLabel}
+            </p>
+          </template>
+        </div>
+        <div class="slds-no-flex">
+          <button
+            class="slds-button slds-button_neutral"
+            type="button"
+            title="View all engagement"
+            onclick={handleViewAll}
+            data-test="view-all-button"
+          >
+            View all
+          </button>
+        </div>
+      </header>
+    </div>
+
+    <!-- Loading -->
+    <template lwc:if={isLoading}>
+      <div class="slds-is-relative slds-p-around_medium" data-test="loading">
+        <lightning-spinner
+          alternative-text="Loading engagement data"
+          size="small"
+        ></lightning-spinner>
+      </div>
+    </template>
+
+    <!-- Error -->
+    <template lwc:elseif={hasError}>
+      <div
+        class="slds-p-around_medium slds-text-color_error slds-text-body_small"
+        data-test="error"
+        role="alert"
+      >
+        Couldn't load engagement data. Try refreshing.
+      </div>
+    </template>
+
+    <!-- Empty -->
+    <template lwc:elseif={isEmpty}>
+      <div
+        class="slds-p-around_medium slds-text-color_weak slds-text-body_small"
+        data-test="empty"
+      >
+        No engagement activity yet. Touches arrive from HubSpot.
+      </div>
+    </template>
+
+    <!-- Data -->
+    <template lwc:else>
+      <!-- Opportunity scope: two partitioned sections -->
+      <template lwc:if={isOpportunityScope}>
+        <div class="eng-section-label deal" data-test="deal-team-section-label">
+          {dealTeamSectionLabel}
+        </div>
+        <template for:each={dealTeam} for:item="row">
+          <div key={row.key} class="eng-row" data-test="deal-team-row">
+            <span class={row.avatarClass} role="img" aria-label={row.ariaLabel}>
+              <abbr class="slds-avatar__initials" title={row.name}
+                >{row.initials}</abbr
+              >
+            </span>
+            <div class="eng-row__body">
+              <div class="slds-text-body_small">
+                <a
+                  href={row.contactUrl}
+                  target="_top"
+                  title={row.summaryTooltip}
+                  class="contact-link"
+                  data-test="contact-link"
+                >
+                  <strong>{row.name}</strong>
+                </a>
+                <template lwc:if={row.title}>
+                  <span class="slds-text-color_weak"> · {row.title}</span>
+                </template>
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                <span>{row.touchSummary}</span>
+                <template lwc:if={row.lastTouchAt}>
+                  <span> · </span>
+                  <lightning-relative-date-time
+                    value={row.lastTouchAt}
+                  ></lightning-relative-date-time>
+                </template>
+              </div>
+              <template lwc:if={row.visibleTopics.length}>
+                <ul class="eng-row__topics slds-m-top_xx-small" role="list">
+                  <template for:each={row.visibleTopics} for:item="topic">
+                    <li
+                      key={topic.key}
+                      class="slds-badge slds-badge_lightest eng-topic-chip"
+                      role="listitem"
+                    >
+                      {topic.label}
+                    </li>
+                  </template>
+                  <template lwc:if={row.hasHiddenTopics}>
+                    <li
+                      class="slds-badge slds-badge_lightest eng-topic-chip eng-topic-chip_more"
+                      role="listitem"
+                    >
+                      {row.hiddenTopicsLabel}
+                    </li>
+                  </template>
+                </ul>
+              </template>
+            </div>
+            <div class="eng-row__actions">
+              <span
+                class="slds-badge slds-theme_success"
+                data-test="on-team-badge"
+                title="On Deal Team"
+              >
+                &check; on team
+              </span>
+              <lightning-button-icon
+                class="dismiss-button"
+                icon-name="utility:close"
+                size="x-small"
+                variant="bare"
+                alternative-text="Dismiss"
+                title="Dismiss (re-appears if a new touch arrives)"
+                data-contact-id={row.contactId}
+                data-contact-name={row.name}
+                data-test="dismiss-button"
+                onclick={handleDismissClick}
+              ></lightning-button-icon>
+            </div>
+          </div>
+        </template>
+
+        <div class="eng-section-label" data-test="not-on-team-section-label">
+          {notOnDealTeamSectionLabel}
+        </div>
+        <template for:each={notOnDealTeam} for:item="row">
+          <div key={row.key} class="eng-row" data-test="not-on-team-row">
+            <span class={row.avatarClass} role="img" aria-label={row.ariaLabel}>
+              <abbr class="slds-avatar__initials" title={row.name}
+                >{row.initials}</abbr
+              >
+            </span>
+            <div class="eng-row__body">
+              <div class="slds-text-body_small">
+                <a
+                  href={row.contactUrl}
+                  target="_top"
+                  title={row.summaryTooltip}
+                  class="contact-link"
+                  data-test="contact-link"
+                >
+                  <strong>{row.name}</strong>
+                </a>
+                <template lwc:if={row.title}>
+                  <span class="slds-text-color_weak"> · {row.title}</span>
+                </template>
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                <span>{row.touchSummary}</span>
+                <template lwc:if={row.lastTouchAt}>
+                  <span> · </span>
+                  <lightning-relative-date-time
+                    value={row.lastTouchAt}
+                  ></lightning-relative-date-time>
+                </template>
+              </div>
+              <template lwc:if={row.visibleTopics.length}>
+                <ul class="eng-row__topics slds-m-top_xx-small" role="list">
+                  <template for:each={row.visibleTopics} for:item="topic">
+                    <li
+                      key={topic.key}
+                      class="slds-badge slds-badge_lightest eng-topic-chip"
+                      role="listitem"
+                    >
+                      {topic.label}
+                    </li>
+                  </template>
+                  <template lwc:if={row.hasHiddenTopics}>
+                    <li
+                      class="slds-badge slds-badge_lightest eng-topic-chip eng-topic-chip_more"
+                      role="listitem"
+                    >
+                      {row.hiddenTopicsLabel}
+                    </li>
+                  </template>
+                </ul>
+              </template>
+            </div>
+            <div class="eng-row__actions">
+              <button
+                class="slds-button slds-button_neutral slds-button_x-small"
+                type="button"
+                title="Add to Deal Team"
+                data-contact-id={row.contactId}
+                data-name={row.name}
+                data-test="add-button"
+                onclick={handleAddClick}
+              >
+                + Add
+              </button>
+              <lightning-button-icon
+                class="dismiss-button"
+                icon-name="utility:close"
+                size="x-small"
+                variant="bare"
+                alternative-text="Dismiss"
+                title="Dismiss (re-appears if a new touch arrives)"
+                data-contact-id={row.contactId}
+                data-contact-name={row.name}
+                data-test="dismiss-button"
+                onclick={handleDismissClick}
+              ></lightning-button-icon>
+            </div>
+          </div>
+        </template>
+      </template>
+
+      <!-- Account scope: single flat list -->
+      <template lwc:else>
+        <div class="eng-section-label" data-test="account-section-label">
+          People Engaged · {totalCount}
+        </div>
+        <template for:each={engagements} for:item="row">
+          <div key={row.key} class="eng-row" data-test="account-row">
+            <span class={row.avatarClass} role="img" aria-label={row.ariaLabel}>
+              <abbr class="slds-avatar__initials" title={row.name}
+                >{row.initials}</abbr
+              >
+            </span>
+            <div class="eng-row__body">
+              <div class="slds-text-body_small">
+                <a
+                  href={row.contactUrl}
+                  target="_top"
+                  title={row.summaryTooltip}
+                  class="contact-link"
+                  data-test="contact-link"
+                >
+                  <strong>{row.name}</strong>
+                </a>
+                <template lwc:if={row.title}>
+                  <span class="slds-text-color_weak"> · {row.title}</span>
+                </template>
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                <span>{row.touchSummary}</span>
+                <template lwc:if={row.lastTouchAt}>
+                  <span> · </span>
+                  <lightning-relative-date-time
+                    value={row.lastTouchAt}
+                  ></lightning-relative-date-time>
+                </template>
+              </div>
+              <template lwc:if={row.visibleTopics.length}>
+                <ul class="eng-row__topics slds-m-top_xx-small" role="list">
+                  <template for:each={row.visibleTopics} for:item="topic">
+                    <li
+                      key={topic.key}
+                      class="slds-badge slds-badge_lightest eng-topic-chip"
+                      role="listitem"
+                    >
+                      {topic.label}
+                    </li>
+                  </template>
+                  <template lwc:if={row.hasHiddenTopics}>
+                    <li
+                      class="slds-badge slds-badge_lightest eng-topic-chip eng-topic-chip_more"
+                      role="listitem"
+                    >
+                      {row.hiddenTopicsLabel}
+                    </li>
+                  </template>
+                </ul>
+              </template>
+            </div>
+            <div class="eng-row__actions">
+              <template lwc:if={row.showOnTeamBadge}>
+                <span
+                  class="slds-badge slds-theme_success"
+                  data-test="on-team-badge"
+                  title="On Deal Team"
+                >
+                  &check; on team
+                </span>
+              </template>
+              <lightning-button-icon
+                class="dismiss-button"
+                icon-name="utility:close"
+                size="x-small"
+                variant="bare"
+                alternative-text="Dismiss"
+                title="Dismiss (re-appears if a new touch arrives)"
+                data-contact-id={row.contactId}
+                data-contact-name={row.name}
+                data-test="dismiss-button"
+                onclick={handleDismissClick}
+              ></lightning-button-icon>
+            </div>
+          </div>
+        </template>
+      </template>
+    </template>
+  </article>
+</template>
