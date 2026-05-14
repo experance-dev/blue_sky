@@ -318,4 +318,86 @@ private class EngagementTouchesSelectorTest {
       LIMIT 1
     ];
   }
+
+  // ─── Persona coverage ─────────────────────────────────────────────────────
+
+  /**
+   * @description Persona-coverage fan-out for `selectByAccountIds`. Verifies
+   *              the selector returns the same active-touch list under every
+   *              MI persona granted Account read + Engagement_Touch__c read.
+   *              The shared Account + Touch records are explicitly shared to
+   *              each persona because the seed runs as one user under
+   *              OWD-Private and the cross-reference visibility otherwise
+   *              hides them from other personas.
+   *
+   *              The `no_perm` persona is NOT asserted on touch visibility
+   *              here — its expected outcome is `Engagement_Touch__c` not
+   *              readable at all (Apex class access blocks the LWC call,
+   *              and the LWC component-visibility rule hides the panel).
+   *              That contract is gated at the metadata layer, not the SOQL
+   *              layer; a runtime assertion would either succeed for the
+   *              wrong reason (record was shared) or fail with a noisy
+   *              field-access exception that obscures intent.
+   */
+  @IsTest
+  static void selectByAccountIdsAcrossPersonas() {
+    // Build a fresh Account + 2 active touches under the seed user; then
+    // share to all good-path personas. This is independent of the per-test
+    // data shapes inside the other test methods.
+    Account acct;
+    List<Engagement_Touch__c> seededTouches;
+    System.runAs(getTestUser()) {
+      acct = newAccount('Persona Coverage Account');
+      Database.insert(acct, AccessLevel.SYSTEM_MODE);
+      DateTime now = Datetime.now();
+      Engagement_Touch__c t1 = newTouch(acct.Id, now.addMinutes(-30));
+      Engagement_Touch__c t2 = newTouch(acct.Id, now.addMinutes(-10));
+      seededTouches = new List<Engagement_Touch__c>{ t1, t2 };
+      Database.insert(seededTouches, AccessLevel.SYSTEM_MODE);
+    }
+
+    List<String> goodPathPersonas = new List<String>{
+      PersonaTestFactory.VIEW,
+      PersonaTestFactory.POWER_USER,
+      PersonaTestFactory.ADMIN,
+      PersonaTestFactory.INTEGRATION
+    };
+
+    List<User> goodPathUsers = new List<User>();
+    for (String persona : goodPathPersonas) {
+      goodPathUsers.add(PersonaTestFactory.userFor(persona));
+    }
+
+    // Share the Account (cascades OpportunityAccessLevel — irrelevant here
+    // but harmless) and the Engagement_Touch__c rows to every persona at Read.
+    EngagementTestFixtures.shareRecordsToUsers(
+      new List<SObject>{ acct },
+      goodPathUsers,
+      'Read'
+    );
+    EngagementTestFixtures.shareRecordsToUsers(
+      seededTouches,
+      goodPathUsers,
+      'Read'
+    );
+
+    Test.startTest();
+    for (String persona : goodPathPersonas) {
+      System.runAs(PersonaTestFactory.userFor(persona)) {
+        List<Engagement_Touch__c> result = EngagementTouchesSelector.selectByAccountIds(
+          new Set<Id>{ acct.Id }
+        );
+        Assert.areEqual(
+          2,
+          result.size(),
+          'Persona ' +
+            persona +
+            ' should see both shared touches on the Account (got ' +
+            result.size() +
+            ').'
+        );
+      }
+    }
+    Test.stopTest();
+  }
 }

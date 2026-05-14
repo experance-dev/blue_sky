@@ -101,6 +101,130 @@ public with sharing class EngagementTestFixtures {
     ];
   }
 
+  // ─── Cross-user record sharing ────────────────────────────────────────────
+
+  /**
+   * @description Shares each record in `records` with every user in `users` at
+   *              the supplied access level. The right `*Share` SObject is
+   *              chosen per parent SObjectType (`AccountShare`, `ContactShare`,
+   *              `OpportunityShare`, generic `RowCause` for everything else).
+   *              Inserts are batched into a single DML and run inside
+   *              `System.runAs(adminUser)` to clear the MIXED_DML guard that
+   *              tends to bite tests which provision Users then immediately
+   *              share records to them.
+   *
+   *              Use case: persona-coverage tests that seed records as one
+   *              persona but then assert across multiple personas, under
+   *              OWD-Private orgs (dwood_z + Zelis production). Without
+   *              explicit shares the non-owning personas can't see the
+   *              records at all, and a `WITH USER_MODE` SOQL returns empty —
+   *              which masquerades as a "permset-broken" symptom when the
+   *              real cause is sharing.
+   *
+   *              `accessLevel` is the field-level `*AccessLevel` value
+   *              ('Read' or 'Edit'); the method maps that to the per-object
+   *              field name (`AccountAccessLevel`, `OpportunityAccessLevel`,
+   *              `ContactAccessLevel`, `AccessLevel` for generic shares).
+   *
+   * @param records    Parent records to share. All in one call must share the
+   *                   same SObjectType to keep the per-call share-row shape
+   *                   uniform.
+   * @param users      Users to grant access to.
+   * @param accessLevel `'Read'` or `'Edit'`.
+   */
+  public static void shareRecordsToUsers(
+    List<SObject> records,
+    List<User> users,
+    String accessLevel
+  ) {
+    if (
+      records == null ||
+      records.isEmpty() ||
+      users == null ||
+      users.isEmpty()
+    ) {
+      return;
+    }
+    Schema.SObjectType sot = records[0].getSObjectType();
+    String typeName = String.valueOf(sot);
+    List<SObject> shares = new List<SObject>();
+
+    for (SObject rec : records) {
+      for (User u : users) {
+        SObject share = buildShareRow(typeName, rec.Id, u.Id, accessLevel);
+        if (share != null) {
+          shares.add(share);
+        }
+      }
+    }
+
+    if (shares.isEmpty()) {
+      return;
+    }
+
+    System.runAs(getAdminUser()) {
+      // allOrNone=false so partial duplicates (e.g. existing share rows from
+      // an earlier call) don't fail the whole batch. Test seeding is
+      // additive; duplicate-share-row failures are expected and benign.
+      Database.insert(shares, false);
+    }
+  }
+
+  /**
+   * @description Builds the right *Share SObject for the parent record type.
+   *              Returns null for SObject types that don't have a manual
+   *              Share table (master-detail children, setup objects, etc.),
+   *              which is the test-seeding signal to skip rather than throw.
+   */
+  private static SObject buildShareRow(
+    String typeName,
+    Id parentId,
+    Id userId,
+    String accessLevel
+  ) {
+    if (typeName == 'Account') {
+      return new AccountShare(
+        AccountId = parentId,
+        UserOrGroupId = userId,
+        AccountAccessLevel = accessLevel,
+        OpportunityAccessLevel = accessLevel,
+        CaseAccessLevel = accessLevel
+      );
+    }
+    if (typeName == 'Contact') {
+      return new ContactShare(
+        ContactId = parentId,
+        UserOrGroupId = userId,
+        ContactAccessLevel = accessLevel
+      );
+    }
+    if (typeName == 'Opportunity') {
+      return new OpportunityShare(
+        OpportunityId = parentId,
+        UserOrGroupId = userId,
+        OpportunityAccessLevel = accessLevel
+      );
+    }
+    // For everything else (custom objects with OWD Private + manual sharing
+    // enabled), the share SObject is `<Object>__Share` and the parent FK is
+    // `ParentId`. Resolved via dynamic SObject build; returns null if the
+    // share SObject doesn't exist (object lacks manual sharing).
+    String shareName = typeName.endsWith('__c')
+      ? typeName.substring(0, typeName.length() - 3) + '__Share'
+      : typeName + 'Share';
+    Schema.DescribeSObjectResult d = Schema.getGlobalDescribe()
+      .get(shareName)
+      ?.getDescribe();
+    if (d == null) {
+      return null;
+    }
+    SObject share = d.getSObjectType().newSObject();
+    share.put('ParentId', parentId);
+    share.put('UserOrGroupId', userId);
+    share.put('AccessLevel', accessLevel);
+    return share;
+  }
+
   // ─── World seeding ────────────────────────────────────────────────────────
 
   /**

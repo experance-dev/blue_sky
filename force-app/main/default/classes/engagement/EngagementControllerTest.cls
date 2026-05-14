@@ -526,4 +526,66 @@ private class EngagementControllerTest {
       );
     }
   }
+
+  // ─── Persona coverage ─────────────────────────────────────────────────────
+
+  /**
+   * @description Persona-coverage fan-out for `getForOpportunity`. The
+   *              controller is a thin pass-through to IEngagementService;
+   *              this test pins the contract that every MI persona granted
+   *              Apex class access to `EngagementController` invokes the
+   *              service exactly once and gets the service's return
+   *              passed back unchanged — i.e. no permset-conditional
+   *              branching at the controller layer. The `no_perm` persona
+   *              ALSO invokes successfully here because Apex class access is
+   *              not runtime-enforced inside test transactions; the real
+   *              gate for no_perm is the LWC's Component Visibility rule on
+   *              `c:engagementPanel` (verified in the LWC Jest suite, not
+   *              here), so the no-perm assertion is omitted to avoid false
+   *              confidence.
+   */
+  @IsTest
+  static void getForOpportunityAcrossPersonas() {
+    MockEngagementService mock = new MockEngagementService();
+    mock.opportunityResult = new List<EngagementDTO>{
+      new EngagementDTO(),
+      new EngagementDTO()
+    };
+    EngagementController.setServiceForTest(mock);
+    Id fakeOppId = (Id) Utilities.getFakeId(Opportunity.SObjectType);
+
+    Test.startTest();
+
+    for (
+      String persona : new List<String>{
+        PersonaTestFactory.VIEW,
+        PersonaTestFactory.POWER_USER,
+        PersonaTestFactory.ADMIN,
+        PersonaTestFactory.INTEGRATION
+      }
+    ) {
+      Integer beforeCount = mock.lastOpportunityId == null ? 0 : 1;
+      System.runAs(PersonaTestFactory.userFor(persona)) {
+        List<EngagementDTO> result = EngagementController.getForOpportunity(
+          fakeOppId
+        );
+        Assert.areEqual(
+          2,
+          result.size(),
+          'Persona ' +
+            persona +
+            ' should receive the service\'s two DTOs unchanged.'
+        );
+        Assert.areEqual(
+          fakeOppId,
+          mock.lastOpportunityId,
+          'Persona ' +
+            persona +
+            ' should forward the same opportunity Id to the service.'
+        );
+      }
+    }
+
+    Test.stopTest();
+  }
 }

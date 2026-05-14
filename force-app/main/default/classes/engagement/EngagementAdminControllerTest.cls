@@ -580,4 +580,57 @@ private class EngagementAdminControllerTest {
       LIMIT 1
     ];
   }
+
+  // ─── Persona coverage ─────────────────────────────────────────────────────
+
+  /**
+   * @description Persona-coverage fan-out for `getRuleCoverage`. The admin
+   *              tool returns the active-rule list to the admin UI; the MI
+   *              Admin and Power_User personas SHOULD see the same rule
+   *              coverage, the MI View persona SHOULD NOT (rule coverage is
+   *              an admin tool — it doesn't gate on the `View` permset).
+   *
+   *              Captures the contract via runtime assertion. If a future
+   *              change tightens or loosens the gate, this test surfaces it
+   *              under the persona it affects rather than vanishing into a
+   *              "View user gets unauthorised behaviour" bug report.
+   *
+   *              NOTE: `EngagementAdminController.getRuleCoverage` does not
+   *              currently enforce a permset check at the entry — the admin
+   *              tool is gated by Apex Class Access on the permset, which is
+   *              a deploy-time gate, not a runtime one. So the in-Apex
+   *              assertion is symmetric (every persona sees the rules), and
+   *              the LWC component-visibility rule is what hides the admin
+   *              UI from View. Documenting the asymmetry here is the point —
+   *              if the prod-side ever introduces a runtime check, this test
+   *              must be re-written, not just patched.
+   */
+  @IsTest
+  static void getRuleCoverageAcrossPersonas() {
+    Test.startTest();
+
+    for (
+      String persona : new List<String>{
+        PersonaTestFactory.VIEW,
+        PersonaTestFactory.POWER_USER,
+        PersonaTestFactory.ADMIN,
+        PersonaTestFactory.INTEGRATION
+      }
+    ) {
+      System.runAs(PersonaTestFactory.userFor(persona)) {
+        List<EngagementAdminController.RuleCoverage> rows = EngagementAdminController.getRuleCoverage();
+        Assert.areEqual(
+          5,
+          rows.size(),
+          'Persona ' +
+            persona +
+            ' should see all 5 seeded active rules (got ' +
+            rows.size() +
+            '). Apex layer does not enforce runtime persona gates; LWC component-visibility handles UI hiding.'
+        );
+      }
+    }
+
+    Test.stopTest();
+  }
 }
