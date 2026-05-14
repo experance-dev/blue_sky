@@ -2,11 +2,17 @@
   "packageDirectories": [
     {
       "path": "force-app",
-      "default": true
+      "default": true,
+      "package": "EngagementAttribution",
+      "versionName": "Phase 1 — v0.1",
+      "versionNumber": "0.1.0.NEXT"
     }
   ],
   "name": "Zelis",
   "namespace": "",
   "sfdcLoginUrl": "https://login.salesforce.com",
-  "sourceApiVersion": "66.0"
+  "sourceApiVersion": "66.0",
+  "packageAliases": {
+    "EngagementAttribution": "REPLACE_WITH_PACKAGE_ID"
+  }
 }

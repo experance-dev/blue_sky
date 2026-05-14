@@ -1,13 +1,18 @@
 {
-  "orgName": "david company",
+  "orgName": "Zelis Engagement Attribution Dev",
   "edition": "Developer",
-  "features": ["EnableSetPasswordInApi"],
+  "features": ["EnableSetPasswordInApi", "ContactsToMultipleAccounts"],
   "settings": {
     "lightningExperienceSettings": {
       "enableS1DesktopEnabled": true
     },
     "mobileSettings": {
       "enableS1EncryptedStoragePref2": false
+    },
+    "securitySettings": {
+      "passwordPolicies": {
+        "minimumPasswordLength": 8
+      }
     }
   }
 }
