@@ -186,8 +186,15 @@ export default class EngagementPanel extends NavigationMixin(LightningElement) {
     const visibleTopics = topics.slice(0, MAX_VISIBLE_TOPICS);
     const hiddenTopicCount = Math.max(0, topics.length - MAX_VISIBLE_TOPICS);
 
+    // lightning-relative-date-time is finicky with ISO strings carrying
+    // millisecond + 'Z' suffix — convert to epoch ms for reliable render.
+    const lastTouchAtMs = dto.lastTouchAt
+      ? new Date(dto.lastTouchAt).getTime()
+      : null;
+
     return {
       ...dto,
+      lastTouchAt: lastTouchAtMs,
       key: dto.contactId,
       initials: this.initialsFor(dto.name),
       avatarClass: this.avatarClassFor(dto),
