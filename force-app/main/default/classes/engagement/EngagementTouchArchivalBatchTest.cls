@@ -9,7 +9,7 @@
  */
 @IsTest
 private class EngagementTouchArchivalBatchTest {
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'ArchivalBatchTest';
   private static final Integer WINDOW_DAYS = 30;
 

@@ -14,7 +14,7 @@
 private class EngagementAdminControllerTest {
   // ─── Constants ────────────────────────────────────────────────────────────
 
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'EngageAdminTest';
   private static final String TOPIC_CODE = 'TOPIC_NETWORK_MGMT';
   private static final String SARAH_EMAIL = 'sarah.admin@uhc.example.com';
@@ -25,7 +25,7 @@ private class EngagementAdminControllerTest {
 
   /**
    * @description Provisions a Standard User with the
-   *              `Engagement_Attribution_User` permission set, then seeds a
+   *              `Additional_Permissions_Marketing_Influence_Integration` permission set, then seeds a
    *              minimal Zelis-flavored world (Account, one Contact, one
    *              open Opportunity with the Network Mgmt topic, one Topic).
    */

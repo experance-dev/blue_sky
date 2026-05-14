@@ -11,14 +11,16 @@
 public without sharing class LoggerTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUserFromPermissionSet('Engagement_Attribution_User');
+    TestFactory.createTestUserFromPermissionSet(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    );
   }
 
   //  @description Test logging at all levels with class and method names
   @isTest
   static void testLogWithClassAndMethod() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 
@@ -66,7 +68,7 @@ public without sharing class LoggerTest {
   @isTest
   static void testLogWithoutClassAndMethod() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 
@@ -94,7 +96,7 @@ public without sharing class LoggerTest {
   @isTest
   static void testLogNullAndEmptyMessages() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 
@@ -126,7 +128,7 @@ public without sharing class LoggerTest {
   @isTest
   static void testLogWithObjectParsing() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 
@@ -156,7 +158,7 @@ public without sharing class LoggerTest {
   @isTest
   static void testIsPrintLogsOrg() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 
@@ -177,7 +179,7 @@ public without sharing class LoggerTest {
   @isTest
   static void testLogException() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 

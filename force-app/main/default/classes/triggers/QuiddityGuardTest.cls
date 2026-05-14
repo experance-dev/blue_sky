@@ -11,13 +11,15 @@
 private without sharing class QuiddityGuardTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUserFromPermissionSet('Engagement_Attribution_User');
+    TestFactory.createTestUserFromPermissionSet(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    );
   }
 
   @isTest
   static void testQuiddityGuardFindsTestQuiddityPositive() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
 
@@ -57,7 +59,7 @@ private without sharing class QuiddityGuardTest {
   @isTest
   static void testQuiddityOverrideReturnsFalsePositive() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       QuiddityGuard.testQuiddityOverride = Quiddity.FUTURE;
       Test.startTest();
@@ -75,7 +77,7 @@ private without sharing class QuiddityGuardTest {
   @isTest
   static void testQuiddityGuardThrowsException() {
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       QuiddityGuard.testQuiddityOverride = Quiddity.FUTURE;
       Test.startTest();

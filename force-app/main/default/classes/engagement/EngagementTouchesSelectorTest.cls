@@ -1,7 +1,7 @@
 /**
  * @description Happy-path tests for `EngagementTouchesSelector`. Phase 1 scope —
  *              every public method exercised at least once. All tests run as a
- *              standard-license user with the `Engagement_Attribution_User` perm
+ *              standard-license user with the `Additional_Permissions_Marketing_Influence_Integration` perm
  *              set so that USER_MODE enforcement matches the production caller.
  * @group Engagement Attribution
  * @see EngagementTouchesSelector
@@ -12,14 +12,14 @@
 private class EngagementTouchesSelectorTest {
   // ─── Constants ────────────────────────────────────────────────────────────────
 
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'EngageSelTest';
 
   // ─── Setup ───────────────────────────────────────────────────────────────────
 
   /**
    * @description Provision a standard-license user assigned to the
-   *              Engagement_Attribution_User permission set. Seed data is built
+   *              Additional_Permissions_Marketing_Influence_Integration permission set. Seed data is built
    *              per-test (some tests need 2 accounts, some 1, etc.).
    */
   @TestSetup

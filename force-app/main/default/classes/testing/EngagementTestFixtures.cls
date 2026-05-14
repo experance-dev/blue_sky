@@ -1,7 +1,7 @@
 /**
  * @description Shared seeded-world helper for the Engagement Attribution test
  *              suite. Provisions a Standard-licence user with the
- *              `Engagement_Attribution_User` permset, seeds a canonical UHC
+ *              `Additional_Permissions_Marketing_Influence_Integration` permset, seeds a canonical UHC
  *              world (1 Account, 4 Contacts, 5 Topics, 1 Opportunity, 2 OCRs,
  *              1 indirect ACR, ~12 Touches), and exposes fine-grained builders
  *              for negative-path and bulk tests. Replaces the 20 hand-rolled
@@ -30,7 +30,7 @@
 public with sharing class EngagementTestFixtures {
   // ─── Constants ────────────────────────────────────────────────────────────
 
-  public static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  public static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   public static final String ACCOUNT_NAME = 'United Healthcare Test';
   public static final String OPP_NAME = 'Network Pricing Test';
   public static final String TOPIC_CODE_NETMGT = 'NETMGT';
@@ -47,7 +47,7 @@ public with sharing class EngagementTestFixtures {
 
   /**
    * @description Provisions a Standard-licence user with the
-   *              Engagement_Attribution_User permset assigned. Username is
+   *              Additional_Permissions_Marketing_Influence_Integration permset assigned. Username is
    *              randomised so concurrent test classes don't collide.
    *
    *              The User insert + PermissionSetAssignment insert are wrapped
@@ -208,13 +208,26 @@ public with sharing class EngagementTestFixtures {
       TOPIC_CODE_OON => oon.Id
     };
 
+    // dwood_z baseline: OpportunityTriggerHandler.splitOpportunitiesByRecordType
+    // (called from after-insert) NPEs when RecordTypeId is null. Resolve a
+    // non-PEProvider record type at runtime so the trigger short-circuits on
+    // the record-type switch (no PEProviderOpportunityImpl side effects) and
+    // the seeded Opportunity passes through cleanly. Falls back to no
+    // RecordTypeId in orgs where Opportunity has none configured.
+    // Opportunity_Name_Descriptor__c satisfies an active dwood_z VR; harmless
+    // in any other org because the field is custom to this org.
     Opportunity opp = new Opportunity(
       Name = OPP_NAME,
       AccountId = acct.Id,
       StageName = 'Proposal/Quote',
       CloseDate = Date.today().addDays(30),
-      Touch_Topic__c = netmgt.Id
+      Touch_Topic__c = netmgt.Id,
+      Opportunity_Name_Descriptor__c = 'Test'
     );
+    Id genericOppRecordTypeId = resolveNonPEProviderOpportunityRecordTypeId();
+    if (genericOppRecordTypeId != null) {
+      opp.RecordTypeId = genericOppRecordTypeId;
+    }
     Database.insert(opp, AccessLevel.SYSTEM_MODE);
     w.opportunityId = opp.Id;
 
@@ -444,16 +457,32 @@ public with sharing class EngagementTestFixtures {
    *              MI does not depend on those handlers; they short-circuit on
    *              dwood_z because their pre-existing fixture data (record
    *              types, Jira config, etc.) isn't present in MI's seeded world.
+   *
+   *              Also injects an empty Jira_Push_Object__mdt cache override
+   *              into JiraPushService so the after-insert path doesn't query
+   *              the CMDT (which is not guaranteed to be deployed/queryable
+   *              in every org, e.g. dwood_z's minimal-fixture state). An
+   *              empty override makes `isActive` return false for every
+   *              SObject, so `publish` early-returns without throwing.
+   *
    *              Call this first from any helper that inserts standard objects.
    *              Idempotent.
    */
   public static void disableAllProcessAutomation() {
-    Process_Automation_Switch__c sw = Process_Automation_Switch__c.getOrgDefaults();
-    if (sw == null || sw.Id == null) {
-      sw = new Process_Automation_Switch__c();
+    // Wrap the non-setup DML inside System.runAs(adminUser) so test classes
+    // that call this BEFORE provisioning a User (the typical pattern) don't
+    // hit MIXED_DML_OPERATION on the subsequent User insert. The runAs block
+    // resets the per-transaction setup/non-setup DML guard.
+    System.runAs(getAdminUser()) {
+      Process_Automation_Switch__c sw = Process_Automation_Switch__c.getOrgDefaults();
+      if (sw == null || sw.Id == null) {
+        sw = new Process_Automation_Switch__c();
+      }
+      sw.All_Process_Disabled__c = true;
+      upsert sw;
     }
-    sw.All_Process_Disabled__c = true;
-    upsert sw;
+    // Static-field assignment (no DML) — safe to run outside runAs.
+    JiraPushService.configCacheOverride = new Map<String, Jira_Push_Object__mdt>();
   }
 
   // ─── Settings ─────────────────────────────────────────────────────────────
@@ -554,6 +583,32 @@ public with sharing class EngagementTestFixtures {
       WHERE Profile.Name = 'System Administrator' AND IsActive = TRUE
       LIMIT 1
     ];
+  }
+
+  /**
+   * @description Returns the Id of the first active Opportunity record type
+   *              whose DeveloperName is not `PE_Provider_Opportunity`. The
+   *              Zelis OpportunityTriggerHandler branches on
+   *              `PE_Provider_Opportunity` and calls
+   *              PEProviderOpportunityImpl.onAfterInsert which has its own
+   *              dependencies the MI fixture does not satisfy. Picking any
+   *              other active record type lets the trigger short-circuit
+   *              on the record-type switch. Returns null if no suitable
+   *              record type exists, in which case the caller can choose
+   *              to skip the RecordTypeId binding entirely.
+   */
+  private static Id resolveNonPEProviderOpportunityRecordTypeId() {
+    Schema.DescribeSObjectResult oppDescribe = Opportunity.SObjectType.getDescribe();
+    for (Schema.RecordTypeInfo info : oppDescribe.getRecordTypeInfos()) {
+      if (
+        info.isActive() &&
+        !info.isMaster() &&
+        info.getDeveloperName() != 'PE_Provider_Opportunity'
+      ) {
+        return info.getRecordTypeId();
+      }
+    }
+    return null;
   }
 
   private static void assignPermset(Id userId, String name) {

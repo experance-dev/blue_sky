@@ -58,6 +58,14 @@ public without sharing class TestFactoryDefaults {
    *              UtilitiesHelperTest and UtilitiesTest via reflection
    *              (`TestFactory.createSObject(sObj, 'TestFactoryDefaults.ContactWithAccountDefaults')`).
    *              Stubbed Wave A; Wave B can layer Account composition in.
+   *
+   *              Defaults intentionally stay empty so callers that pass
+   *              `doInsert=true` get a plain LastName-only Contact (the
+   *              minimum Salesforce will accept). Tests that need a shared
+   *              AccountId for grouping assertions set it on the template
+   *              instance before calling `createSObjectList` — surfacing
+   *              the parent intent at the call site instead of hiding it
+   *              inside the defaults class.
    */
   public class ContactWithAccountDefaults implements TestFactory.FieldDefaults {
     public Map<Schema.SObjectField, Object> getFieldDefaults() {

@@ -13,7 +13,7 @@
 private class EngagementDismissalsSelectorTest {
   // ─── Constants ────────────────────────────────────────────────────────────
 
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'EngageDisSelTest';
   private static final String OTHER_USER_LAST_NAME = 'EngageDisSelOther';
   private static final String ACCOUNT_NAME = 'Dismissal Selector Test Acct';
@@ -210,9 +210,34 @@ private class EngagementDismissalsSelectorTest {
       primaryContactId = lookupContactIdByLastName(PRIMARY_CONTACT_LAST);
     }
 
+    // Share the Contact AND the Opportunity with otherUser before they
+    // insert a dismissal that references both. dwood_z's OWD does not
+    // auto-share primaryUser-owned records with otherUser, so even a
+    // SYSTEM_MODE insert inside System.runAs(otherUser) hits
+    // INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY (cross-reference checks
+    // evaluate against the running user's sharing, not CRUD/FLS, so
+    // SYSTEM_MODE does not relax them). Explicit shares give otherUser the
+    // visibility the cross-reference checks require.
+    User other = getOtherUser();
+    Database.insert(
+      new List<SObject>{
+        new ContactShare(
+          ContactId = primaryContactId,
+          UserOrGroupId = other.Id,
+          ContactAccessLevel = 'Read'
+        ),
+        new OpportunityShare(
+          OpportunityId = opportunityId,
+          UserOrGroupId = other.Id,
+          OpportunityAccessLevel = 'Read'
+        )
+      },
+      AccessLevel.SYSTEM_MODE
+    );
+
     // Insert a dismissal as the OTHER user, well in the future so any
     // first-in-Map sort would surface it if scoping were broken.
-    System.runAs(getOtherUser()) {
+    System.runAs(other) {
       Engagement_Dismissal__c otherUsersDismissal = newDismissal(
         primaryContactId,
         opportunityId,

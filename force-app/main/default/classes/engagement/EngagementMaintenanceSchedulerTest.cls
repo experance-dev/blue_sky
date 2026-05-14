@@ -11,7 +11,7 @@
  */
 @IsTest
 private class EngagementMaintenanceSchedulerTest {
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'MaintSchedTest';
 
   /** @description Provisions a permission-set-assigned test user. */

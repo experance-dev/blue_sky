@@ -10,7 +10,9 @@
 private without sharing class RestClientTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUserFromPermissionSet('Engagement_Attribution_User');
+    TestFactory.createTestUserFromPermissionSet(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    );
   }
 
   @isTest
@@ -19,7 +21,7 @@ private without sharing class RestClientTest {
     RestClient rcMin;
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       rc = new RestClient('dummyNamedCredential');
@@ -55,7 +57,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = RestClient.makeApiCall(
@@ -87,7 +89,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = RestClient.makeApiCall(
@@ -117,7 +119,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = RestClient.makeApiCall(
@@ -148,7 +150,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.put('/', '{"Id": "003ae3fn12df25k309"}');
@@ -174,7 +176,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.put(
@@ -204,7 +206,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.get('/', '?test');
@@ -230,7 +232,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.del('/');
@@ -256,7 +258,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.del('/', 'Delete Body');
@@ -282,7 +284,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.post(
@@ -312,7 +314,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.post('/', '{"Id": "003ae3fn12df25k309"}');
@@ -338,7 +340,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.patch('/', '{"Id": "003ae3fn12df25k309"}');
@@ -364,7 +366,7 @@ private without sharing class RestClientTest {
     Test.setMock(HttpCalloutMock.class, mock);
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       HttpResponse response = rc.patch(
@@ -388,7 +390,7 @@ private without sharing class RestClientTest {
 
     Test.startTest();
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       String resource1 = 'example/';
       String result1 = rc.ensureStringEndsInSlash(resource1);
@@ -424,7 +426,7 @@ private without sharing class RestClientTest {
     Boolean addSlash = true;
     Test.startTest();
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       RestClient rc = new RestClient(namedCredential, addSlash);
       Assert.areEqual(
@@ -451,7 +453,7 @@ private without sharing class RestClientTest {
     Boolean addSlash = true;
     Test.startTest();
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       RestClient rc = new RestClient(namedCredential, headers, addSlash);
       Assert.areEqual(
@@ -475,7 +477,7 @@ private without sharing class RestClientTest {
     Boolean encodeQuery = false;
     Test.startTest();
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       RestClient rc = new RestClient(namedCredential, addSlash, encodeQuery);
       Assert.areEqual(
@@ -513,7 +515,7 @@ private without sharing class RestClientTest {
     HttpResponse response;
 
     System.runAs(TestFactory.getCreatedTestUser(
-      'Engagement_Attribution_User'
+      'Additional_Permissions_Marketing_Influence_Integration'
     )) {
       Test.startTest();
       response = rc.get(path);

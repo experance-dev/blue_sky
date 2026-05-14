@@ -9,7 +9,7 @@
  */
 @IsTest
 private class TouchTopicSelectorTest {
-  private static final String PERMSET_NAME = 'Engagement_Attribution_User';
+  private static final String PERMSET_NAME = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final List<String> TOPIC_NAMES = new List<String>{
     'Claims Editing',
     'Member Engagement',

@@ -15,7 +15,7 @@
 private class EngagementInboundRestTest {
   // ─── Constants ────────────────────────────────────────────────────────────
 
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'EngageRestTest';
   private static final String TOPIC_CODE = 'TOPIC_NETWORK_MGMT';
   private static final String SARAH_EMAIL = 'sarah.johnson@uhc.example.com';

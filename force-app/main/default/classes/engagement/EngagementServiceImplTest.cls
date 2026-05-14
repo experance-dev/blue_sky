@@ -13,7 +13,7 @@
 private class EngagementServiceImplTest {
   // ─── Constants ────────────────────────────────────────────────────────────
 
-  private static final String PERMISSION_SET = 'Engagement_Attribution_User';
+  private static final String PERMISSION_SET = 'Additional_Permissions_Marketing_Influence_Integration';
   private static final String USER_LAST_NAME = 'EngageSvcTest';
   private static final String ACCOUNT_NAME = 'United Healthcare Test';
   private static final String OPP_NAME = 'Network Pricing Test';
@@ -22,7 +22,7 @@ private class EngagementServiceImplTest {
 
   /**
    * @description Provisions the test user and the seeded world. Test user is a
-   *              standard-licence user assigned to `Engagement_Attribution_User`
+   *              standard-licence user assigned to `Additional_Permissions_Marketing_Influence_Integration`
    *              so USER_MODE enforcement matches the production caller.
    */
   @TestSetup
