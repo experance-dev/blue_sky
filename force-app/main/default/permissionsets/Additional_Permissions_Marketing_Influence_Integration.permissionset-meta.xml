@@ -1,15 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
-    <applicationVisibilities>
-        <application>Engagement_Admin</application>
-        <visible>true</visible>
-    </applicationVisibilities>
     <classAccesses>
         <apexClass>ContactEngagementErasureHandler</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>EngagementAdminController</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -25,23 +17,11 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>EngagementMaintenanceScheduler</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>EngagementServiceImpl</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>EngagementSignalDecayBatch</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>EngagementSignalRouter</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>EngagementTouchArchivalBatch</apexClass>
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
@@ -73,14 +53,6 @@
         <enabled>true</enabled>
     </classAccesses>
     <classAccesses>
-        <apexClass>RecordCleanupBatch</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
-        <apexClass>RecordCleanupScheduler</apexClass>
-        <enabled>true</enabled>
-    </classAccesses>
-    <classAccesses>
         <apexClass>TouchRoutingRulesSelector</apexClass>
         <enabled>true</enabled>
     </classAccesses>
@@ -88,8 +60,20 @@
         <apexClass>TouchTopicSelector</apexClass>
         <enabled>true</enabled>
     </classAccesses>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>Marketing_Influence_View</name>
+    </customPermissions>
+    <!--
+      PSG composition (Zelis admins): assign STANDALONE to the HubSpot integration
+      user. The existing `HubSpot Integration Permissions` and `HubSpot Integration
+      PermissionsV2` permsets handle the Zelis-side HubSpot grants; this atom
+      complements them with MI-specific data access. Standalone is correct — there
+      is no `Persona - System User HubSpot Integration` PSG today.
+      Should NOT be assigned to: any human user.
+    -->
     <description
-  >Admin overlay for Engagement Attribution. Full edit on Engagement_Touch__c / Touch_Topic__c / Opportunity_Engagement_Signal__c, Engagement Admin app visibility, and access to maintenance + cleanup scheduler classes. Pair with Engagement_Attribution_User.</description>
+  >Integration atom for the HubSpot inbound user posting Engagement_Touch__c via Apex REST. Full CRUD + viewAll/modifyAll on the four MI objects + class access on EngagementInboundRest and deps. Assign STANDALONE; not for humans. See source comment.</description>
     <fieldPermissions>
         <editable>false</editable>
         <field>AccountContactRelation.IsDirect</field>
@@ -115,6 +99,9 @@
         <field>Engagement_Dismissal__c.Account__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- Engagement_Dismissal__c.Contact__c and Dismissed_At__c omitted: both -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD covers them. -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Engagement_Dismissal__c.Opportunity__c</field>
@@ -160,6 +147,8 @@
         <field>Engagement_Touch__c.Email_At_Touch__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- Engagement_Touch__c.External_Id__c omitted: field-level required; deploy -->
+    <!-- rejects FLS on required fields. Object-level CRUD + modifyAll covers it. -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Engagement_Touch__c.Ingested_At__c</field>
@@ -180,6 +169,8 @@
         <field>Engagement_Touch__c.Lead__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- Engagement_Touch__c.Occurred_At__c omitted: field-level required; deploy -->
+    <!-- rejects FLS on required fields. Object-level CRUD + modifyAll covers it. -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Engagement_Touch__c.Persona__c</field>
@@ -265,6 +256,9 @@
         <field>Opportunity_Engagement_Signal__c.Match_Path__c</field>
         <readable>true</readable>
     </fieldPermissions>
+    <!-- Opportunity_Engagement_Signal__c.Opportunity__c omitted: M-D field is -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD covers it. -->
     <fieldPermissions>
         <editable>true</editable>
         <field>Opportunity_Engagement_Signal__c.Topic__c</field>
@@ -286,7 +280,7 @@
         <readable>true</readable>
     </fieldPermissions>
     <hasActivationRequired>false</hasActivationRequired>
-    <label>Engagement Attribution Admin</label>
+    <label>Additional Permissions - Marketing Influence Integration</label>
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
@@ -305,6 +299,8 @@
         <object>Engagement_Touch__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
+    <!-- Lead read: IdentityResolutionService / LeadEngagementReparentHandler -->
+    <!-- resolve and reparent touches to/from converted Leads under USER_MODE. -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
@@ -314,6 +310,8 @@
         <object>Lead</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
+    <!-- Opportunity read+edit required: Signal.Opportunity__c is MasterDetail -->
+    <!-- (parent read enforced); Opportunity.Touch_Topic__c is granted edit FLS. -->
     <objectPermissions>
         <allowCreate>false</allowCreate>
         <allowDelete>false</allowDelete>
@@ -323,15 +321,10 @@
         <object>Opportunity</object>
         <viewAllRecords>false</viewAllRecords>
     </objectPermissions>
-    <objectPermissions>
-        <allowCreate>true</allowCreate>
-        <allowDelete>true</allowDelete>
-        <allowEdit>true</allowEdit>
-        <allowRead>true</allowRead>
-        <modifyAllRecords>false</modifyAllRecords>
-        <object>OpportunityContactRole</object>
-        <viewAllRecords>false</viewAllRecords>
-    </objectPermissions>
+    <!-- viewAll/modifyAll on Signal NOT granted: would require viewAll/modifyAll -->
+    <!-- on Opportunity (M-D parent), a Zelis-org-wide sharing escalation outside -->
+    <!-- the feature footprint. Integration user owns the Signals it inserts and -->
+    <!-- inherits Opportunity sharing for parent visibility. -->
     <objectPermissions>
         <allowCreate>true</allowCreate>
         <allowDelete>true</allowDelete>
@@ -350,8 +343,4 @@
         <object>Touch_Topic__c</object>
         <viewAllRecords>true</viewAllRecords>
     </objectPermissions>
-    <tabSettings>
-        <tab>Engagement_Admin_Console</tab>
-        <visibility>Visible</visibility>
-    </tabSettings>
 </PermissionSet>
