@@ -175,6 +175,14 @@
                 </componentInstanceProperties>
                 <componentName>c:engagementPanel</componentName>
                 <identifier>c_engagementPanel</identifier>
+                <visibilityRule>
+                    <criteria>
+                        <leftValue
+            >{!$Permission.CustomPermission.Marketing_Influence_View}</leftValue>
+                        <operator>EQUAL</operator>
+                        <rightValue>true</rightValue>
+                    </criteria>
+                </visibilityRule>
             </componentInstance>
         </itemInstances>
         <itemInstances>

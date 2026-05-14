@@ -10,6 +10,10 @@
     </classAccesses>
     <customPermissions>
         <enabled>true</enabled>
+        <name>Marketing_Influence_Power_User</name>
+    </customPermissions>
+    <customPermissions>
+        <enabled>true</enabled>
         <name>Marketing_Influence_View</name>
     </customPermissions>
     <!--

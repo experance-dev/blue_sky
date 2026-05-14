@@ -30,6 +30,8 @@ import { LightningElement, api, wire } from "lwc";
 import { refreshApex } from "@salesforce/apex";
 import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import hasViewPerm from "@salesforce/customPermission/Marketing_Influence_View";
+import hasPowerUserPerm from "@salesforce/customPermission/Marketing_Influence_Power_User";
 import getForOpportunity from "@salesforce/apex/EngagementController.getForOpportunity";
 import getForAccount from "@salesforce/apex/EngagementController.getForAccount";
 import dismissContact from "@salesforce/apex/EngagementController.dismissContact";
@@ -99,6 +101,21 @@ export default class EngagementPanel extends NavigationMixin(LightningElement) {
   @wire(getForAccount, { accountId: "$accountIdParam" })
   wiredAccount(result) {
     this.wiredAccountResult = result;
+  }
+
+  // ----- Permission gating -----
+  // Defense-in-depth: FlexiPage Component Visibility hides the panel for
+  // users without Marketing_Influence_View, and this LWC checks again
+  // before rendering. `@salesforce/customPermission/<name>` resolves to
+  // `true` when granted, `undefined` otherwise — the `=== true` compare
+  // tolerates jest/test environments where the import is unmocked.
+
+  get canViewPanel() {
+    return hasViewPerm === true;
+  }
+
+  get canActOnPanel() {
+    return hasPowerUserPerm === true;
   }
 
   // ----- Template-facing getters (per best-practices/lwc.md wire-getter pattern) -----

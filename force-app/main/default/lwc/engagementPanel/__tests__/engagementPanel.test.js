@@ -8,6 +8,24 @@
  * `{open: jest.fn()}` at the top level, NOT `{default: {open: jest.fn()}}`.
  * Confirmed by diagnostic in test-audit-2026-05-12 §3 Cluster G.
  */
+// Default the custom-permission scoped imports to "granted" so this suite
+// (which clicks Add / View-all / Dismiss throughout) runs as Power User.
+// View-tier and no-perm variants live in sibling files
+// (engagementPanel.perm-view.test.js, engagementPanel.perm-none.test.js)
+// because `@salesforce/customPermission/<name>` resolves at module load —
+// one file per perm-combo is the cleanest way to get isolated module realms
+// without colliding with LWC's process-global custom-element registry.
+jest.mock(
+  "@salesforce/customPermission/Marketing_Influence_View",
+  () => ({ default: true }),
+  { virtual: true }
+);
+jest.mock(
+  "@salesforce/customPermission/Marketing_Influence_Power_User",
+  () => ({ default: true }),
+  { virtual: true }
+);
+
 jest.mock("c/addToDealTeamModal", () => ({
   open: jest.fn().mockResolvedValue({ result: "closed" })
 }));
@@ -678,6 +696,32 @@ describe("c-engagement-panel", () => {
       await element.refresh();
       expect(refreshApex).toHaveBeenCalledTimes(1);
       expect(onRefresh).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("permission gating — Power User tier", () => {
+    // Mocked-default state for this file is View=true, PowerUser=true, so
+    // this suite asserts the affirmative case explicitly. View-tier and
+    // no-perm cases live in sibling files (engagementPanel.perm-*.test.js)
+    // because flipping `@salesforce/customPermission/<name>` requires a
+    // separate module realm — `jest.isolateModules` collides with LWC's
+    // process-global custom-element registry.
+    it("powerUserSeesActions", async () => {
+      const element = buildPanel();
+      getForOpportunity.emit([SARAH, MIKE]);
+      await flushPromises();
+
+      expect(
+        element.shadowRoot.querySelector('[data-test="view-all-button"]')
+      ).not.toBeNull();
+      expect(
+        element.shadowRoot.querySelectorAll('[data-test="add-button"]').length
+      ).toBe(1);
+      // Two dismiss buttons: one on the deal-team row, one on the not-on-team row.
+      expect(
+        element.shadowRoot.querySelectorAll('[data-test="dismiss-button"]')
+          .length
+      ).toBe(2);
     });
   });
 });
