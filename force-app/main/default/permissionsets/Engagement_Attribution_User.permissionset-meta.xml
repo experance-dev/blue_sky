@@ -1,0 +1,396 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>ContactEngagementErasureHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementAdminController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementErasureService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementInboundRest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementMaintenanceScheduler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementServiceImpl</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementSignalDecayBatch</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementSignalRouter</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouchArchivalBatch</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouches</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouchTriggerHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouchesSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>IdentityResolutionService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>LeadEngagementErasureHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>LeadEngagementReparentHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>OpportunityContactRolesSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TouchRoutingRulesSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TouchTopicSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <description
+  >Grants read access to engagement attribution objects and the ability to add contacts to opportunity deal teams (OpportunityContactRole).</description>
+    <!-- Standard-field FLS read (2026-05-13): EngagementTouchesSelector + -->
+    <!-- EngagementServiceImpl query these under WITH USER_MODE. Without -->
+    <!-- explicit read, USER_MODE strips them and DTO assembly returns nulls. -->
+    <!-- Account.Name omitted: required field, deploy fails with -->
+    <!-- "cannot deploy to a required field" — already readable via object read. -->
+    <fieldPermissions>
+        <!-- queryAcrsByContact: AccountContactRelation.IsDirect -->
+        <editable>false</editable>
+        <field>AccountContactRelation.IsDirect</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- queryAcrsByContact: AccountContactRelation.Roles → DTO.acrRole -->
+        <editable>false</editable>
+        <field>AccountContactRelation.Roles</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Contact.FirstName / Contact.LastName omitted: org rejects FLS deploy for -->
+    <!-- both (LastName required, FirstName "Invalid field permission"). Contact.Name -->
+    <!-- compound is granted implicitly via object read. -->
+    <fieldPermissions>
+        <!-- EngagementTouchesSelector static SOQL selects Contact.Is_Consultant__c -->
+        <!-- under USER_MODE; without FLS read the field strips and consultant -->
+        <!-- routing/DTO assembly fail. Added 2026-05-13 alongside Boomer's USER_MODE fix. -->
+        <editable>false</editable>
+        <field>Contact.Is_Consultant__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- DTO.title — primary fix that prompted this audit -->
+        <editable>false</editable>
+        <field>Contact.Title</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Opportunity__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- BUG-1 fix (2026-05-12): every Engagement_Touch__c field below is written -->
+    <!-- by production code under AccessLevel.USER_MODE. With editable=false the -->
+    <!-- Integration User and any UI user assigned this permset cannot ingest a   -->
+    <!-- touch or run routing. See docs/test-audit-2026-05-12.md §7 BUG-1.        -->
+    <fieldPermissions>
+        <!-- IdentityResolutionService.applyResolution; LeadEngagementReparentHandler.reparentTouches -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementTouchArchivalBatch.execute; EngagementAdminController.ignoreTouch -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Archived_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (asset_name from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Asset_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (asset_url from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Asset_Url__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (resolved Campaign lookup) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Campaign__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- IdentityResolutionService.applyResolution; LeadEngagementReparentHandler.reparentTouches -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Contact__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (email is the resolution key — PII; -->
+        <!-- write access is required for ingest and intentionally retained on this permset) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Email_At_Touch__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches and EngagementAdminController.testTouch -->
+        <!-- both set System.now(); field is DateTime with defaultValue=NOW() but is -->
+        <!-- explicitly assigned by code, so FLS edit is required -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Ingested_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (intent_level from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Intent_Level__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (defaults true on insert); -->
+        <!-- EngagementTouchArchivalBatch.execute flips to false; EngagementAdminController.ignoreTouch -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Is_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- IdentityResolutionService.applyResolution; LeadEngagementReparentHandler.reparentTouches (nulls on convert) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Lead__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (persona from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Persona__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementAdminController.ignoreTouch writes the ignore reason -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Processing_Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.applyProcessingStatus; EngagementAdminController (ignoreTouch / testTouch / retry) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Processing_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (Pending); IdentityResolutionService.applyResolution (Resolved/Ambiguous/NoMatch); EngagementAdminController -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Resolution_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (source_event_id from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_Event_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (source_event_type from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_Event_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (source_system, e.g. HubSpot) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_System__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (resolved Touch_Topic__c lookup by External_Code) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (touch_subtype from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Touch_Subtype__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementInboundRest.buildTouches (touch_type from inbound payload) -->
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Touch_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity.Touch_Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementSignalRouter.buildSignal (initial confidence); EngagementSignalDecayBatch.execute (decay) -->
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Confidence__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementSignalRouter.buildSignal (carries Touch.Contact__c onto the signal) -->
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Contact__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Dismissed_Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Dismissed__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementSignalRouter.buildSignal (parent touch lookup — required for idempotency keying) -->
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Engagement_Touch__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementSignalRouter.buildSignal (records which routing rule matched: OCR/ACR/Account/Domain/Consultant) -->
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Match_Path__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <!-- EngagementSignalRouter.buildSignal (carries Touch.Topic__c onto the signal) -->
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.External_Code__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.Parent_Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.Topic_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Engagement Attribution User</label>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Engagement_Dismissal__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <!-- BUG-1b fix (2026-05-12): allowCreate flipped true so the Integration -->
+        <!-- User can insert via EngagementInboundRest.upsertTouches under         -->
+        <!-- USER_MODE. FLS for the writable fields was already opened in BUG-1.   -->
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Engagement_Touch__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Lead</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>OpportunityContactRole</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity_Engagement_Signal__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Touch_Topic__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <tabSettings>
+        <tab>Engagement_Admin_Console</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

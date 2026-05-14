@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomMetadata
+  xmlns="http://soap.sforce.com/2006/04/metadata"
+  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+>
+    <label>OCR — Exact contact match</label>
+    <protected>false</protected>
+    <values>
+        <field>Active__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Confidence__c</field>
+        <value xsi:type="xsd:double">95.0</value>
+    </values>
+    <values>
+        <field>Description__c</field>
+        <value
+      xsi:type="xsd:string"
+    >Touch's resolved Contact is on the Opportunity's OCR. Highest confidence.</value>
+    </values>
+    <values>
+        <field>Match_Path__c</field>
+        <value xsi:type="xsd:string">OCR</value>
+    </values>
+    <values>
+        <field>Min_Intent_Level__c</field>
+        <value xsi:nil="true" />
+    </values>
+    <values>
+        <field>Persona_Filter__c</field>
+        <value xsi:nil="true" />
+    </values>
+    <values>
+        <field>Priority__c</field>
+        <value xsi:type="xsd:double">10.0</value>
+    </values>
+    <values>
+        <field>Require_Same_Account__c</field>
+        <value xsi:type="xsd:boolean">true</value>
+    </values>
+    <values>
+        <field>Require_Topic_Match__c</field>
+        <value xsi:type="xsd:boolean">false</value>
+    </values>
+    <values>
+        <field>Touch_Type_Filter__c</field>
+        <value xsi:nil="true" />
+    </values>
+</CustomMetadata>

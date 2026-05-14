@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Predicate_Apex_Class__c</fullName>
+    <description
+  >Optional Apex class implementing IRecordRetentionPredicate. When set, the batch calls shouldKeep(record) and only deletes records where shouldKeep returns false.</description>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Predicate Apex Class</label>
+    <length>120</length>
+    <required>false</required>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>
