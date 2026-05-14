@@ -839,11 +839,17 @@ public class JiraPushDispatcherTest {
    */
   @IsTest
   static void testProcessHandlesNullResultsListFromAdapterGracefully() {
+    // Pre-existing bug surfaced 2026-05-14: this test (and the null-entry
+    // variant below) was the only pair in the file that omitted both the
+    // CMDT override AND used real DML. Without overrideConfig the dispatcher
+    // short-circuits at the cfg==null gate in pushOne and never reaches the
+    // adapter — callCount stays 0. Aligned with the file's DML-less contract
+    // via buildAccount() so this test no longer depends on org-resident CMDT.
+    overrideConfig(accountConfig(true));
     NullReturningJcfs stub = new NullReturningJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Null Results Account');
-    insert a;
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -873,11 +879,15 @@ public class JiraPushDispatcherTest {
    */
   @IsTest
   static void testProcessSkipsNullEntriesInResultsList() {
+    // Mirror of testProcessHandlesNullResultsListFromAdapterGracefully:
+    // CMDT override required so pushOne reaches the adapter; DML-less
+    // buildAccount keeps the test portable across orgs that haven't seeded
+    // the Account row of Jira_Push_Object__mdt.
+    overrideConfig(accountConfig(true));
     NullEntryJcfs stub = new NullEntryJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Null Entry Account');
-    insert a;
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(
