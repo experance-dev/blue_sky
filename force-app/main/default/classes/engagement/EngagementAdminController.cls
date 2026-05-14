@@ -25,6 +25,18 @@ public with sharing class EngagementAdminController {
   private static final Integer DEFAULT_ISSUE_LIMIT = 50;
   private static final Integer COVERAGE_WINDOW_DAYS = 30;
   private static final String GENERIC_FAILURE = 'Unable to complete the request. Check the Engagement logs for details.';
+  private static final Set<String> VALID_INTENT_LEVELS = new Set<String>{
+    'Low',
+    'Medium',
+    'High'
+  };
+  private static final Set<String> VALID_TOUCH_TYPES = new Set<String>{
+    'Page',
+    'Download',
+    'Webinar',
+    'Form',
+    'Event'
+  };
 
   // ─── Test-a-Touch ─────────────────────────────────────────────────────────
 
@@ -81,6 +93,109 @@ public with sharing class EngagementAdminController {
       return assembleRuleCoverage(rules, countsByPath);
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'getRuleCoverage');
+      throw new AuraHandledException(GENERIC_FAILURE);
+    }
+  }
+
+  // ─── Routing Rule Authoring (Add / Edit) ──────────────────────────────────
+
+  /**
+   * @description Creates a new `Touch_Routing_Rule__mdt` row from the
+   *              admin-facing payload assembled by
+   *              `c-touch-routing-rule-modal`. CMDT inserts are deployed
+   *              asynchronously via `Metadata.Operations.enqueueDeployment` —
+   *              the returned job Id lets the LWC surface status / poll.
+   *
+   *              Payload shape (camelCase keys; values are `Object`):
+   *                developerName       (String, required, ~A-Z, 0-9, _)
+   *                masterLabel         (String, required, ≤80)
+   *                description         (String, optional, ≤255)
+   *                matchPath           (String, required, ≤80)
+   *                confidence          (Integer, required, 0-100)
+   *                priority            (Integer, required, ≥1)
+   *                active              (Boolean)
+   *                requireSameAccount  (Boolean)
+   *                requireTopicMatch   (Boolean)
+   *                minIntentLevel      (String, optional — Low|Medium|High)
+   *                personaFilter       (String, optional, ≤80)
+   *                touchTypeFilter     (String, optional, semicolon-joined)
+   *
+   *              Validation rejects bad input with `AuraHandledException`
+   *              before the deploy is enqueued. Per the platform contract,
+   *              CMDT deploys are system-mode by nature; the
+   *              `Marketing_Influence_Admin` permission set controls who can
+   *              reach this Apex method via the LWC.
+   *
+   *              **Implementation status**: contract + validation are in
+   *              place. The `enqueueDeployment` call + `Metadata.DeployCallback`
+   *              implementation is owned by Boomer (Sr Apex) — landing in a
+   *              follow-up commit. Until then this method throws an
+   *              `AuraHandledException` so the LWC error surface lights up
+   *              cleanly during local development.
+   *
+   * @param payload Routing-rule attributes (see above).
+   * @return Deployment job Id once enqueued.
+   */
+  @AuraEnabled
+  public static String createTouchRoutingRule(Map<String, Object> payload) {
+    try {
+      validateRoutingRulePayload(payload, true);
+      // TODO: Boomer — wire enqueueDeployment + DeployCallback.
+      throw new AuraHandledException(
+        'Routing rule deploy is not yet implemented. Track CSI-7162 follow-up.'
+      );
+    } catch (AuraHandledException ahe) {
+      throw ahe;
+    } catch (Exception e) {
+      Logger.logException(e, CLASS_NAME, 'createTouchRoutingRule');
+      throw new AuraHandledException(GENERIC_FAILURE);
+    }
+  }
+
+  /**
+   * @description Updates an existing `Touch_Routing_Rule__mdt` row. Same
+   *              payload shape as `createTouchRoutingRule` minus
+   *              `developerName` (which is immutable on a deployed CMDT
+   *              row — supplied as a separate parameter so the LWC's
+   *              edit-mode form can leave the field read-only).
+   *
+   *              **Implementation status**: contract + validation are in
+   *              place. The deploy guts are Boomer's.
+   *
+   * @param developerName CMDT row to update. Must already exist.
+   * @param payload Mutable routing-rule attributes (see `createTouchRoutingRule`).
+   * @return Deployment job Id once enqueued.
+   */
+  @AuraEnabled
+  public static String updateTouchRoutingRule(
+    String developerName,
+    Map<String, Object> payload
+  ) {
+    try {
+      if (String.isBlank(developerName)) {
+        throw new AuraHandledException('Developer Name is required.');
+      }
+      validateRoutingRulePayload(payload, false);
+      List<Touch_Routing_Rule__mdt> existing = [
+        SELECT Id, DeveloperName
+        FROM Touch_Routing_Rule__mdt
+        WHERE DeveloperName = :developerName
+        WITH USER_MODE
+        LIMIT 1
+      ];
+      if (existing.isEmpty()) {
+        throw new AuraHandledException(
+          'Routing rule not found: ' + developerName
+        );
+      }
+      // TODO: Boomer — wire enqueueDeployment + DeployCallback.
+      throw new AuraHandledException(
+        'Routing rule deploy is not yet implemented. Track CSI-7162 follow-up.'
+      );
+    } catch (AuraHandledException ahe) {
+      throw ahe;
+    } catch (Exception e) {
+      Logger.logException(e, CLASS_NAME, 'updateTouchRoutingRule');
       throw new AuraHandledException(GENERIC_FAILURE);
     }
   }
@@ -378,6 +493,135 @@ public with sharing class EngagementAdminController {
       rows.add(row);
     }
     return rows;
+  }
+
+  // ─── Private — Routing Rule validation ────────────────────────────────────
+
+  /**
+   * @description Validates the routing-rule payload against CMDT field
+   *              constraints. Mirrors the client-side validation in
+   *              `c-touch-routing-rule-modal` so the server is the source
+   *              of truth — the LWC validation is an optimization, not a
+   *              guarantee.
+   *
+   *              `isCreate=true` requires `developerName`; `isCreate=false`
+   *              ignores it (the caller passes it separately).
+   *
+   *              Throws `AuraHandledException` on the first failure with a
+   *              user-facing message; the LWC binds the exception body to
+   *              `errorMessage` for inline display.
+   */
+  private static void validateRoutingRulePayload(
+    Map<String, Object> payload,
+    Boolean isCreate
+  ) {
+    if (payload == null) {
+      throw new AuraHandledException('Payload is required.');
+    }
+    if (isCreate) {
+      String devName = (String) payload.get('developerName');
+      if (String.isBlank(devName)) {
+        throw new AuraHandledException('Developer Name is required.');
+      }
+      if (!Pattern.matches('^[A-Za-z][A-Za-z0-9_]{0,39}$', devName)) {
+        throw new AuraHandledException(
+          'Developer Name must start with a letter and contain only letters, numbers, and underscores (max 40 chars).'
+        );
+      }
+    }
+    String label = (String) payload.get('masterLabel');
+    if (String.isBlank(label)) {
+      throw new AuraHandledException('Label is required.');
+    }
+    if (label.length() > 80) {
+      throw new AuraHandledException('Label must be 80 characters or fewer.');
+    }
+    String description = (String) payload.get('description');
+    if (description != null && description.length() > 255) {
+      throw new AuraHandledException(
+        'Description must be 255 characters or fewer.'
+      );
+    }
+    String matchPath = (String) payload.get('matchPath');
+    if (String.isBlank(matchPath)) {
+      throw new AuraHandledException('Match Path is required.');
+    }
+    if (matchPath.length() > 80) {
+      throw new AuraHandledException(
+        'Match Path must be 80 characters or fewer.'
+      );
+    }
+    Integer confidence = toInteger(payload.get('confidence'));
+    if (confidence == null) {
+      throw new AuraHandledException('Confidence is required.');
+    }
+    if (confidence < 0 || confidence > 100) {
+      throw new AuraHandledException('Confidence must be between 0 and 100.');
+    }
+    Integer priority = toInteger(payload.get('priority'));
+    if (priority == null) {
+      throw new AuraHandledException('Priority is required.');
+    }
+    if (priority < 1) {
+      throw new AuraHandledException('Priority must be a whole number ≥ 1.');
+    }
+    String intentLevel = (String) payload.get('minIntentLevel');
+    if (
+      String.isNotBlank(intentLevel) &&
+      !VALID_INTENT_LEVELS.contains(intentLevel)
+    ) {
+      throw new AuraHandledException(
+        'Min Intent Level must be Low, Medium, or High.'
+      );
+    }
+    String personaFilter = (String) payload.get('personaFilter');
+    if (personaFilter != null && personaFilter.length() > 80) {
+      throw new AuraHandledException(
+        'Persona Filter must be 80 characters or fewer.'
+      );
+    }
+    String touchTypeFilter = (String) payload.get('touchTypeFilter');
+    if (String.isNotBlank(touchTypeFilter)) {
+      for (String tt : touchTypeFilter.split(';')) {
+        if (String.isBlank(tt)) {
+          continue;
+        }
+        if (!VALID_TOUCH_TYPES.contains(tt.trim())) {
+          throw new AuraHandledException(
+            'Touch Type Filter contains an unsupported value: ' + tt
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * @description Helper — accepts Integer, Decimal, or numeric String and
+   *              returns Integer (or null on blank). JSON-bound payloads
+   *              tend to arrive as Decimal; we normalize once.
+   */
+  private static Integer toInteger(Object v) {
+    if (v == null) {
+      return null;
+    }
+    if (v instanceof Integer) {
+      return (Integer) v;
+    }
+    if (v instanceof Decimal) {
+      return ((Decimal) v).intValue();
+    }
+    if (v instanceof Double) {
+      return Integer.valueOf((Double) v);
+    }
+    String s = String.valueOf(v);
+    if (String.isBlank(s)) {
+      return null;
+    }
+    try {
+      return Integer.valueOf(s);
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   // ─── Private — Error Queue helpers ────────────────────────────────────────

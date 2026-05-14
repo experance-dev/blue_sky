@@ -1,0 +1,217 @@
+<template>
+  <lightning-modal-header label={modalHeaderLabel}></lightning-modal-header>
+  <lightning-modal-body>
+    <p
+      class="slds-text-body_small slds-text-color_weak slds-var-m-bottom_small"
+    >
+      Routing rules live in <code>Touch_Routing_Rule__mdt</code>. Saves are
+      asynchronous — Salesforce will deploy the metadata in the background and
+      the table refreshes once the deploy completes.
+    </p>
+
+    <div class="slds-form slds-form_stacked" role="list">
+      <template if:true={isCreateMode}>
+        <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+          <lightning-input
+            type="text"
+            name="developerName"
+            label="Developer Name"
+            value={formDeveloperName}
+            required
+            max-length="40"
+            field-level-help="Permanent API name. Letters, numbers, underscore. Cannot be changed once the rule is created."
+            onchange={handleDeveloperNameChange}
+            data-test="developer-name-input"
+          ></lightning-input>
+        </div>
+      </template>
+
+      <template if:true={isEditMode}>
+        <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+          <span class="slds-form-element__label">Developer Name</span>
+          <div
+            class="slds-form-element__control slds-form-element__static"
+            data-test="developer-name-readonly"
+          >
+            <strong>{developerName}</strong>
+            <p class="slds-text-body_small slds-text-color_weak">
+              Developer Name is immutable on a deployed metadata row.
+            </p>
+          </div>
+        </div>
+      </template>
+
+      <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+        <lightning-input
+          type="text"
+          name="masterLabel"
+          label="Label"
+          value={formMasterLabel}
+          required
+          max-length="80"
+          onchange={handleMasterLabelChange}
+          data-test="master-label-input"
+        ></lightning-input>
+      </div>
+
+      <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+        <lightning-textarea
+          name="description"
+          label="Description"
+          value={formDescription}
+          max-length="255"
+          field-level-help="Optional. Brief description of what this rule matches."
+          onchange={handleDescriptionChange}
+          data-test="description-input"
+        ></lightning-textarea>
+      </div>
+
+      <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+        <lightning-input
+          type="text"
+          name="matchPath"
+          label="Match Path"
+          value={formMatchPath}
+          required
+          max-length="80"
+          field-level-help="Routing path identifier (e.g. OCR, Account, Account_Topic)."
+          onchange={handleMatchPathChange}
+          data-test="match-path-input"
+        ></lightning-input>
+      </div>
+
+      <div class="slds-grid slds-gutters slds-var-m-bottom_small">
+        <div class="slds-col slds-size_1-of-2">
+          <div class="slds-form-element" role="listitem">
+            <lightning-input
+              type="number"
+              name="confidence"
+              label="Confidence"
+              value={formConfidence}
+              required
+              min="0"
+              max="100"
+              step="1"
+              field-level-help="0–100. Whole number."
+              onchange={handleConfidenceChange}
+              data-test="confidence-input"
+            ></lightning-input>
+          </div>
+        </div>
+        <div class="slds-col slds-size_1-of-2">
+          <div class="slds-form-element" role="listitem">
+            <lightning-input
+              type="number"
+              name="priority"
+              label="Priority"
+              value={formPriority}
+              required
+              min="1"
+              step="1"
+              field-level-help="Lower number = higher priority."
+              onchange={handlePriorityChange}
+              data-test="priority-input"
+            ></lightning-input>
+          </div>
+        </div>
+      </div>
+
+      <div class="slds-grid slds-gutters slds-var-m-bottom_small">
+        <div class="slds-col slds-size_1-of-3">
+          <lightning-input
+            type="checkbox"
+            name="active"
+            label="Active"
+            checked={formActive}
+            onchange={handleActiveChange}
+            data-test="active-input"
+          ></lightning-input>
+        </div>
+        <div class="slds-col slds-size_1-of-3">
+          <lightning-input
+            type="checkbox"
+            name="requireSameAccount"
+            label="Require Same Account"
+            checked={formRequireSameAccount}
+            onchange={handleRequireSameAccountChange}
+            data-test="require-same-account-input"
+          ></lightning-input>
+        </div>
+        <div class="slds-col slds-size_1-of-3">
+          <lightning-input
+            type="checkbox"
+            name="requireTopicMatch"
+            label="Require Topic Match"
+            checked={formRequireTopicMatch}
+            onchange={handleRequireTopicMatchChange}
+            data-test="require-topic-match-input"
+          ></lightning-input>
+        </div>
+      </div>
+
+      <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+        <lightning-combobox
+          name="minIntentLevel"
+          label="Min Intent Level"
+          value={formMinIntentLevel}
+          options={intentLevelOptions}
+          placeholder="— Any —"
+          onchange={handleMinIntentLevelChange}
+          data-test="min-intent-level-input"
+        ></lightning-combobox>
+      </div>
+
+      <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+        <lightning-input
+          type="text"
+          name="personaFilter"
+          label="Persona Filter"
+          value={formPersonaFilter}
+          max-length="80"
+          field-level-help="Optional. Only match touches with this persona."
+          onchange={handlePersonaFilterChange}
+          data-test="persona-filter-input"
+        ></lightning-input>
+      </div>
+
+      <div class="slds-form-element slds-var-m-bottom_small" role="listitem">
+        <lightning-dual-listbox
+          name="touchTypeFilter"
+          label="Touch Type Filter"
+          source-label="Available"
+          selected-label="Selected"
+          options={touchTypeOptions}
+          value={formTouchTypeFilter}
+          field-level-help="Optional. Restrict the rule to these touch types. Stored semicolon-joined."
+          onchange={handleTouchTypeFilterChange}
+          data-test="touch-type-filter-input"
+        ></lightning-dual-listbox>
+      </div>
+    </div>
+
+    <template if:true={errorMessage}>
+      <div
+        class="slds-text-color_error slds-var-m-top_small"
+        role="alert"
+        data-test="error"
+      >
+        {errorMessage}
+      </div>
+    </template>
+  </lightning-modal-body>
+  <lightning-modal-footer>
+    <lightning-button
+      label="Cancel"
+      onclick={handleCancel}
+      class="slds-var-m-right_x-small"
+      data-test="cancel-button"
+    ></lightning-button>
+    <lightning-button
+      label={submitButtonLabel}
+      variant="brand"
+      onclick={handleSubmit}
+      disabled={isSaving}
+      data-test="submit-button"
+    ></lightning-button>
+  </lightning-modal-footer>
+</template>
