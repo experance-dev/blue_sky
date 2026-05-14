@@ -63,6 +63,19 @@ public with sharing class LeadEngagementReparentHandler extends TriggerHandler {
   }
 
   private static void reparentTouches(Set<Id> justConvertedLeadIds) {
+    // Marketing Influence is an OWD-Private, permset-gated feature. A Lead can
+    // be converted by any user in the org — including users with no MI permset
+    // and therefore no FLS on Engagement_Touch__c.Lead__c. Under WITH USER_MODE
+    // such a user's SOQL on Lead__c raises QueryException ("No such column")
+    // because USER_MODE hides FLS-blocked fields from the schema. Gate on
+    // Lead__c accessibility and no-op silently when the converting user can't
+    // see the field — there is nothing for that user to reparent in their
+    // user-mode view, and the trigger must never block Lead conversion for
+    // non-MI personas.
+    if (!Schema.sObjectType.Engagement_Touch__c.fields.Lead__c.isAccessible()) {
+      return;
+    }
+
     Map<Id, Lead> converted = new Map<Id, Lead>(
       [
         SELECT Id, ConvertedContactId, ConvertedAccountId
