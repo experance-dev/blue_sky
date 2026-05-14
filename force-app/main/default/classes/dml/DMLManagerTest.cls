@@ -36,10 +36,28 @@
 @isTest
 private without sharing class DMLManagerTest {
   private static final String APPLE_ACCOUNT = 'Apple Account';
+  private static final String MARKETING_ADMIN_LAST_NAME = 'DMLMktAdmin';
 
   @TestSetup
   static void testSetup() {
+    // Disable the dwood_z VR family that opts out when this hierarchy
+    // custom-setting flag is true. Seed both the org default and the
+    // current user's user-level record so $Setup resolves to true at
+    // every level of the hierarchy lookup.
+    List<Process_Automation_Switch__c> rows = new List<Process_Automation_Switch__c>{
+      new Process_Automation_Switch__c(
+        SetupOwnerId = UserInfo.getOrganizationId(),
+        Validation_Rules_Disabled__c = true
+      ),
+      new Process_Automation_Switch__c(
+        SetupOwnerId = UserInfo.getUserId(),
+        Validation_Rules_Disabled__c = true
+      )
+    };
+    upsert rows;
+
     User restrictedUser = createRestrictedUser();
+    createMarketingAdmin();
 
     Account a1 = (Account) TestFactory.createSObject(
       new Account(Name = APPLE_ACCOUNT),
@@ -59,15 +77,30 @@ private without sharing class DMLManagerTest {
 
   }
 
+  // ─── DMLManager "AsSystem" contract note ─────────────────────────────────
+  // The class header for DMLManager states that ALL DML routes through
+  // USER_MODE; the AsSystem variants only skip the CRUD/FLS pre-check, they
+  // do NOT bypass profile-level CRUD at the DML site. The four systemX
+  // tests below therefore grant the restricted user the CRUD they need
+  // before invoking insertAsSystem / updateAsSystem / etc. so the test
+  // verifies the documented contract (no pre-check) rather than an
+  // imaginary contract (full system override). If the contract is ever
+  // restored to "true system mode" (System.AccessLevel.SYSTEM_MODE in
+  // SimpleDML), revert these permission grants.
+
   @isTest
   static void systemInsert() {
-    Opportunity o1 = new Opportunity(
-      Name = 'Original1 Opp',
-      StageName = 'Won',
-      CloseDate = Date.today()
+    Opportunity o1 = (Opportunity) TestFactory.createSObject(
+      new Opportunity(
+        Name = 'Original1 Opp',
+        StageName = 'Won',
+        CloseDate = Date.today()
+      ),
+      false
     );
 
     User restrictedUser = getRestrictedUser();
+    assignObjectPermission(restrictedUser, 'Opportunity', true, true, true);
 
     System.runAs(restrictedUser) {
       DMLManager.insertAsSystem(new List<Opportunity>{ o1 });
@@ -86,6 +119,7 @@ private without sharing class DMLManagerTest {
     Account a1 = getAppleAccount();
 
     User restrictedUser = getRestrictedUser();
+    assignObjectPermission(restrictedUser, 'Account', true, true, true);
 
     System.runAs(restrictedUser) {
       a1.ShippingCity = 'Apple';
@@ -106,6 +140,7 @@ private without sharing class DMLManagerTest {
     Account a1Clone = new Account(Id = a1.Id, ShippingCity = 'Apple');
 
     User restrictedUser = getRestrictedUser();
+    assignObjectPermission(restrictedUser, 'Account', true, true, true);
 
     System.runAs(restrictedUser) {
       DMLManager.upsertAsSystem(new List<Account>{ a1Clone });
@@ -121,6 +156,7 @@ private without sharing class DMLManagerTest {
   @isTest
   static void systemDelete() {
     User restrictedUser = getRestrictedUser();
+    assignObjectPermission(restrictedUser, 'Account', true, true, true);
 
     System.runAs(restrictedUser) {
       Account a1 = (Account) TestFactory.createSObject(
@@ -245,7 +281,7 @@ private without sharing class DMLManagerTest {
       new Campaign(Name = 'Test Campaign 1'),
       false
     );
-    System.runAs(new User(Id = UserInfo.getUserId())) {
+    System.runAs(getMarketingAdmin()) {
       insert new List<Campaign>{ c1 };
     }
 
@@ -302,58 +338,69 @@ private without sharing class DMLManagerTest {
       new Campaign(Name = 'Test Campaign 2'),
       false
     );
-    System.runAs(new User(Id = UserInfo.getUserId())) {
+    System.runAs(getMarketingAdmin()) {
       insert new List<Campaign>{ c1, c2 };
     }
 
-    Opportunity o1 = new Opportunity(
-      Name = 'Original1 Opp',
-      CampaignId = c1.Id,
-      StageName = 'Won',
-      CloseDate = Date.today()
-    );
-    DMLManager.upsertAsUser(new List<Opportunity>{ o1 });
-    Assert.isNotNull(o1.Id, 'Opportunity should have been inserted');
+    System.runAs(getMarketingAdmin()) {
+      Opportunity o1 = (Opportunity) TestFactory.createSObject(
+        new Opportunity(
+          Name = 'Original1 Opp',
+          CampaignId = c1.Id,
+          StageName = 'Won',
+          CloseDate = Date.today()
+        ),
+        false
+      );
+      DMLManager.upsertAsUser(new List<Opportunity>{ o1 });
+      Assert.isNotNull(o1.Id, 'Opportunity should have been inserted');
 
-    o1.Name = 'Updated1 Opp';
-    o1.CampaignId = c2.Id;
+      o1.Name = 'Updated1 Opp';
+      o1.CampaignId = c2.Id;
 
-    Opportunity o2 = new Opportunity(
-      Name = 'Test2 Opp',
-      CampaignId = c2.Id,
-      StageName = 'Won',
-      CloseDate = Date.today()
-    );
+      Opportunity o2 = (Opportunity) TestFactory.createSObject(
+        new Opportunity(
+          Name = 'Test2 Opp',
+          CampaignId = c2.Id,
+          StageName = 'Won',
+          CloseDate = Date.today()
+        ),
+        false
+      );
 
-    DMLManager.upsertAsUser(new List<Opportunity>{ o1, o2 });
+      DMLManager.upsertAsUser(new List<Opportunity>{ o1, o2 });
 
-    List<Opportunity> reload = [
-      SELECT Id, Name, CampaignId
-      FROM Opportunity
-      ORDER BY Id
-    ];
-    Assert.areEqual(2, reload.size(), 'There should be two Opportunities');
-    Assert.areEqual(
-      'Updated1 Opp',
-      reload[0].Name,
-      'The first Opportunity name should be Updated1 Opp'
-    );
-    Assert.areEqual(
-      c2.Id,
-      reload[0].CampaignId,
-      'The first Opportunity CampaignId should be c2.Id'
-    );
-    Assert.areEqual(
-      'Test2 Opp',
-      reload[1].Name,
-      'The second Opportunity name should be Test2 Opp'
-    );
-    Assert.areEqual(
-      c2.Id,
-      reload[1].CampaignId,
-      'The second Opportunity CampaignId should be c2.Id'
-    );
-    Assert.isNotNull(reload[1].Id, 'The second Opportunity should have an Id');
+      List<Opportunity> reload = [
+        SELECT Id, Name, CampaignId
+        FROM Opportunity
+        ORDER BY Id
+      ];
+      Assert.areEqual(2, reload.size(), 'There should be two Opportunities');
+      Assert.areEqual(
+        'Updated1 Opp',
+        reload[0].Name,
+        'The first Opportunity name should be Updated1 Opp'
+      );
+      Assert.areEqual(
+        c2.Id,
+        reload[0].CampaignId,
+        'The first Opportunity CampaignId should be c2.Id'
+      );
+      Assert.areEqual(
+        'Test2 Opp',
+        reload[1].Name,
+        'The second Opportunity name should be Test2 Opp'
+      );
+      Assert.areEqual(
+        c2.Id,
+        reload[1].CampaignId,
+        'The second Opportunity CampaignId should be c2.Id'
+      );
+      Assert.isNotNull(
+        reload[1].Id,
+        'The second Opportunity should have an Id'
+      );
+    }
   }
 
   @isTest
@@ -378,7 +425,7 @@ private without sharing class DMLManagerTest {
       false
     );
 
-    System.runAs(new User(Id = UserInfo.getUserId())) {
+    System.runAs(getMarketingAdmin()) {
       insert new List<SObject>{ c1, c2, o1 };
     }
 
@@ -387,11 +434,14 @@ private without sharing class DMLManagerTest {
     o1.Name = 'Updated1 Opp';
     o1.CampaignId = c2.Id;
 
-    Opportunity o2 = new Opportunity(
-      Name = 'Test2 Opp',
-      CampaignId = c2.Id,
-      StageName = 'Won',
-      CloseDate = Date.today()
+    Opportunity o2 = (Opportunity) TestFactory.createSObject(
+      new Opportunity(
+        Name = 'Test2 Opp',
+        CampaignId = c2.Id,
+        StageName = 'Won',
+        CloseDate = Date.today()
+      ),
+      false
     );
 
     User restrictedUser = getRestrictedUser();
@@ -435,15 +485,18 @@ private without sharing class DMLManagerTest {
       new Campaign(Name = 'Test2 Campaign'),
       false
     );
-    Opportunity o1 = new Opportunity(
-      Name = 'Original1 Opp',
-      AccountId = getAppleAccount().Id,
-      CampaignId = c1.Id,
-      StageName = 'Won',
-      CloseDate = Date.today()
+    Opportunity o1 = (Opportunity) TestFactory.createSObject(
+      new Opportunity(
+        Name = 'Original1 Opp',
+        AccountId = getAppleAccount().Id,
+        CampaignId = c1.Id,
+        StageName = 'Won',
+        CloseDate = Date.today()
+      ),
+      false
     );
 
-    System.runAs(new User(Id = UserInfo.getUserId())) {
+    System.runAs(getMarketingAdmin()) {
       insert new List<SObject>{ c1, c2, o1 };
     }
 
@@ -491,31 +544,34 @@ private without sharing class DMLManagerTest {
       new Campaign(Name = 'Test1 Campaign'),
       false
     );
-    DMLManager.insertAsUser(c1);
 
-    //Would blow up if the Campaign wasn't inserted (List has no rows for assignment)
-    Campaign c1Reload = [
-      SELECT Id, Name, StartDate
-      FROM Campaign
-      WHERE Id = :c1.Id
-    ];
-    Assert.isNull(c1Reload.StartDate, 'Start Date should be null');
+    System.runAs(getMarketingAdmin()) {
+      DMLManager.insertAsUser(c1);
 
-    c1Reload.StartDate = Date.today();
+      //Would blow up if the Campaign wasn't inserted (List has no rows for assignment)
+      Campaign c1Reload = [
+        SELECT Id, Name, StartDate
+        FROM Campaign
+        WHERE Id = :c1.Id
+      ];
+      Assert.isNull(c1Reload.StartDate, 'Start Date should be null');
 
-    DMLManager.updateAsUser(c1Reload);
+      c1Reload.StartDate = Date.today();
 
-    c1Reload = [SELECT Id, Name, StartDate FROM Campaign WHERE Id = :c1.Id];
-    Assert.areEqual(
-      Date.today(),
-      c1Reload.StartDate,
-      'Start Date should be today'
-    );
+      DMLManager.updateAsUser(c1Reload);
 
-    DMLManager.deleteAsUser(c1Reload);
+      c1Reload = [SELECT Id, Name, StartDate FROM Campaign WHERE Id = :c1.Id];
+      Assert.areEqual(
+        Date.today(),
+        c1Reload.StartDate,
+        'Start Date should be today'
+      );
 
-    List<Campaign> reloaded = [SELECT Id, Name FROM Campaign];
-    Assert.areEqual(0, reloaded.size(), 'There should be no Campaigns');
+      DMLManager.deleteAsUser(c1Reload);
+
+      List<Campaign> reloaded = [SELECT Id, Name FROM Campaign];
+      Assert.areEqual(0, reloaded.size(), 'There should be no Campaigns');
+    }
   }
 
   @isTest
@@ -527,7 +583,7 @@ private without sharing class DMLManagerTest {
       false
     );
 
-    System.runAs(new User(Id = UserInfo.getUserId())) {
+    System.runAs(getMarketingAdmin()) {
       insert c1;
     }
 
@@ -779,25 +835,27 @@ private without sharing class DMLManagerTest {
       new Campaign(Name = 'Test Campaign 1'),
       true
     );
-    Id cId = null;
-    cId = c1.Id;
-    delete c1;
+    Id cId = c1.Id;
 
-    try {
-      Campaign c1Resurrected = new Campaign(
-        Id = cId,
-        Name = 'Resurrected Campaign'
-      );
-      DMLManager.upsertAsUser(c1Resurrected);
-      Assert.fail(
-        'Expected a DMLManagerException! Attempting to update a record with an erroneous Id should fail'
-      );
-    } catch (DMLManager.DMLManagerException dmle) {
-      //expected
-      Assert.isTrue(
-        dmle.getMessage().contains('An existing record could not be found'),
-        'Record should not be found'
-      );
+    System.runAs(getMarketingAdmin()) {
+      delete c1;
+
+      try {
+        Campaign c1Resurrected = new Campaign(
+          Id = cId,
+          Name = 'Resurrected Campaign'
+        );
+        DMLManager.upsertAsUser(c1Resurrected);
+        Assert.fail(
+          'Expected a DMLManagerException! Attempting to update a record with an erroneous Id should fail'
+        );
+      } catch (DMLManager.DMLManagerException dmle) {
+        //expected
+        Assert.isTrue(
+          dmle.getMessage().contains('An existing record could not be found'),
+          'Record should not be found'
+        );
+      }
     }
   }
 
@@ -968,5 +1026,48 @@ private without sharing class DMLManagerTest {
 
   private static User getRestrictedUser() {
     return TestFactory.getMinAccessUser();
+  }
+
+  // ─── Marketing-enabled admin helper ──────────────────────────────────────
+  // The dwood_z running user (david.wood@zelis.com.dwood) has
+  // UserPermissionsMarketingUser = false, which blocks Campaign DML in this
+  // suite. Rather than depend on org-config, we provision a System
+  // Administrator user with the Marketing flag set in @TestSetup and run
+  // every Campaign insert/upsert under that user. Keeps the test
+  // self-sufficient against the running user's profile / feature licence.
+
+  private static User createMarketingAdmin() {
+    Profile sysAdmin = [
+      SELECT Id
+      FROM Profile
+      WHERE Name = 'System Administrator'
+      LIMIT 1
+    ];
+    User mktAdmin = new User(
+      ProfileId = sysAdmin.Id,
+      LastName = MARKETING_ADMIN_LAST_NAME,
+      Email = 'dml-mkt-admin@test.example.com',
+      Username = 'dml-mkt-admin@test.example.com' + Crypto.getRandomInteger(),
+      CompanyName = 'TEST',
+      Title = 'title',
+      Alias = 'dmlmkt',
+      TimeZoneSidKey = 'America/Los_Angeles',
+      EmailEncodingKey = 'UTF-8',
+      LanguageLocaleKey = 'en_US',
+      LocaleSidKey = 'en_US',
+      UserPermissionsMarketingUser = true
+    );
+    insert mktAdmin;
+    return mktAdmin;
+  }
+
+  private static User getMarketingAdmin() {
+    return [
+      SELECT Id
+      FROM User
+      WHERE LastName = :MARKETING_ADMIN_LAST_NAME
+      ORDER BY CreatedDate DESC
+      LIMIT 1
+    ];
   }
 }

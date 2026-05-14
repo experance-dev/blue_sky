@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Do_Not_Delete__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description
+  >Compatibility flag for LogCleanupBatch when scheduled retention is eventually turned on for this object. Mark TRUE to pin a row permanently.</description>
+    <externalId>false</externalId>
+    <label>Do Not Delete</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

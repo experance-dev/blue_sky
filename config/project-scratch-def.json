@@ -13,6 +13,9 @@
       "passwordPolicies": {
         "minimumPasswordLength": 8
       }
+    },
+    "quoteSettings": {
+      "enableQuote": true
     }
   }
 }

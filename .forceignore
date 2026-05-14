@@ -13,6 +13,8 @@ package.xml
 
 node_modules/
 
+# ---- MI / Engagement-Attribution carve-outs ----
+
 # Stowers-era logging cleanup utilities (reference ATM_Endpoint_Log__c, Block_Trigger_Log__c, Log_Clean_Up__mdt).
 # Re-enable when those objects exist in the target org.
 force-app/main/default/classes/logging/LogCleanUp/**
@@ -29,4 +31,25 @@ force-app/main/default/classes/logging/LogCleanUp/**
 force-app/main/default/reportTypes/**
 force-app/main/default/reports/**
 
+# ---- CSI-7162 / Jira Push carve-outs ----
 
+# JcfsApiAdapter.cls is the only file in the framework that references
+# the Appfire JCFS managed-package namespace. Excluded from scratch-org
+# deploys because the package isn't installed there - JiraPushDispatcher
+# falls back to NoOpJcfsApi via Type.forName when this class is absent.
+# Deploy normally to the work org (where the managed package IS installed).
+force-app/main/default/classes/JcfsApiAdapter.cls
+force-app/main/default/classes/JcfsApiAdapter.cls-meta.xml
+
+# Scratch-org compile blockers. PricebookUtilTest tries to assign to
+# PricebookUtil.standardPricebookId which only has a getter (no setter) -
+# upstream bug, ignore the test until fixed. PricebookUtil.cls itself
+# compiles and is referenced by Utilities, so we keep it.
+force-app/main/default/classes/pricing/PricebookUtilTest.cls
+force-app/main/default/classes/pricing/PricebookUtilTest.cls-meta.xml
+
+# LogCleanupBatchTest references ATM_Endpoint_Log__c and Block_Trigger_Log__c
+# which only exist in the work org. Production LogCleanupBatch is generic
+# (dynamic SOQL) and deploys fine.
+force-app/main/default/classes/logging/LogCleanUp/LogCleanupBatchTest.cls
+force-app/main/default/classes/logging/LogCleanUp/LogCleanupBatchTest.cls-meta.xml

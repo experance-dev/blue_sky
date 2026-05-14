@@ -1,20 +1,13 @@
-/*
- * Copyright (c) 2020-2026 David Wood
- * Licensed under the MIT License — see LICENSE in the repo root.
- * Source: <https://github.com/experance-dev/salesforce-utilities>
- */
 /**
  * @description Centralized logging utility for Salesforce applications.
  *              Provides a simple interface to log messages with varying levels of severity.
  *              Supports logging the originating class and method names.
- *              The `printLogs` flag (driven by Log_Setting__mdt when present) gates debug-level
- *              output; info/warn/error always write. `logException` captures message + stack trace.
- *              When Log_Setting__mdt is absent from the org, printLogs defaults to true so
- *              Logger remains usable in scratch / partial orgs without configuration.
+ *              The `printLogs` flag (driven by Log_Setting__mdt) gates debug-level output;
+ *              info/warn/error always write. `logException` captures message + stack trace.
  * @group Logger
  * @since September 2024
  * @author David Wood
- * @last May 2026 — unconfigured-org safe defaults for Log_Setting__mdt
+ * @last May 2026 — PII scrub (email masking) on Message__c / Stack_Trace__c before persist; CSI-7162: writeApiException uses Database.insert(..., AccessLevel.SYSTEM_MODE) by deliberate policy (see method ApexDoc)
  */
 public inherited sharing class Logger {
   // ─── Core dispatch ───────────────────────────────────────────────────────────
@@ -160,6 +153,80 @@ public inherited sharing class Logger {
     }
   }
 
+  /**
+   * @description Persists an API_Exception_Log__c row and mirrors the message
+   *              to Logger.error. Endpoint for outbound integration failures
+   *              (Jira, Slack, Workday, …) so support can report on what
+   *              broke without scavenging debug logs. Self-wraps DML so the
+   *              caller never needs a try/catch.
+   *
+   *              Sharing/permissions: the row is persisted via
+   *              `Database.insert(..., AccessLevel.SYSTEM_MODE)` by
+   *              deliberate policy decision. An error logger MUST capture
+   *              failures regardless of caller perms - if a user without
+   *              FLS on Stack_Trace__c (or without CRUD on
+   *              API_Exception_Log__c) triggers an exception, we still
+   *              need the row written or support loses every error that
+   *              user generates. Routing this through
+   *              DMLManager.insertAsUser would silently drop those rows;
+   *              DMLManager doesn't expose a true SYSTEM_MODE overload
+   *              (its insertAsSystem still uses AccessLevel.USER_MODE on
+   *              the underlying Database.insert), so we call
+   *              Database.insert directly here. This is the documented
+   *              "log layer needs elevated DML" exception to the
+   *              "all DML through DMLManager" rule in
+   *              best-practices/apex.md.
+   * @param apiName        Logical API / integration name (e.g. 'JCFS').
+   * @param operation      Specific method or step that failed.
+   * @param sourceObject   SObject API name the failure was about (nullable).
+   * @param sourceRecordId Record Id the failure was about (nullable).
+   * @param transactionId  System.Request.getCurrent().getRequestId() (nullable).
+   * @param ex             The thrown Apex exception.
+   */
+  public static void logApiException(
+    String apiName,
+    String operation,
+    String sourceObject,
+    Id sourceRecordId,
+    String transactionId,
+    Exception ex
+  ) {
+    writeApiException(
+      apiName,
+      operation,
+      sourceObject,
+      sourceRecordId,
+      transactionId,
+      ex == null ? null : ex.getMessage(),
+      ex == null ? null : ex.getTypeName(),
+      ex == null ? null : ex.getStackTraceString()
+    );
+  }
+
+  /**
+   * @description Same endpoint as the Exception overload, but for non-exception
+   *              error conditions (invalid payload, missing config, etc.).
+   */
+  public static void logApiException(
+    String apiName,
+    String operation,
+    String sourceObject,
+    Id sourceRecordId,
+    String transactionId,
+    String message
+  ) {
+    writeApiException(
+      apiName,
+      operation,
+      sourceObject,
+      sourceRecordId,
+      transactionId,
+      message,
+      null,
+      null
+    );
+  }
+
   // ─── Private helpers ──────────────────────────────────────────────────────────
 
   private static void logDebugWithObject(
@@ -190,6 +257,90 @@ public inherited sharing class Logger {
         methodName
       );
     }
+  }
+
+  @SuppressWarnings('PMD.ExcessiveParameterList')
+  private static void writeApiException(
+    String apiName,
+    String operation,
+    String sourceObject,
+    Id sourceRecordId,
+    String transactionId,
+    String message,
+    String exceptionType,
+    String stackTrace
+  ) {
+    error(
+      '[' + apiName + '/' + operation + '] ' + scrubPii(message),
+      'Logger',
+      'logApiException'
+    );
+    try {
+      // Direct Database.insert with AccessLevel.SYSTEM_MODE - DMLManager does
+      // not expose a true system-mode overload (insertAsSystem still runs the
+      // underlying DML at AccessLevel.USER_MODE), and an error logger must
+      // capture the row regardless of caller FLS. See class header + method
+      // ApexDoc for the policy rationale.
+      Database.insert(
+        new API_Exception_Log__c(
+          API_Name__c = apiName,
+          Operation__c = operation,
+          Source_Object__c = sourceObject,
+          Source_Record_Id__c = sourceRecordId == null
+            ? null
+            : String.valueOf(sourceRecordId),
+          Transaction_Id__c = transactionId,
+          Severity__c = 'ERROR',
+          Message__c = scrubPii(message),
+          Exception_Type__c = exceptionType,
+          Stack_Trace__c = scrubPii(stackTrace)
+        ),
+        AccessLevel.SYSTEM_MODE
+      );
+    } catch (Exception writeFail) {
+      error(
+        'Could not persist API_Exception_Log__c: ' + writeFail.getMessage(),
+        'Logger',
+        'logApiException'
+      );
+    }
+  }
+
+  /**
+   * @description Defense-in-depth PII scrub for content destined for
+   *              API_Exception_Log__c. Today's call paths persist
+   *              Exception.getMessage() / getStackTraceString(), which are
+   *              class.method.line — no field values. If a future custom
+   *              exception ever embeds a record field (e.g. a Contact email)
+   *              in its message, this scrub masks it before it lands in the
+   *              diagnostic table. Pattern: local-part of any RFC-5322-ish
+   *              email is masked to first-three + ***. Domain preserved for
+   *              operational triage. Null-safe.
+   * @param input Raw message or stack-trace string (nullable).
+   * @return Scrubbed string, or null if input was null.
+   */
+  @TestVisible
+  private static String scrubPii(String input) {
+    if (String.isBlank(input)) {
+      return input;
+    }
+    // RFC-5322-ish: localpart includes letters, digits, dots, plus, dashes,
+    // underscores. Captures local + @domain; replaces local with
+    // first-three + *** when the local part is > 3 chars, else just ***.
+    String emailRegex = '([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})';
+    Pattern p = Pattern.compile(emailRegex);
+    Matcher m = p.matcher(input);
+    String out = '';
+    Integer last = 0;
+    while (m.find()) {
+      out += input.substring(last, m.start());
+      String local = m.group(1);
+      String masked = (local.length() > 3 ? local.substring(0, 3) : '') + '***';
+      out += masked + '@' + m.group(2);
+      last = m.end();
+    }
+    out += input.substring(last);
+    return out;
   }
 
   private static void logExceptionInternal(
@@ -225,50 +376,18 @@ public inherited sharing class Logger {
   // ─── Infrastructure ───────────────────────────────────────────────────────────
 
   /**
-   * @description Sentinel set to true when Log_Setting__mdt is not deployed in the
-   *              target org. Tests can assert against this to confirm graceful fallback.
-   */
-  @TestVisible
-  private static Boolean logSettingUnconfigured = false;
-
-  /**
-   * @return True if debug output is enabled. Reads from Log_Setting__mdt 'defaults' when
-   *         present; falls back to true (and flips `logSettingUnconfigured`) when the
-   *         CMDT type or record is absent at runtime — so an unconfigured org still logs.
+   * @return True if debug output is enabled (driven by Log_Setting__mdt)
    */
   @TestVisible
   private static Boolean printLogs {
     get {
       if (printLogs == null) {
-        printLogs = resolvePrintLogsDefault();
+        printLogs = Log_Setting__mdt.getInstance('defaults')
+          ?.Print_Debug_Logs__c ?? true;
       }
       return printLogs;
     }
     set;
-  }
-
-  /**
-   * @description Resolves the Print_Debug_Logs__c value via dynamic SOQL so an org missing
-   *              the Log_Setting__mdt type or its 'defaults' record never blocks compilation
-   *              or execution. Any failure path defaults to true and marks the sentinel.
-   * @return True when the CMDT is absent / unreadable, or the configured value otherwise.
-   */
-  @TestVisible
-  private static Boolean resolvePrintLogsDefault() {
-    try {
-      List<SObject> records = Database.query(
-        'SELECT Print_Debug_Logs__c FROM Log_Setting__mdt WHERE DeveloperName = \'defaults\' LIMIT 1'
-      );
-      if (records.isEmpty()) {
-        logSettingUnconfigured = true;
-        return true;
-      }
-      Object raw = records[0].get('Print_Debug_Logs__c');
-      return raw == null ? true : (Boolean) raw;
-    } catch (Exception ex) {
-      logSettingUnconfigured = true;
-      return true;
-    }
   }
 
   /**

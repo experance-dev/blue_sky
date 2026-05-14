@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Transaction_Id__c</fullName>
+    <description
+  >System.Request.getCurrent().getRequestId() at the time of failure. Matches Jira_Push_Request__e.Transaction_Id__c for cross-system correlation.</description>
+    <externalId>true</externalId>
+    <label>Transaction Id</label>
+    <length>40</length>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>Text</type>
+</CustomField>

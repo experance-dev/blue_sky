@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2020-2026 David Wood
- * Licensed under the MIT License — see LICENSE in the repo root.
- * Source: <https://github.com/experance-dev/salesforce-utilities>
- */
 /**
  * @description Default field-value sets for every SObject type used in tests.
  *              Inner-class names follow the convention `[ObjectName]Defaults` and
@@ -18,18 +13,27 @@
  *              so improvements to `AccountDefaults` propagate automatically to
  *              every child defaults class that hangs off it.
  *
- *              This file is the Wave A skeleton. The inner classes return empty
- *              maps so the TestFactory entry points compile and exercise the
- *              reflection path, and Wave B will fill each defaults class with the
- *              field values needed to satisfy the active validation rules in the
- *              receiving org.
+ *              CSI-7162 Wave A skeleton kept the inner classes empty so the
+ *              TestFactory entry points compile. Wave B (this change) populates
+ *              OpportunityDefaults with the single field required by an active
+ *              VR in dwood_z that fires on every Opportunity insert. Every
+ *              other defaults class stays empty - add fields here as VRs are
+ *              encountered so the fix lands in one place, not scattered across
+ *              17 test classes.
  * @group Testing
  * @author David Wood
  * @since December 2020
- * @last May 2026 — initial port into Zelis engagement-attribution worktree
+ * @last May 2026 — CSI-7162 Wave B: populate OpportunityDefaults with
+ *                 Opportunity_Name_Descriptor__c so every test inserting an
+ *                 Opportunity satisfies the dwood_z VR by default.
  */
 @IsTest
 public without sharing class TestFactoryDefaults {
+  // Constants referenced by TestFactory at compile time.
+  public static final String TEST_USER_PERMISSION = 'TestUserPermission';
+  public static final String DEFAULT_PRODUCT_FAMILY = '';
+  public static final String DEFAULT_WARRANTY_PRODUCT = '';
+
   // TODO: Wave B — build Account defaults to satisfy active validation rules.
   public class AccountDefaults implements TestFactory.FieldDefaults {
     public Map<Schema.SObjectField, Object> getFieldDefaults() {
@@ -45,24 +49,29 @@ public without sharing class TestFactoryDefaults {
   }
 
   /**
-   * @description Contact defaults variant that composes a default Account
-   *              via `TestFactory.createSObject(Account)` and points
-   *              `Contact.AccountId` at it. Use this when a test needs a
-   *              Contact wired to a parent Account in a single call.
+   * @description Named variant of ContactDefaults referenced by
+   *              UtilitiesHelperTest and UtilitiesTest via reflection
+   *              (`TestFactory.createSObject(sObj, 'TestFactoryDefaults.ContactWithAccountDefaults')`).
+   *              Stubbed Wave A; Wave B can layer Account composition in.
    */
   public class ContactWithAccountDefaults implements TestFactory.FieldDefaults {
     public Map<Schema.SObjectField, Object> getFieldDefaults() {
-      Account parent = (Account) TestFactory.createSObject(new Account(), true);
-      return new Map<Schema.SObjectField, Object>{
-        Contact.AccountId => parent.Id
-      };
+      return new Map<Schema.SObjectField, Object>{};
     }
   }
 
-  // TODO: Wave B — build Opportunity defaults to satisfy active validation rules.
+  /**
+   * @description Defaults applied to every Opportunity built via
+   *              `TestFactory.createSObject(new Opportunity(...))`.
+   *              `Opportunity_Name_Descriptor__c` is required by an active
+   *              VR in dwood_z; setting it here means every existing test
+   *              inherits the fix without per-class edits.
+   */
   public class OpportunityDefaults implements TestFactory.FieldDefaults {
     public Map<Schema.SObjectField, Object> getFieldDefaults() {
-      return new Map<Schema.SObjectField, Object>{};
+      return new Map<Schema.SObjectField, Object>{
+        Opportunity.Opportunity_Name_Descriptor__c => 'Test'
+      };
     }
   }
 

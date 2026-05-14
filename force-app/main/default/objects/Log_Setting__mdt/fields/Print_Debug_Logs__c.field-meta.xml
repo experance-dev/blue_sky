@@ -2,6 +2,8 @@
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Print_Debug_Logs__c</fullName>
     <defaultValue>true</defaultValue>
+    <description
+  >When true, Logger.debug calls write to System.debug; otherwise they are suppressed.</description>
     <externalId>false</externalId>
     <fieldManageability>DeveloperControlled</fieldManageability>
     <label>Print Debug Logs</label>

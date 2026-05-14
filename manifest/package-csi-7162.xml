@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<!--
+  CSI-7162 — Jira push framework deploy manifest.
+  Lists only the metadata members needed for this feature plus its utility
+  dependencies (Logger, TriggerHandler, TestFactory). Use:
+
+    sf project deploy start --manifest manifest/package-csi-7162.xml --target-org <alias>
+
+  TestFactoryDefaults ships as a stub here — populate org-specific
+  *Defaults inner classes at work before running tests.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+
+    <!-- CSI-7162 framework — production Apex -->
+    <types>
+        <members>JiraPushDispatcher</members>
+        <members>JiraPushRequestHandler</members>
+        <members>JiraPushService</members>
+        <members>OpportunityService</members>
+        <members>OpportunityTriggerHandler</members>
+
+        <!-- CSI-7162 framework — tests -->
+        <members>JiraPushDispatcherTest</members>
+        <members>JiraPushRequestHandlerTest</members>
+        <members>JiraPushServiceTest</members>
+        <members>JiraPushTestFixtures</members>
+        <members>LoggerApiExceptionTest</members>
+        <members>OpportunityServiceTest</members>
+        <members>OpportunityTriggerHandlerTest</members>
+
+        <!-- Utility dependencies -->
+        <members>Logger</members>
+        <members>LoggerTest</members>
+        <members>TestFactory</members>
+        <members>TestFactoryDefaults</members>
+
+        <name>ApexClass</name>
+    </types>
+
+    <!-- Apex triggers -->
+    <types>
+        <members>JiraPushRequestTrigger</members>
+        <members>OpportunityTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+
+    <!-- Custom objects, platform event, and CMDT types -->
+    <types>
+        <members>API_Exception_Log__c</members>
+        <members>Jira_Push_Object__mdt</members>
+        <members>Jira_Push_Request__e</members>
+        <members>Log_Setting__mdt</members>
+        <name>CustomObject</name>
+    </types>
+
+    <!-- Fields on the above objects -->
+    <types>
+        <!-- API_Exception_Log__c -->
+        <members>API_Exception_Log__c.API_Name__c</members>
+        <members>API_Exception_Log__c.Do_Not_Delete__c</members>
+        <members>API_Exception_Log__c.Exception_Type__c</members>
+        <members>API_Exception_Log__c.Message__c</members>
+        <members>API_Exception_Log__c.Operation__c</members>
+        <members>API_Exception_Log__c.Severity__c</members>
+        <members>API_Exception_Log__c.Source_Object__c</members>
+        <members>API_Exception_Log__c.Source_Record_Id__c</members>
+        <members>API_Exception_Log__c.Stack_Trace__c</members>
+        <members>API_Exception_Log__c.Transaction_Id__c</members>
+
+        <!-- Jira_Push_Object__mdt -->
+        <members>Jira_Push_Object__mdt.Active__c</members>
+        <members>Jira_Push_Object__mdt.SObject_API_Name__c</members>
+
+        <!-- Jira_Push_Request__e (Platform Event) -->
+        <members>Jira_Push_Request__e.Change_Type__c</members>
+        <members>Jira_Push_Request__e.Event_Timestamp__c</members>
+        <members>Jira_Push_Request__e.Source_Id__c</members>
+        <members>Jira_Push_Request__e.Source_Object__c</members>
+        <members>Jira_Push_Request__e.Transaction_Id__c</members>
+
+        <!-- Log_Setting__mdt -->
+        <members>Log_Setting__mdt.Print_Debug_Logs__c</members>
+
+        <name>CustomField</name>
+    </types>
+
+    <!-- Custom metadata records -->
+    <types>
+        <members>Jira_Push_Object.Case</members>
+        <members>Jira_Push_Object.Opportunity</members>
+        <members>Log_Setting.defaults</members>
+        <name>CustomMetadata</name>
+    </types>
+
+    <version>66.0</version>
+</Package>
