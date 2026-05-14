@@ -10,13 +10,15 @@
 public without sharing class SingleEmailTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUser();
+    TestFactory.createTestUserFromPermissionSet('Engagement_Attribution_User');
   }
 
   @isTest
   static void testSendEmailWithMinimumFields() {
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       SingleEmail email = new SingleEmail(
         'test@example.com',
         'Test Subject',
@@ -33,7 +35,9 @@ public without sharing class SingleEmailTest {
   @isTest
   static void testSendEmailWithAllFields() {
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       SingleEmail email = new SingleEmail();
       email.toAddresses.add('test@example.com');
       email.ccAddresses.add('cc@example.com');
@@ -54,7 +58,9 @@ public without sharing class SingleEmailTest {
   @isTest
   static void testSendEmailNoRecipients() {
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       SingleEmail email = new SingleEmail();
       email.subject = 'No Recipients';
       email.plainBody = 'This email has no recipients';
@@ -74,7 +80,9 @@ public without sharing class SingleEmailTest {
   @isTest
   static void testConstructorWithParams() {
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       SingleEmail email = new SingleEmail(
         'test@example.com',
         'Subject',
@@ -103,11 +111,7 @@ public without sharing class SingleEmailTest {
       );
 
       // Verify that the plain body of the email is 'Body'
-      Assert.areEqual(
-        'Body',
-        email.plainBody,
-        'The plain body should be Body'
-      );
+      Assert.areEqual('Body', email.plainBody, 'The plain body should be Body');
     }
     Test.stopTest();
   }

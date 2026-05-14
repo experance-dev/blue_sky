@@ -10,7 +10,7 @@
 private without sharing class RestClientTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUser();
+    TestFactory.createTestUserFromPermissionSet('Engagement_Attribution_User');
   }
 
   @isTest
@@ -18,7 +18,9 @@ private without sharing class RestClientTest {
     RestClient rc;
     RestClient rcMin;
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       rc = new RestClient('dummyNamedCredential');
       rcMin = new RestClient('dummyNamedCredential');
@@ -52,7 +54,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = RestClient.makeApiCall(
         'DummyNamedCredential',
@@ -82,7 +86,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = RestClient.makeApiCall(
         'DummyNamedCredential',
@@ -110,7 +116,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = RestClient.makeApiCall(
         'DummyNamedCredential',
@@ -139,7 +147,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.put('/', '{"Id": "003ae3fn12df25k309"}');
       Test.stopTest();
@@ -163,7 +173,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.put(
         '/',
@@ -191,7 +203,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.get('/', '?test');
       Test.stopTest();
@@ -215,7 +229,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.del('/');
       Test.stopTest();
@@ -239,7 +255,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.del('/', 'Delete Body');
       Test.stopTest();
@@ -263,7 +281,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.post(
         '/',
@@ -291,7 +311,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.post('/', '{"Id": "003ae3fn12df25k309"}');
       Test.stopTest();
@@ -315,7 +337,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.patch('/', '{"Id": "003ae3fn12df25k309"}');
       Test.stopTest();
@@ -339,7 +363,9 @@ private without sharing class RestClientTest {
     );
     Test.setMock(HttpCalloutMock.class, mock);
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       HttpResponse response = rc.patch(
         '/',
@@ -361,7 +387,9 @@ private without sharing class RestClientTest {
     RestClient rc = new RestClient('DummyNamedCredential');
 
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       String resource1 = 'example/';
       String result1 = rc.ensureStringEndsInSlash(resource1);
       Assert.areEqual(
@@ -395,7 +423,9 @@ private without sharing class RestClientTest {
     String namedCredential = 'DummyNamedCredential';
     Boolean addSlash = true;
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       RestClient rc = new RestClient(namedCredential, addSlash);
       Assert.areEqual(
         namedCredential,
@@ -420,7 +450,9 @@ private without sharing class RestClientTest {
     };
     Boolean addSlash = true;
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       RestClient rc = new RestClient(namedCredential, headers, addSlash);
       Assert.areEqual(
         namedCredential,
@@ -442,7 +474,9 @@ private without sharing class RestClientTest {
     Boolean addSlash = true;
     Boolean encodeQuery = false;
     Test.startTest();
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       RestClient rc = new RestClient(namedCredential, addSlash, encodeQuery);
       Assert.areEqual(
         namedCredential,
@@ -478,7 +512,9 @@ private without sharing class RestClientTest {
     String path = '/example';
     HttpResponse response;
 
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
       response = rc.get(path);
       Test.stopTest();

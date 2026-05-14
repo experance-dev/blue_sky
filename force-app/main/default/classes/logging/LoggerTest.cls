@@ -11,13 +11,15 @@
 public without sharing class LoggerTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUser();
+    TestFactory.createTestUserFromPermissionSet('Engagement_Attribution_User');
   }
 
   //  @description Test logging at all levels with class and method names
   @isTest
   static void testLogWithClassAndMethod() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
 
       Logger.log(
@@ -63,7 +65,9 @@ public without sharing class LoggerTest {
   // @description Test logging at all levels without class and method names
   @isTest
   static void testLogWithoutClassAndMethod() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
 
       Logger.log(System.LoggingLevel.DEBUG, 'Debug message');
@@ -89,7 +93,9 @@ public without sharing class LoggerTest {
   // @description Test logging with null and empty messages
   @isTest
   static void testLogNullAndEmptyMessages() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
 
       Logger.log(
@@ -119,7 +125,9 @@ public without sharing class LoggerTest {
   // @description Test logging with object parsing to JSON
   @isTest
   static void testLogWithObjectParsing() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
 
       Map<String, Object> testObject = new Map<String, Object>{
@@ -147,7 +155,9 @@ public without sharing class LoggerTest {
   // @description Test isSandboxOrg method
   @isTest
   static void testIsPrintLogsOrg() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
 
       Boolean result = Logger.printLogs;
@@ -166,7 +176,9 @@ public without sharing class LoggerTest {
   // @description Test logging exceptions
   @isTest
   static void testLogException() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Engagement_Attribution_User'
+    )) {
       Test.startTest();
 
       try {
