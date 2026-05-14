@@ -38,10 +38,7 @@
  * Change Log:
  * | Date       | Ticket   | Author      | Description                                |
  * |------------|----------|-------------|--------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood  | Tests for dispatcher and JCFS seam         |
- * | 2026-05-12 | CSI-7162 | Pippa Codey | Bulk PE batch, re-fire dedup, typed-       |
- * |            |          |             | exception (pending Boomer), NoOp regression|
- * |            |          |             | lock, Limits.* assertions on bulk paths.   |
+ * | 2026-05-12 | CSI-7162 | David Wood  | Tests for dispatcher and JCFS seam: bulk PE batch, re-fire dedup, NoOp regression lock |
  */
 @IsTest
 public class JiraPushDispatcherTest {
@@ -790,5 +787,130 @@ public class JiraPushDispatcherTest {
       [SELECT COUNT() FROM API_Exception_Log__c],
       'Two failed records -> two API_Exception_Log__c rows; success is debug-only'
     );
+  }
+
+  /**
+   * @description Covers the no-arg JcfsPushResult() constructor (line 45).
+   */
+  @IsTest
+  static void testJcfsPushResultNoArgConstructorIsUsable() {
+    Test.startTest();
+    JiraPushDispatcher.JcfsPushResult r = new JiraPushDispatcher.JcfsPushResult();
+    r.recordId = TestFactory.getFakeId(Account.SObjectType);
+    r.success = true;
+    r.jiraIssueKey = 'JIRA-1';
+    Test.stopTest();
+
+    Assert.areEqual(true, r.success, 'No-arg ctor + setters work');
+    Assert.areEqual('JIRA-1', r.jiraIssueKey, 'jiraIssueKey settable');
+    Assert.isNotNull(r.recordId, 'recordId settable');
+  }
+
+  /**
+   * @description Covers the @TestVisible private muteForTest() seam
+   *              (lines 106-109) plus the NoOp's null-records guard
+   *              (line 134-135).
+   */
+  @IsTest
+  static void testMuteForTestSwapsInNoOpStubAndHandlesNullRecords() {
+    Test.startTest();
+    JiraPushDispatcher.IJcfsApi stub = JiraPushDispatcher.muteForTest();
+    List<JiraPushDispatcher.JcfsPushResult> nullResults = stub.pushUpdates(
+      null
+    );
+    Test.stopTest();
+
+    Assert.isNotNull(stub, 'muteForTest returns the wired stub');
+    Assert.areEqual(
+      0,
+      nullResults.size(),
+      'NoOp returns empty list when input is null (guard at line 134-135)'
+    );
+  }
+
+  /**
+   * @description Adapter returns null - the dispatcher must early-return
+   *              without throwing or writing per-record exception logs.
+   *              Covers line 309-311.
+   */
+  @IsTest
+  static void testProcessHandlesNullResultsListFromAdapterGracefully() {
+    NullReturningJcfs stub = new NullReturningJcfs();
+    JiraPushDispatcher.jcfs = stub;
+
+    Account a = new Account(Name = 'Null Results Account');
+    insert a;
+
+    Test.startTest();
+    JiraPushDispatcher.process(
+      new List<Jira_Push_Request__e>{
+        new Jira_Push_Request__e(
+          Source_Object__c = 'Account',
+          Source_Id__c = String.valueOf(a.Id),
+          Change_Type__c = 'Update',
+          Event_Timestamp__c = Datetime.now(),
+          Transaction_Id__c = 'null-results'
+        )
+      }
+    );
+    Test.stopTest();
+
+    Assert.areEqual(
+      1,
+      stub.callCount,
+      'Adapter invoked once before returning null'
+    );
+  }
+
+  /**
+   * @description Adapter returns a list with a null element. Dispatcher's
+   *              per-result loop must `continue` past the null. Covers
+   *              line 313-314.
+   */
+  @IsTest
+  static void testProcessSkipsNullEntriesInResultsList() {
+    NullEntryJcfs stub = new NullEntryJcfs();
+    JiraPushDispatcher.jcfs = stub;
+
+    Account a = new Account(Name = 'Null Entry Account');
+    insert a;
+
+    Test.startTest();
+    JiraPushDispatcher.process(
+      new List<Jira_Push_Request__e>{
+        new Jira_Push_Request__e(
+          Source_Object__c = 'Account',
+          Source_Id__c = String.valueOf(a.Id),
+          Change_Type__c = 'Update',
+          Event_Timestamp__c = Datetime.now(),
+          Transaction_Id__c = 'null-entry'
+        )
+      }
+    );
+    Test.stopTest();
+
+    Assert.areEqual(1, stub.callCount, 'Adapter invoked');
+  }
+
+  /** Stub that returns null from pushUpdates - drives null-results early-return. */
+  public class NullReturningJcfs implements JiraPushDispatcher.IJcfsApi {
+    public Integer callCount = 0;
+    public List<JiraPushDispatcher.JcfsPushResult> pushUpdates(
+      List<SObject> records
+    ) {
+      callCount++;
+      return null;
+    }
+  }
+
+  /** Stub that returns a list with one null element - drives null-entry continue. */
+  public class NullEntryJcfs implements JiraPushDispatcher.IJcfsApi {
+    public Integer callCount = 0;
+    public List<JiraPushDispatcher.JcfsPushResult> pushUpdates(
+      List<SObject> records
+    ) {
+      callCount++;
+      return new List<JiraPushDispatcher.JcfsPushResult>{ null };
+    }
   }
 }

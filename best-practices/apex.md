@@ -91,6 +91,12 @@ Database.insert(accs, AccessLevel.USER_MODE);
 
 Audit `DMLManager.xxxAsUser` to confirm it uses `AccessLevel.USER_MODE` internally.
 
+**CMDT carve-out.** `WITH SYSTEM_MODE` is acceptable on Custom Metadata Type queries since CMDT reads bypass CRUD/FLS by platform rule. `WITH USER_MODE` on a CMDT SOQL is semantically policy-theater and has historically raised `QueryException` on older API versions. Prefer `WITH SYSTEM_MODE` (or no clause — CMDT reads ignore both) when the query targets a `__mdt` object; document the choice in the method ApexDoc.
+
+```apex
+List<Jira_Push_Object__mdt> cfg = [SELECT Id, SObject_Name__c FROM Jira_Push_Object__mdt WITH SYSTEM_MODE];
+```
+
 ### Logging discipline
 
 - `Logger.logException(e, className, methodName)` for caught exceptions.

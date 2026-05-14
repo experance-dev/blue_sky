@@ -11,8 +11,7 @@
  * Change Log:
  * | Date       | Ticket   | Author      | Description                                  |
  * |------------|----------|-------------|----------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood  | Coverage for new Logger.logApiException APIs |
- * | 2026-05-12 | CSI-7162 | Pippa Codey | Add persist-failure catch-block coverage     |
+ * | 2026-05-12 | CSI-7162 | David Wood  | Tests for Logger.logApiException: happy-path persist, catch-block coverage |
  */
 @IsTest
 private class LoggerApiExceptionTest {
@@ -130,6 +129,80 @@ private class LoggerApiExceptionTest {
       before,
       after,
       'Persist failure must leave the log unchanged - the catch swallows'
+    );
+  }
+
+  // ─── PII scrub (follow-up) ──────────────────────────────────────────────────
+
+  @IsTest
+  static void testScrubPiiMasksEmailLocalPart() {
+    String input = 'Lookup failed for sarah.j@uhc.example.com';
+    String scrubbed = Logger.scrubPii(input);
+    Assert.areEqual(
+      'Lookup failed for sar***@uhc.example.com',
+      scrubbed,
+      'Local part > 3 chars masks to first-three + ***'
+    );
+  }
+
+  @IsTest
+  static void testScrubPiiHandlesShortLocalPart() {
+    String input = 'bob@x.io rejected';
+    String scrubbed = Logger.scrubPii(input);
+    Assert.areEqual(
+      '***@x.io rejected',
+      scrubbed,
+      'Local part <= 3 chars masks to *** only'
+    );
+  }
+
+  @IsTest
+  static void testScrubPiiHandlesMultipleEmails() {
+    String input = 'from alice.smith@a.com to bob.jones@b.com';
+    String scrubbed = Logger.scrubPii(input);
+    Assert.areEqual('from ali***@a.com to bob***@b.com', scrubbed);
+  }
+
+  @IsTest
+  static void testScrubPiiNullAndBlankPassThrough() {
+    Assert.areEqual(null, Logger.scrubPii(null));
+    Assert.areEqual('', Logger.scrubPii(''));
+    Assert.areEqual('   ', Logger.scrubPii('   '));
+  }
+
+  @IsTest
+  static void testScrubPiiPreservesNonEmailContent() {
+    String input = 'EngagementSignalRouter.matchPathSatisfied:339 no @ in here';
+    String scrubbed = Logger.scrubPii(input);
+    Assert.areEqual(input, scrubbed, 'No email pattern leaves input untouched');
+  }
+
+  @IsTest
+  static void testLogApiExceptionScrubsEmailInPersistedMessage() {
+    Test.startTest();
+    Logger.logApiException(
+      'JCFS',
+      'op',
+      'Opportunity',
+      null,
+      'tx-pii',
+      'Contact lookup failed for sarah.j@uhc.example.com'
+    );
+    Test.stopTest();
+
+    List<API_Exception_Log__c> rows = [
+      SELECT Message__c
+      FROM API_Exception_Log__c
+      WHERE Transaction_Id__c = 'tx-pii'
+    ];
+    Assert.areEqual(1, rows.size());
+    Assert.isTrue(
+      rows[0].Message__c.contains('sar***@uhc.example.com'),
+      'Persisted Message__c must have email masked: ' + rows[0].Message__c
+    );
+    Assert.isFalse(
+      rows[0].Message__c.contains('sarah.j@uhc.example.com'),
+      'Raw email must not be persisted to API_Exception_Log__c'
     );
   }
 }

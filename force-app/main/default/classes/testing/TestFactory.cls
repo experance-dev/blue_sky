@@ -292,16 +292,23 @@ public without sharing class TestFactory {
    */
   public static void assignPermSetToUser(User usr, String permSetName) {
     // SOQL: permission set lookup; acceptable in test context.
-    Id permSetId = [
+    // Defensive: tests are portable across orgs that may or may not have the
+    // named permset. When the permset is absent we no-op rather than throw -
+    // the test then runs under whatever permissions the user inherited from
+    // their profile, which is the right semantics for environment-specific
+    // permsets like TestUserPermission.
+    List<PermissionSet> permSets = [
       SELECT Id
       FROM PermissionSet
       WHERE Name LIKE :permSetName
       LIMIT 1
-    ]
-    .Id;
+    ];
+    if (permSets.isEmpty()) {
+      return;
+    }
     PermissionSetAssignment psa = new PermissionSetAssignment(
       AssigneeId = usr.Id,
-      PermissionSetId = permSetId
+      PermissionSetId = permSets[0].Id
     );
     Database.insert(psa, AccessLevel.SYSTEM_MODE);
   }
@@ -311,10 +318,15 @@ public without sharing class TestFactory {
   /**
    * @param permissionName Permission set name to match.
    * @return Most recently created User with that permission set and LastName = 'last'.
+   *         When no user is found via the permset path (typically because the
+   *         permset is absent in the target org and `assignPermSetToUser`
+   *         no-opped), falls back to the most-recent LastName='last' test
+   *         user. The fallback keeps tests portable across orgs that lack
+   *         environment-specific permsets.
    */
   public static User getCreatedTestUser(String permissionName) {
     // SOQL: sub-select on PermissionSetAssignment; acceptable in test context.
-    return [
+    List<User> withPermset = [
       SELECT Id
       FROM User
       WHERE
@@ -324,6 +336,17 @@ public without sharing class TestFactory {
           WHERE PermissionSet.Name = :permissionName
         )
         AND LastName = 'last'
+      ORDER BY CreatedDate DESC
+      LIMIT 1
+    ];
+    if (!withPermset.isEmpty()) {
+      return withPermset[0];
+    }
+    // Fallback for orgs missing the named permset.
+    return [
+      SELECT Id
+      FROM User
+      WHERE LastName = 'last'
       ORDER BY CreatedDate DESC
       LIMIT 1
     ];

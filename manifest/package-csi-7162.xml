@@ -13,7 +13,6 @@
 
     <!-- CSI-7162 framework — production Apex -->
     <types>
-        <members>JcfsApiAdapter</members>
         <members>JiraPushDispatcher</members>
         <members>JiraPushRequestHandler</members>
         <members>JiraPushService</members>
@@ -24,6 +23,7 @@
         <members>JiraPushDispatcherTest</members>
         <members>JiraPushRequestHandlerTest</members>
         <members>JiraPushServiceTest</members>
+        <members>JiraPushTestFixtures</members>
         <members>LoggerApiExceptionTest</members>
         <members>OpportunityServiceTest</members>
         <members>OpportunityTriggerHandlerTest</members>
@@ -33,8 +33,6 @@
         <members>LoggerTest</members>
         <members>TestFactory</members>
         <members>TestFactoryDefaults</members>
-        <members>TriggerHandler</members>
-        <members>TriggerHandlerTest</members>
 
         <name>ApexClass</name>
     </types>

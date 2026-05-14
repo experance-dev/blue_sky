@@ -7,7 +7,7 @@
  * @group Logger
  * @since September 2024
  * @author David Wood
- * @last May 2026 — CSI-7162: writeApiException uses Database.insert(..., AccessLevel.SYSTEM_MODE) by deliberate policy (see method ApexDoc)
+ * @last May 2026 — PII scrub (email masking) on Message__c / Stack_Trace__c before persist; CSI-7162: writeApiException uses Database.insert(..., AccessLevel.SYSTEM_MODE) by deliberate policy (see method ApexDoc)
  */
 public inherited sharing class Logger {
   // ─── Core dispatch ───────────────────────────────────────────────────────────
@@ -271,7 +271,7 @@ public inherited sharing class Logger {
     String stackTrace
   ) {
     error(
-      '[' + apiName + '/' + operation + '] ' + message,
+      '[' + apiName + '/' + operation + '] ' + scrubPii(message),
       'Logger',
       'logApiException'
     );
@@ -291,9 +291,9 @@ public inherited sharing class Logger {
             : String.valueOf(sourceRecordId),
           Transaction_Id__c = transactionId,
           Severity__c = 'ERROR',
-          Message__c = message,
+          Message__c = scrubPii(message),
           Exception_Type__c = exceptionType,
-          Stack_Trace__c = stackTrace
+          Stack_Trace__c = scrubPii(stackTrace)
         ),
         AccessLevel.SYSTEM_MODE
       );
@@ -304,6 +304,44 @@ public inherited sharing class Logger {
         'logApiException'
       );
     }
+  }
+
+  /**
+   * @description Defense-in-depth PII scrub for content destined for
+   *              API_Exception_Log__c. Today's call paths persist
+   *              Exception.getMessage() / getStackTraceString(), which are
+   *              class.method.line — no field values. If a future custom
+   *              exception ever embeds a record field (e.g. a Contact email)
+   *              in its message, this scrub masks it before it lands in the
+   *              diagnostic table. Pattern: local-part of any RFC-5322-ish
+   *              email is masked to first-three + ***. Domain preserved for
+   *              operational triage. Null-safe.
+   * @param input Raw message or stack-trace string (nullable).
+   * @return Scrubbed string, or null if input was null.
+   */
+  @TestVisible
+  private static String scrubPii(String input) {
+    if (String.isBlank(input)) {
+      return input;
+    }
+    // RFC-5322-ish: localpart includes letters, digits, dots, plus, dashes,
+    // underscores. Captures local + @domain; replaces local with
+    // first-three + *** when the local part is > 3 chars, else just ***.
+    String emailRegex = '([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+\\.[A-Za-z]{2,})';
+    Pattern p = Pattern.compile(emailRegex);
+    Matcher m = p.matcher(input);
+    String out = '';
+    Integer last = 0;
+    while (m.find()) {
+      out += input.substring(last, m.start());
+      String local = m.group(1);
+      String masked = (local.length() > 3 ? local.substring(0, 3) : '') +
+        '***';
+      out += masked + '@' + m.group(2);
+      last = m.end();
+    }
+    out += input.substring(last);
+    return out;
   }
 
   private static void logExceptionInternal(

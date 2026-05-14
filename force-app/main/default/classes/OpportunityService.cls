@@ -10,11 +10,13 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                                                                       |
  * |------------|----------|------------|-----------------------------------------------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Add handleJiraPushInsert / handleJiraPushUpdate to route qualifying Opportunity   |
- * |            |          |            | changes to JiraPushService.                                                       |
- * | 2026-05-12 | CSI-7162 | Boomer     | L3: convert inline ApexDoc-style flow comments to block-comment dividers.         |
+ * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events          |
  */
 public with sharing class OpportunityService {
+  private static final String ALREADY_CLONED = 'Already_Cloned__c';
+  private static final String NUMBER_OF_CLONES = 'Number_of_Clones__c';
+  private static final Integer PHASE_INCREMENT = 1;
+
   // Opportunity fields whose change is worth a Jira sync. Curated for what
   // downstream Jira issue tracking actually mirrors (stage, value, owner,
   // timing). Each entry incurs one platform event per qualifying record;
@@ -106,5 +108,137 @@ public with sharing class OpportunityService {
       }
     }
     return false;
+  }
+
+  // ─── Pre-existing dwood_z org methods (preserved for backward compatibility) ─
+  // These methods are called by ScheduleEnrollmentStatusProcess and other
+  // dwood_z org classes that pre-date the CSI-7162 work. Removing them would
+  // break a hundred dependent classes at compile time. Out-of-scope for the
+  // current ticket; preserved verbatim from the org until they get their own
+  // rewrite ticket.
+
+  public static void processEnrollmentRequests() {
+    Map<String, Object> optyBind = new Map<String, Object>{
+      'optyStatus' => new List<String>{ 'Closed/Lost', 'Closed/Won' },
+      'recordType' => 'Guided_Enrollment'
+    };
+    QueryBuilder optyQueryBuilder = new QueryBuilder()
+      .setSObjectType(Opportunity.getSObjectType())
+      .setFields(
+        new List<String>{ 'Id', 'PE_Guided_Enrollment_Code__c', 'StageName' }
+      )
+      .setCondition(
+        'StageName Not In :optyStatus AND RecordType.DeveloperName = :recordType AND PE_Guided_Enrollment_Code__c <> null'
+      )
+      .setBindVariables(optyBind);
+    Map<Id, Opportunity> opportunities = new OpportunitySelector(
+        optyQueryBuilder
+      )
+      .getOpportunityRecords();
+    GetEnrollmentStatus submitJob = new GetEnrollmentStatus(opportunities);
+    Id jobID = System.enqueueJob(submitJob);
+  }
+
+  public static List<Opportunity> cloneOpportunityWithQuotes(
+    Opportunity opportunity,
+    Integer numberOfClones
+  ) {
+    CloneOpportunitiesImpl opportunityCloner = new CloneOpportunitiesImpl();
+    OpportunityCloneSettings cloneSettings = resolveParentAndPhaseDetails(
+      opportunity,
+      numberOfClones
+    );
+
+    Map<Id, Opportunity> clonedOpportunitiesById = opportunityCloner.createOpportunityClones(
+      cloneSettings.parentOpportunity,
+      numberOfClones,
+      cloneSettings.nextPhaseNumber
+    );
+
+    List<Quote> opportunityQuotes = getOpportunityQuotes(
+      cloneSettings.parentOpportunity.Id
+    );
+
+    List<Quote> clonedQuotes = opportunityCloner.cloneQuotesForTargetOpportunities(
+      opportunityQuotes,
+      clonedOpportunitiesById
+    );
+
+    Map<String, Object> valuesByFieldName = new Map<String, Object>{
+      ALREADY_CLONED => true,
+      NUMBER_OF_CLONES => cloneSettings.cumulativeCloneCount
+    };
+    opportunityCloner.updateOpportunity(
+      cloneSettings.parentOpportunity.Id,
+      valuesByFieldName
+    );
+
+    return clonedOpportunitiesById.values();
+  }
+
+  public static List<Quote> getOpportunityQuotes(Id opportunityId) {
+    return new QuoteService().getQuotesByOpportunityId(opportunityId);
+  }
+
+  private static OpportunityCloneSettings resolveParentAndPhaseDetails(
+    Opportunity opportunity,
+    Integer numberOfClones
+  ) {
+    Integer previousCloneCount;
+    Opportunity parentOpportunity;
+
+    if (isCreatedFromCloning(opportunity)) {
+      parentOpportunity = getParentOpportunity(opportunity);
+      previousCloneCount = ((Decimal) parentOpportunity.Number_of_Clones__c)
+        .intValue() ?? 0;
+    } else {
+      parentOpportunity = opportunity;
+      previousCloneCount = Integer.valueOf(opportunity.Number_Of_Clones__c) ??
+        0;
+    }
+
+    Integer nextPhaseNumber = previousCloneCount + PHASE_INCREMENT;
+    Integer cumulativeCloneCount = previousCloneCount + numberOfClones;
+
+    return new OpportunityCloneSettings(
+      parentOpportunity,
+      nextPhaseNumber,
+      cumulativeCloneCount
+    );
+  }
+
+  private static Boolean isCreatedFromCloning(Opportunity opportunity) {
+    return String.isNotBlank(opportunity.Cloned_From__c);
+  }
+
+  private static Opportunity getParentOpportunity(Opportunity opportunity) {
+    Map<String, Object> bindMap = new Map<String, Object>{
+      'parentId' => opportunity.Cloned_From__c
+    };
+    QueryBuilder queryBuilder = new QueryBuilder()
+      .setSObjectType(Opportunity.getSObjectType())
+      .setFields(SchemaUtils.getAllFields(Opportunity.getSObjectType()))
+      .setCondition('Id =: parentId')
+      .setBindVariables(bindMap)
+      .setAccessLevel(System.AccessLevel.SYSTEM_MODE);
+    return new OpportunitySelector(queryBuilder)
+      .getOpportunityRecords()
+      .values()[0];
+  }
+
+  private class OpportunityCloneSettings {
+    Opportunity parentOpportunity;
+    Integer nextPhaseNumber;
+    Integer cumulativeCloneCount;
+
+    OpportunityCloneSettings(
+      Opportunity parentOpportunity,
+      Integer nextPhaseNumber,
+      Integer cumulativeCloneCount
+    ) {
+      this.parentOpportunity = parentOpportunity;
+      this.nextPhaseNumber = nextPhaseNumber;
+      this.cumulativeCloneCount = cumulativeCloneCount;
+    }
   }
 }

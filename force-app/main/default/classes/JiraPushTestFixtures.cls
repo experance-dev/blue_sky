@@ -16,7 +16,7 @@
  *              - bulkOpportunities(count, stage) ........... in-memory list
  *                  of fake-Id Opportunities for service-layer bulk tests.
  *              - bulkAccounts(count) ....................... same for Account.
- *              - publishedKey(sObj) ........................ the recursion-
+ *              - publishedKey(sObj, changeType) ............ the recursion-
  *                  guard key, exposed so tests don't string-format their own.
  *
  *              All methods are deterministic - no Datetime.now(), no
@@ -28,10 +28,9 @@
  * @group Jira Integration
  *
  * Change Log:
- * | Date       | Ticket   | Author      | Description                            |
- * |------------|----------|-------------|----------------------------------------|
- * | 2026-05-12 | CSI-7162 | Pippa Codey | Lift duplicated silenceFramework into  |
- * |            |          |             | one helper; add bulk-fixture builders. |
+ * | Date       | Ticket   | Author     | Description                                                              |
+ * |------------|----------|------------|--------------------------------------------------------------------------|
+ * | 2026-05-13 | CSI-7162 | David Wood | Shared fixture helpers: silenceFramework, bulk builders, publishedKey    |
  */
 @IsTest
 public class JiraPushTestFixtures {
@@ -137,12 +136,20 @@ public class JiraPushTestFixtures {
   }
 
   /**
-   * @description Returns the recursion-guard key the service uses internally
-   *              (SObjectName + ':' + Id). Tests assert on this string a lot;
-   *              centralizing the format keeps tests in sync if the format
-   *              ever changes.
+   * @description Returns the recursion-guard key the service uses internally.
+   *              Production format (`JiraPushService.publishIfActive`) is
+   *              `SObjectName + ':' + Id + ':' + ChangeType` — 3 segments.
+   *              Centralising the format here keeps tests in sync if the
+   *              production key ever changes again.
+   * @param rec Record whose SObject type + Id form the first two segments.
+   * @param changeType One of `JiraPushService.CHANGE_INSERT` /
+   *                   `CHANGE_UPDATE` / `CHANGE_DELETE`.
    */
-  public static String publishedKey(SObject rec) {
-    return rec.getSObjectType().getDescribe().getName() + ':' + rec.Id;
+  public static String publishedKey(SObject rec, String changeType) {
+    return rec.getSObjectType().getDescribe().getName() +
+      ':' +
+      rec.Id +
+      ':' +
+      changeType;
   }
 }

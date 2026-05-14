@@ -9,8 +9,7 @@
  * Change Log:
  * | Date       | Ticket   | Author      | Description                              |
  * |------------|----------|-------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood  | E2E test for PE trigger -> dispatcher    |
- * | 2026-05-12 | CSI-7162 | Pippa Codey | Add 200-event bulk PE delivery coverage  |
+ * | 2026-05-12 | CSI-7162 | David Wood  | E2E tests for PE trigger -> dispatcher: single event and 200-event bulk coverage |
  */
 @IsTest
 private class JiraPushRequestHandlerTest {

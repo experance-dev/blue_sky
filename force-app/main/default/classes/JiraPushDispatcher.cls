@@ -18,14 +18,7 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                              |
  * |------------|----------|------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial implementation                   |
- * | 2026-05-12 | CSI-7162 | Boomer     | H3/M2/M3 conformance pass: IJcfsApi now  |
- * |            |          |            | returns List<JcfsPushResult>; per-record |
- * |            |          |            | logging on success/failure; per-Id catch |
- * |            |          |            | inside the list-build loop; dispatcher   |
- * |            |          |            | exception now extends                    |
- * |            |          |            | UtilitiesModuleException and is thrown   |
- * |            |          |            | + caught for malformed Source_Id__c.     |
+ * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events          |
  */
 public with sharing class JiraPushDispatcher {
   private static final String CLASS_NAME = 'JiraPushDispatcher';

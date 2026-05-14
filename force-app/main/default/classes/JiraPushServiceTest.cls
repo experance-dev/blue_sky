@@ -15,10 +15,7 @@
  * Change Log:
  * | Date       | Ticket   | Author      | Description                                  |
  * |------------|----------|-------------|----------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood  | Tests for publishInserts/publishUpdates path |
- * | 2026-05-12 | CSI-7162 | Pippa Codey | H4 key-shape sync; add bulk + cache + reset  |
- * |            |          |             | + heterogeneous-list + insert-then-update    |
- * |            |          |             | + CMDT kill-switch coverage.                 |
+ * | 2026-05-12 | CSI-7162 | David Wood  | Tests for JiraPushService: publish routing, recursion guard, CMDT kill-switch, bulk |
  */
 @IsTest
 private class JiraPushServiceTest {
@@ -40,7 +37,7 @@ private class JiraPushServiceTest {
    *              test loudly with a clear message instead of producing a
    *              false negative.
    *
-   *              Production-code request to Boomer: change IEventPublisher
+   *              Production-code request to David Wood: change IEventPublisher
    *              to return a List<JiraPushService.PublishResult> DTO and
    *              translate from Database.SaveResult at the seam. That kills
    *              this whole hack class.
@@ -324,7 +321,7 @@ private class JiraPushServiceTest {
   }
 
   /**
-   * @description CMDT publish-side kill-switch (M1, landed by Boomer).
+   * @description CMDT publish-side kill-switch (M1, landed by David Wood).
    *              When isActive returns false, publish must skip and not
    *              touch the recursion guard or the event publisher.
    */
@@ -399,7 +396,7 @@ private class JiraPushServiceTest {
    *              violated the homogeneity contract; we lock this behavior
    *              in so a future caller-contract-tightening change is loud.
    *
-   *              REDESIGN flagged for Boomer: either Assert.areEqual the
+   *              REDESIGN flagged for David Wood: either Assert.areEqual the
    *              SObject types of all records (throw JiraPushServiceException
    *              on mismatch) OR group by SObject type before publishing.
    */
@@ -452,12 +449,12 @@ private class JiraPushServiceTest {
    *              clears the per-transaction statics it covers. Other test
    *              classes rely on this to pin a clean slate.
    *
-   *              NOTE: as currently shipped (post-Boomer rewrite), reset
-   *              clears alreadyPublished + configCache + configCacheOverride
-   *              but does NOT reset eventPublisher. Tests that override
-   *              eventPublisher must clear it manually. Flagged for Boomer:
-   *              eventPublisher should also be reset to avoid carryover
-   *              between sequential test methods that share statics.
+   *              NOTE: as currently shipped, reset clears alreadyPublished
+   *              + configCache + configCacheOverride but does NOT reset
+   *              eventPublisher. Tests that override eventPublisher must
+   *              clear it manually. Flagged for David Wood: eventPublisher
+   *              should also be reset to avoid carryover between sequential
+   *              test methods that share statics.
    */
   @IsTest
   static void testResetTransientStateClearsTrackedStatics() {

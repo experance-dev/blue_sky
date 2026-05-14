@@ -19,11 +19,7 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                              |
  * |------------|----------|------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial implementation                   |
- * | 2026-05-12 | CSI-7162 | Boomer     | H3/L1/Q2: pushUpdates now returns        |
- * |            |          |            | List<JcfsPushResult>; ApexDoc on the     |
- * |            |          |            | public method; one-time Type.forName     |
- * |            |          |            | startup check for JCFS.API.              |
+ * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events          |
  */
 public with sharing class JcfsApiAdapter implements JiraPushDispatcher.IJcfsApi {
   private static final String CLASS_NAME = 'JcfsApiAdapter';

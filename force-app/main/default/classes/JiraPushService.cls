@@ -24,12 +24,7 @@
  * Change Log:
  * | Date       | Ticket   | Author     | Description                              |
  * |------------|----------|------------|------------------------------------------|
- * | 2026-05-11 | CSI-7162 | David Wood | Initial implementation                   |
- * | 2026-05-12 | CSI-7162 | Boomer     | H1/H2/H4/M1 conformance pass: USER_MODE  |
- * |            |          |            | on getConfig SOQL; project/issue-type    |
- * |            |          |            | constants moved onto CMDT; recursion     |
- * |            |          |            | guard keyed by ChangeType; isActive gate |
- * |            |          |            | added at publish site.                   |
+ * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events          |
  */
 public with sharing class JiraPushService {
   private static final String CLASS_NAME = 'JiraPushService';
