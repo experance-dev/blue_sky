@@ -33,13 +33,13 @@ force-app/main/default/reports/**
 
 # ---- CSI-7162 / Jira Push carve-outs ----
 
-# JcfsApiAdapter.cls is the only file in the framework that references
-# the Appfire JCFS managed-package namespace. Excluded from scratch-org
-# deploys because the package isn't installed there - JiraPushDispatcher
-# falls back to NoOpJcfsApi via Type.forName when this class is absent.
-# Deploy normally to the work org (where the managed package IS installed).
-force-app/main/default/classes/JcfsApiAdapter.cls
-force-app/main/default/classes/JcfsApiAdapter.cls-meta.xml
+# JcfsApiAdapter.cls references the Appfire JCFS managed-package namespace.
+# Default policy (2026-05-14): deploy it to every target. Real sandboxes
+# (dwood_z, UAT, prod) have JCFS installed; JiraPushDispatcher resolves the
+# adapter via Type.forName at runtime and uses it when present.
+# For the rare JCFS-free scratch org, use a per-org overlay (e.g.
+# `.forceignore.scratch`) or a manifest-based deploy that excludes this
+# class - those are scratch-specific code paths, not the default.
 
 # Scratch-org compile blockers. PricebookUtilTest tries to assign to
 # PricebookUtil.standardPricebookId which only has a getter (no setter) -
