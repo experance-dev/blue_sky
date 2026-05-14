@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Destructive manifest: remove legacy May 7 2026 Opportunity-to-Jira sync stack.
+
+  Context: CSI-7162 (May 12 2026) shipped the canonical Jira-push pipeline
+  (JiraPushService + JiraPushDispatcher + JiraPushRequestTrigger + Jira_Push_Request__e)
+  and wired OpportunityTriggerHandler.handleAfterInsert/Update to
+  OpportunityService.handleJiraPushInsert/Update. The earlier May 7 stack
+  (this manifest) was its predecessor — functionally equivalent but
+  parallel. Leaving both in place caused every PE_Provider_Opportunity
+  insert/update to fire Jira sync twice and produced bulk-context
+  SOQL-101 failures (~13 OpportunityJiraSyncServiceTest methods,
+  ~118min wall time).
+
+  Components removed:
+  - ApexClass    OpportunityJiraSyncService          (legacy service)
+  - ApexClass    OpportunityJiraSyncServiceTest      (its test)
+  - ApexClass    OpportunitySyncRequestHandler       (legacy PE handler)
+  - ApexClass    OpportunitySyncRequestHandlerTest   (its test)
+  - ApexTrigger  OpportunitySyncRequestTrigger       (legacy PE trigger)
+  - CustomObject Opportunity_Sync_Request__e         (legacy Platform Event)
+
+  Deploy ID (dwood_z, 2026-05-14): 0AfWL00000EdS9F0AV — Succeeded 6/6.
+-->
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <types>
+        <members>OpportunityJiraSyncService</members>
+        <members>OpportunityJiraSyncServiceTest</members>
+        <members>OpportunitySyncRequestHandler</members>
+        <members>OpportunitySyncRequestHandlerTest</members>
+        <name>ApexClass</name>
+    </types>
+    <types>
+        <members>OpportunitySyncRequestTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+    <types>
+        <members>Opportunity_Sync_Request__e</members>
+        <name>CustomObject</name>
+    </types>
+    <version>62.0</version>
+</Package>
