@@ -9,6 +9,7 @@ Ver   Date         		Author                        Modification
 1.0   Jan 27, 2025   Baba Shaik                      Initial Version
 2.0   May 07, 2026   David Wood                      Added Jira sync integration via Platform Events
 3.0   May 13, 2026   David Wood                      CSI-7162: wire to OpportunityService.handleJiraPushX
+4.0   May 14, 2026   David Wood                      Restored exception observability: Logger.logException + txn ID in user-facing message
 *********************************************************
 */
 
@@ -93,9 +94,13 @@ public with sharing class OpportunityTriggerHandler extends TriggerHandler {
         }
       }
     } catch (Exception e) {
+      Logger.logException(e, 'OpportunityTriggerHandler', 'handleBeforeUpdate');
       throw new OpportunityTriggerException(
-        'Opportunity Update failed. Contact your Administrator'
-        //          + e.getMessage() + ' stack: ' + e.getStackTraceString()
+        'Opportunity Update failed. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
@@ -141,9 +146,13 @@ public with sharing class OpportunityTriggerHandler extends TriggerHandler {
         }
       }
     } catch (Exception e) {
+      Logger.logException(e, 'OpportunityTriggerHandler', 'handleBeforeInsert');
       throw new OpportunityTriggerException(
-        'Opportunity Insert failed. Contact your Administrator'
-        //+ e.getMessage() + ' stack: ' + e.getStackTraceString()
+        'Opportunity Insert failed. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
@@ -183,9 +192,13 @@ public with sharing class OpportunityTriggerHandler extends TriggerHandler {
       // CSI-7162: route qualifying Opportunity inserts to JiraPushService
       OpportunityService.handleJiraPushInsert((List<Opportunity>) Trigger.new);
     } catch (Exception e) {
+      Logger.logException(e, 'OpportunityTriggerHandler', 'handleAfterInsert');
       throw new OpportunityTriggerException(
-        'Opportunity Insert failed. Contact your Administrator'
-        //+ e.getMessage() + ' stack: ' + e.getStackTraceString()
+        'Opportunity Insert failed. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
@@ -240,9 +253,13 @@ public with sharing class OpportunityTriggerHandler extends TriggerHandler {
         (Map<Id, Opportunity>) Trigger.oldMap
       );
     } catch (Exception e) {
+      Logger.logException(e, 'OpportunityTriggerHandler', 'handleAfterUpdate');
       throw new OpportunityTriggerException(
-        'Opportunity Update failed. Contact your Administrator'
-        //+ e.getMessage() + ' stack: ' + e.getStackTraceString()
+        'Opportunity Update failed. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
