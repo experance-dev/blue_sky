@@ -270,6 +270,8 @@ upsert s;
 
 ## Permset assignment
 
+> **Drift notice (2026-05-14):** The steps below reference the original `Engagement_Attribution_User` / `Engagement_Attribution_Admin` pair. The shipped permset ladder is now the 4-tier MI atom set documented in [Permset reference — assignment guide](#permset-reference--assignment-guide). For new go-lives, use the reference table. The steps below are retained for backward reference and will be reconciled in the next runbook pass.
+
 ### Step 1 — Grant inbound REST access to the HubSpot integration user
 
 The integration user that runs the inbound REST callouts needs ApexREST + write access to `Engagement_Touch__c`. Until a dedicated integration permset exists, assign `Engagement_Attribution_Admin` to the dedicated integration user as a stop-gap:
@@ -298,6 +300,81 @@ Per the sales-team pattern above, scoped to Marketing Operations users.
 ### Step 4 — Assign `Engagement_Attribution_Admin` to feature owners
 
 Per the sales-team pattern above, scoped to David Wood + designated support tier.
+
+## Permset reference — assignment guide
+
+Zelis is OWD Private; permsets ARE the visibility model. Each MI permset is an
+_atomic functional grant_ meant to be composed into existing Zelis Persona PSGs,
+not assigned standalone (with one exception noted). Each permset XML carries
+inline PSG-composition guidance in its `<description>` — this table consolidates
+that guidance for release engineers.
+
+| Permset (API name)                                                                                                                                                                    | Grants                                                                                                                      | Custom permissions granted                                   | Compose into Persona PSGs                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`Additional_Permissions_Marketing_Influence_View`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_View.permissionset-meta.xml)               | Read on the 4 MI objects + `EngagementController` Apex Class Access                                                         | `Marketing_Influence_View`                                   | Persona - IE Sales; Persona - Enterprise Sales User; Persona - ZNA Sales User; Persona - IE Marketing; Persona - Marketing User                              |
+| [`Additional_Permissions_Marketing_Influence_Power_User`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_Power_User.permissionset-meta.xml)   | View + Add to Deal Team + Dismiss + OCR CRUD                                                                                | `Marketing_Influence_View`, `Marketing_Influence_Power_User` | Persona - IE Account Manager; Persona - Enterprise Account Manager; Persona - ZNA Account Manager; Persona - Enterprise Sales Exec; Persona - ZNA Sales Exec |
+| [`Additional_Permissions_Marketing_Influence_Admin`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_Admin.permissionset-meta.xml)             | Power User + Engagement Admin Console tab + viewAll/modifyAll on MI objects + `EngagementAdminController` Apex Class Access | `Marketing_Influence_View`, `Marketing_Influence_Power_User` | Persona - Marketing User (admin-tier); Persona - IE Marketing (admin-tier)                                                                                   |
+| [`Additional_Permissions_Marketing_Influence_Integration`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_Integration.permissionset-meta.xml) | Full CRUD + viewAll/modifyAll on MI objects + `EngagementInboundRest` Apex Class Access                                     | `Marketing_Influence_View`                                   | **STANDALONE** — assign directly to the HubSpot inbound integration user. No Persona PSG exists for HubSpot system users.                                    |
+
+### How to assign (composition path — the default)
+
+1. Setup -> Permission Set Groups -> open the target Persona PSG.
+2. **Permission Sets in Group** -> Add.
+3. Pick the MI atom (e.g. `Additional_Permissions_Marketing_Influence_View`).
+4. Save. PSG recalculation runs asynchronously; assignments propagate within minutes.
+
+### How to assign (standalone — Integration user only)
+
+1. Setup -> Permission Sets -> search `Additional_Permissions_Marketing_Influence_Integration`.
+2. **Manage Assignments** -> Add Assignments.
+3. Pick the HubSpot integration user (e.g. `mi-integration@<orgname>.com`).
+4. Save.
+
+CLI equivalent:
+
+```bash
+sfdx force:user:permset:assign -u prod \
+  -n Additional_Permissions_Marketing_Influence_Integration \
+  -o mi-integration@<orgname>.com
+```
+
+### What NOT to assign
+
+- DO NOT assign `Additional_Permissions_Marketing_Influence_Integration` to a human user — it carries broad CRUD that bypasses normal user-tier rules.
+- DO NOT assign `Additional_Permissions_Marketing_Influence_Admin` to non-marketing-ops users — it carries CMDT edit + custom-setting edit, which are admin-level.
+- DO NOT compose `Additional_Permissions_Marketing_Influence_Integration` into any Persona PSG. It is the only atom in this feature that is standalone-only.
+
+## FlexiPage footprint — Zelis pages we contribute to
+
+Three Zelis-owned Account FlexiPages now carry the `c:engagementPanel` additively
+in our source. Future Zelis edits to these pages MUST coordinate with the MI
+feature owner to preserve the additive contribution — Salesforce FlexiPage merge
+is last-deploy-wins.
+
+| FlexiPage                                                                                                                       | Region      | Slot                              | Rendered for                               |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------- | ------------------------------------------ |
+| [`Account_Record_Page_Provider`](../../force-app/main/default/flexipages/Account_Record_Page_Provider.flexipage-meta.xml)       | sidebar     | 1 (above tabset)                  | Provider RT Accounts in legacy app routing |
+| [`PE_Provider_Account_Record_Page`](../../force-app/main/default/flexipages/PE_Provider_Account_Record_Page.flexipage-meta.xml) | leftsidebar | 2 (below highlightsPanel)         | Provider Enrollment workspace users        |
+| [`PE_Payer_Record_Page`](../../force-app/main/default/flexipages/PE_Payer_Record_Page.flexipage-meta.xml)                       | sidebar     | 1 (above activity/chatter tabset) | Payer Enrollment workspace users           |
+
+Every contribution carries a Component Visibility rule:
+
+```xml
+<visibilityRule>
+    <criteria>
+        <leftValue
+    >{!$Permission.CustomPermission.Marketing_Influence_View}</leftValue>
+        <operator>EQUAL</operator>
+        <rightValue>true</rightValue>
+    </criteria>
+</visibilityRule>
+```
+
+so the panel renders only for users with the `Marketing_Influence_View` custom
+permission. PE Enrollment users without MI permsets see their existing workspace
+unchanged — no visual regression, no FLS error.
+
+> **Note:** The dedicated `Account_Engagement_Record_Page` shipped with this feature is a separate, MI-owned page for record types that don't sit on a Zelis-owned page. The three pages above are additive contributions to Zelis-owned surfaces; treat them as shared assets.
 
 ## Lightning App Builder activation
 

@@ -176,6 +176,48 @@ The PE trigger runs as the Automated Process User. If JCFS ships a permset (typi
 
 > **Note:** If this is skipped and JCFS requires a permset, you'll see `MISSING_OR_INSUFFICIENT_PERMISSIONS` errors in `API_Exception_Log__c` under `Operation__c = 'JCFS.API.pushUpdatesToJira'`.
 
+## Permset reference — assignment guide
+
+Zelis is OWD Private; permsets ARE the visibility model. The two Jira Push
+permsets shipped with CSI-7162 are _atomic functional grants_ meant to be
+composed into existing Zelis Persona PSGs. Each permset XML carries inline
+PSG-composition guidance in its `<description>` — this table consolidates that
+guidance for release engineers.
+
+| Permset (API name)                                                                                                                                                  | Grants                                                                          | Custom permissions granted | Compose into Persona PSGs                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------- |
+| [`Additional_Permissions_Jira_Push_Error_Viewer`](../../force-app/main/default/permissionsets/Additional_Permissions_Jira_Push_Error_Viewer.permissionset-meta.xml) | Read `API_Exception_Log__c` (all framework fields)                              | `Jira_Push_View_Errors`    | Persona - System User Jira Integration; Persona - IE Implementation Operations Director Plus |
+| [`Additional_Permissions_Jira_Push_Admin`](../../force-app/main/default/permissionsets/Additional_Permissions_Jira_Push_Admin.permissionset-meta.xml)               | Error Viewer + `Jira_Push_Object__mdt` configure + `Log_Setting__mdt` configure | `Jira_Push_View_Errors`    | Persona - System User Jira Integration; **STANDALONE** for system admins                     |
+
+> **Note:** `CSI_7162_Integration_Admin` listed in [Components shipping](#components-shipping) is the deploy-time alias. The shipped artifact name is `Additional_Permissions_Jira_Push_Admin` — these refer to the same permset under the project's Additional Permissions naming convention.
+
+### How to assign (composition path — the default)
+
+1. Setup -> Permission Set Groups -> open the target Persona PSG.
+2. **Permission Sets in Group** -> Add.
+3. Pick the Jira Push atom (e.g. `Additional_Permissions_Jira_Push_Error_Viewer`).
+4. Save. PSG recalculation runs asynchronously; assignments propagate within minutes.
+
+### How to assign (standalone — system admins only)
+
+1. Setup -> Permission Sets -> search `Additional_Permissions_Jira_Push_Admin`.
+2. **Manage Assignments** -> Add Assignments.
+3. Pick the user.
+4. Save.
+
+CLI equivalent:
+
+```bash
+sfdx force:user:permset:assign -u prod \
+  -n Additional_Permissions_Jira_Push_Admin \
+  -o <username>
+```
+
+### What NOT to assign
+
+- DO NOT assign `Additional_Permissions_Jira_Push_Admin` broadly — it grants CMDT edit (`Jira_Push_Object__mdt`, `Log_Setting__mdt`), which can disable the integration mid-flight.
+- DO NOT assign either permset to the Automated Process User. The PE trigger runs as Automated Process; its permissions come from the platform, not from these atoms. Misassignment here is silent (no error) but adds an audit-trail surprise.
+
 ## Smoke verification (post-deploy)
 
 Run these in production immediately after deploy. Total time: ~10 minutes.
