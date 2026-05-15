@@ -366,3 +366,214 @@ The one thing Phase 1 must do to make Phase 4 cheap: ensure the recommended `Anc
 Atlas to weigh in (when Phase 4 reaches planning, not now): is this three distinct shapes living side by side, or does it call for a common abstract base (`EngagementResult` with subclasses) that all three implement? My read: keep them parallel and distinct — calling-card readability beats inheritance cleverness — but Atlas may see further than I do on extension cost.
 
 — Iris
+
+---
+
+## 9. Job-change signal detection
+
+**Status:** Captured for the record. Same scope as §8 — **not Phase 1.** Likely Phase 5 or its own dedicated feature line, building on the domain-attribution foundation from §8 (you need stable cross-domain person identity before you can reliably detect a job change). Captured now so the model leaves room for it.
+
+The use case: Joe Patel works at Acme Corp (`joe.patel@acme.com`). MI sees touches under Acme via Joe's Contact. Six months later Joe moves to Globex Corp (`joe.patel@globex.com`). The MI panel on the OLD Acme account still shows Joe's old engagement. Joe's NEW Globex engagement lands one of three ways:
+
+- **(a)** Fresh Contact under Globex Account — Joe-as-two-people in CRM. Most common today.
+- **(b)** Lead under Globex — Joe-as-new-prospect. Common when HubSpot doesn't recognize Joe across domains.
+- **(c)** Update to Joe's existing Contact (AccountId → Globex) — Joe-followed-to-his-new-job. Rare today; requires HubSpot cross-domain identity.
+
+What MI should signal: **"Joe is at a different company now."** This is a high-value signal for both sides:
+
+- **Acme Account Owner** — the champion is gone; in-flight deal may be at risk; pipeline review.
+- **Globex Account Owner / BDR** — warm intro available; Joe was already a customer at Acme; fast-track outreach.
+
+### 9.1 Five conceptual threads
+
+**Thread 1 — Signal sources for job changes.** Where does MI learn that Joe moved? Candidate sources, ranked by reliability:
+
+- **HubSpot lifecycle data** — if HubSpot syncs LinkedIn or Clearbit enrichment, it captures `current_company` transitions. HubSpot's contact properties may carry `previous_company`, `previous_title`, `company_change_date`. Highest reliability if Zelis pays for the enrichment SKU.
+- **Email-domain change on inbound touch** — Joe was `joe.patel@acme.com` for two years of touches; suddenly a touch arrives as `joe.patel@globex.com` with the same first+last name. Heuristic match → probable job change. Medium reliability — name collisions exist.
+- **Manual update by a sales rep** — rep edits Contact.AccountId on Joe's Contact and notes the old employer. Highest reliability but human-dependent.
+- **HubSpot Vid persistence** — if HubSpot maintains a stable identifier across email changes for the same person, the inbound touch arrives with the same Vid but a new email/domain → unambiguous signal.
+- **Out-of-band sources** — LinkedIn Sales Navigator alerts, news mentions, internal references. Out of scope for MI ingestion; manual capture only.
+
+**Thread 2 — Display patterns.**
+
+- **OLD Account panel** — Joe's row shows a "Left company [date] → now at Globex" badge; row optionally strikes-through; engagement history remains visible (it happened, it counts for Acme's attribution). Sort priority demotes.
+- **NEW Account / Contact panel** — "Previously engaged at Acme as [role]" attribution chip; on hover, the historical Acme engagement summary. BDR sees: "this person is warm — here's what they engaged with before."
+- **Contact panel** — job-change timeline event slotted into the asset-detail view. Same date-sorted feed; a different event-type icon.
+- **Notification surface** — Chatter mention, Bell notification, or Task creation depending on §9.2 Q5.
+
+**Thread 3 — Data model.** Three modeling options:
+
+- **(A) New SObject `Contact_Employment_History__c`** — child of Contact with `Previous_Account__c`, `Start_Date__c`, `End_Date__c`, `Title_At_Time__c`. Full history; supports multi-hop ("Joe was at Acme, then Globex, now Initech"). Cleanest model; highest build cost.
+- **(B) Two fields on Contact (`Previous_Account__c` lookup + `Previous_Account_Through__c` date)** — only the most recent prior employer. Loses history beyond one hop. Cheapest to ship; sufficient for the dominant use case.
+- **(C) HubSpot owns the history, SF displays latest only** — Contact has `Current_Employer__c` (today's Account) + a "View employment history" callout that opens HubSpot. Lowest SF data footprint; depends on HubSpot integration robustness.
+
+Iris recommendation: **(A) `Contact_Employment_History__c`**. The model is honest, supports the multi-hop reality (people change jobs more than once), and feeds cleanly into both Acme-Account-panel ("Joe was here from X to Y") and Globex-panel ("previously at Acme") rendering. Atlas pair on the storage cost / share model tradeoff — see §9.4 fork.
+
+**Thread 4 — HubSpot data contract.** Critical input. The question David needs answered by the customer (data steward at Zelis):
+
+- What does HubSpot push on a detected job change? A custom property change event? A lifecycle transition?
+- Does HubSpot carry `previous_company`, `previous_title`, `company_change_date` as standard or enrichment-tier properties?
+- Is there a Vid-style stable identifier that survives email changes? (HubSpot's `vid` / contact ID is supposed to.)
+- Does Zelis license the enrichment SKU that powers job-change detection in HubSpot? If no — Thread 1's first bullet drops off.
+
+This is §10 material; captured here as the cross-link.
+
+**Thread 5 — Sales-action implications.** When MI detects a job change, what does the system DO besides display a badge?
+
+- **Notify OLD Account Owner** — Chatter post, email digest, Bell notification, or a Task. "Joe Patel left Acme on [date] — review open opportunities for champion risk."
+- **Notify NEW Account Owner** — same channels. "Joe Patel joined Globex on [date] — previously engaged 23 times at Acme. Warm intro available."
+- **Auto-create artifact** — a Task on the OLD Opportunity (risk review)? A Lead or Opportunity on Globex if no Account-Owner yet exists? Or just surface and let the human decide?
+- **Pipeline implications** — does an Open Opportunity at Acme with Joe as primary OCR get flagged as "champion risk"? Does Joe's OCR auto-flag with a "former employee" status?
+
+Strong opinion: **surface + notify, do NOT auto-create artifacts.** Auto-creation pollutes pipeline reporting and removes the human judgment call. Let the rep decide whether the signal is worth a Task / Opp / Lead. Sales leadership may override but that's the default position.
+
+### 9.2 Stakeholder questions — for David's customer / Marketing Ops / BDR / Sales Enablement leadership
+
+1. **Job-change signal value — does Sales actually act on it, or is it noise?** Particularly on the OLD-Account side: when a champion leaves, does the AE ACTUALLY review the deal, or does the rep already know via direct relationship and the badge is redundant?
+2. **Notification model** — Chatter / Bell / email / Task / nothing? Same setting org-wide, or per-Persona-PSG configurable? Different settings for OLD-Account vs NEW-Account?
+3. **Auto-creation appetite** — surface-only, or auto-create Tasks / Leads / Opportunities on detected job changes? Marketing leadership call.
+4. **OLD-Account history retention** — when Joe leaves Acme, does Joe's historical engagement on Acme stay visible forever, or hide after N months? (My read: keep visible — it counts for Acme's attribution-to-date even if Joe's gone.)
+5. **Champion-risk on Open Opportunities** — when Joe was primary OCR on an Open Opp at Acme and Joe leaves, does the Opp get flagged automatically? Or just the panel badge?
+6. **Cross-employer signal aggregation** — should Joe's lifetime touches (across Acme + Globex + future employers) roll up to a Person view somewhere, or stay scoped per-Account-per-job? Probably the latter for normal MI use but Marketing may want a "lifetime engagement" report for ABM.
+
+### 9.3 Architecture questions — for Atlas + the team
+
+1. **Identity resolution rule for cross-domain match** — when a touch arrives with a new email-domain but matches an existing Contact by name + HubSpot Vid, the resolution writes to the EXISTING Contact (updating AccountId? or leaving AccountId and flagging?) — or creates a NEW Contact under the new Account? `IdentityResolutionService` extension; needs a new resolution branch.
+2. **Storage model — (A) / (B) / (C) from Thread 3** — Iris recommends (A). Atlas final.
+3. **`Contact_Employment_History__c` sharing** — OWD Private inherited from Contact? Or its own sharing model? Visibility for the user viewing the OLD Account vs the NEW Account is asymmetric.
+4. **Notification dispatch** — Platform Event with subscribers, or direct Chatter/Task DML in the resolution service? PE preferred for loose coupling.
+5. **Trigger or batch detection?** Some job changes detected synchronously on inbound touch (domain-change heuristic); some detected from HubSpot scheduled sync. Two paths converging on the same write?
+6. **Reparent semantics on job change** — DO touches reparent like Lead-conversion does, or do they stay anchored to the original Contact + Account (preserving historical truth)? Strong recommend: **stay anchored.** Touches happened at Acme; they belong to Acme historically. Globex sees them via the employment history link, not by reparenting.
+7. **Champion-risk flag on Opportunity** — new field on Opportunity? New formula? New `Opportunity_Risk__c` SObject? Out of scope for MI core but the data model has to leave the hook.
+8. **HubSpot inbound contract extension** — `EngagementInboundRest.InboundEvent` may need new fields: `hubspot_vid` (stable identifier), `previous_email`, `previous_company`, `company_change_at`. Backwards-compatible additions to `InboundEvent` shouldn't break existing payloads.
+
+### 9.4 Architectural fork added by §9
+
+**Thread 3 — storage model.** Atlas pair when Phase 5 reaches planning. Options A vs B vs C have meaningfully different cost profiles:
+
+- (A) full history SObject — clean model, ~5-8 days to ship the SObject + triggers + LWC display
+- (B) two fields on Contact — fast, ~1-2 days, loses multi-hop history
+- (C) HubSpot owns it — cheapest, ~0.5 day SF-side, depends on HubSpot integration uptime
+
+Iris recommends (A) for honesty; happy to be overruled by Atlas if extension cost is prohibitive or HubSpot already gives us (C) for free.
+
+— Iris
+
+---
+
+## 10. HubSpot data brief — for David's customer conversation
+
+**Audience:** David, prepping a meeting with the HubSpot data steward at Zelis. **Not for the dev team.**
+
+**Goal:** confirm what data MI receives today, what it needs for the Phase 4 + 5 capabilities, and what gaps Zelis needs to fill on the HubSpot side before the next feature waves are buildable.
+
+### 10.1 Assumption David is operating under
+
+> "Let's assume we are getting the right data from HubSpot."
+
+Translated to specifics: for MI's full vision (Phase 1 shipped + Phase 4 domain attribution + Phase 5 job-change detection) HubSpot must push:
+
+- Every marketing engagement event (open, click, form-fill, webinar attendance, content download) with an `external_id`, `email`, `occurred_at`, asset metadata, and touch typing
+- Events for contacts that have NO matching SF Contact / Lead (shadow touches)
+- Stable cross-email person identifier (HubSpot Vid or equivalent)
+- Enrichment data for current-company / previous-company / lifecycle-stage transitions
+- Email-domain or company-domain as a discrete field (not just embedded in the email)
+
+What's **shipped and consumed today** is in §10.2. What's **needed but not yet confirmed** is in §10.3.
+
+### 10.2 Data fields MI consumes today (Phase 1 — already shipped)
+
+Reverse-engineered from [`EngagementInboundRest.cls`](../../force-app/main/default/classes/engagement/EngagementInboundRest.cls). The HubSpot inbound REST receives this JSON shape per event (snake_case, JSON.deserialize maps to `InboundEvent`):
+
+| Inbound JSON key       | SF field on `Engagement_Touch__c` | Required | Notes                                                                                                               |
+| ---------------------- | --------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------- |
+| `external_id`          | `External_Id__c`                  | **Yes**  | Upsert key; HubSpot must guarantee uniqueness + stability for idempotent re-delivery                                |
+| `email`                | `Email_At_Touch__c`               | **Yes**  | Drives identity resolution to Contact/Lead/Account                                                                  |
+| `occurred_at`          | `Occurred_At__c`                  | **Yes**  | DateTime; ISO-8601 string                                                                                           |
+| `source_system`        | `Source_System__c`                | No       | Expected literal `"HubSpot"`; pickisl/free-text                                                                     |
+| `source_event_type`    | `Source_Event_Type__c`            | No       | Raw API value (e.g. `EMAIL_OPEN`, `FORM_SUBMITTED`); mapped to display label via `Engagement_Picklist_Display__mdt` |
+| `source_event_id`      | `Source_Event_Id__c`              | No       | HubSpot's native event ID (different from `external_id` — useful for cross-system debugging)                        |
+| `asset_name`           | `Asset_Name__c`                   | No       | Human-readable name of the asset (whitepaper title, email subject, etc.)                                            |
+| `asset_url`            | `Asset_Url__c`                    | No       | URL to the asset                                                                                                    |
+| `topic_external_code`  | resolves to `Topic__c` Id         | No       | Looked up against `Touch_Topic__c.External_Code__c`; missing topic logs a warn, doesn't error                       |
+| `campaign_external_id` | resolves to `Campaign__c` Id      | No       | Looked up against `Campaign.Name`; missing campaign silently skipped                                                |
+| `touch_type`           | `Touch_Type__c`                   | No       | Phase 1 picklist value                                                                                              |
+| `touch_subtype`        | `Touch_Subtype__c`                | No       | Phase 1 secondary discriminator                                                                                     |
+| `persona`              | `Persona__c`                      | No       | Buyer persona classification (if HubSpot enriches)                                                                  |
+| `intent_level`         | `Intent_Level__c`                 | No       | Intent scoring tier (if HubSpot enriches)                                                                           |
+
+**Identity resolution** runs after parse, in `IdentityResolutionService.resolveAll()`. It writes:
+
+- `Contact__c` — if email matches exactly one active Contact
+- `Lead__c` — if email matches exactly one active non-converted Lead
+- `Account__c` — derived from the resolved Contact's AccountId
+- `Resolution_Status__c` — `Resolved` / `Ambiguous` / `NoMatch`
+
+What David should tell the customer about what's already working: **Phase 1 is live. HubSpot pushes these 14 fields, MI ingests them, identity resolution matches against existing Contacts/Leads, and the panel surfaces engagement on Account and Opportunity record pages today.**
+
+### 10.3 Data MI needs but may not yet receive
+
+Mapped against Phase 4 + 5 capabilities:
+
+| Capability (Phase)                                     | HubSpot dependency                                                                | Confirmed today?                          |
+| ------------------------------------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------- |
+| Domain anchoring (§8 Thread 1)                         | `email_domain` field on event, OR derivable from `email`                          | Derivable, no HubSpot change required     |
+| Shadow touches (§8 Thread 2)                           | Events delivered even when no SF Contact match exists                             | **Unknown — ASK**                         |
+| Auto-ACR on domain match (§8 Thread 3)                 | Originating `email` + `current_company` on the contact record                     | **Unknown — ASK**                         |
+| Account-doesn't-exist case (§8 Thread 4)               | Events for unknown companies — does HubSpot send them?                            | **Unknown — ASK**                         |
+| Multi-Account same-domain disambiguation (§8 Thread 5) | Per-event `company_id` or `account_external_id` to disambiguate                   | **Unknown — ASK**                         |
+| Job-change signal (§9 Thread 1)                        | Lifecycle transition events; `previous_company`, `company_change_date` properties | **Unknown — likely needs enrichment SKU** |
+| Cross-domain person identity (§9 Thread 1)             | HubSpot Vid (stable contact ID) included on every event                           | **Unknown — ASK**                         |
+| Anchor-reliability decay (future)                      | Channel-reliability score or signal-decay metadata per event                      | **Unknown — ASK**                         |
+| Cross-domain person matching (§9)                      | Stable identifier surviving email changes                                         | **Unknown — same as Vid question**        |
+
+The italicized ASKs are the §10.4 question list.
+
+### 10.4 Questions David asks the customer
+
+Numbered, scannable. David walks into the meeting with this list.
+
+1. **Shadow touches** — does HubSpot send engagement events for contacts that have no matching SF Lead/Contact today? If yes, where do they currently land (Error Queue? Dropped?)? If no, can HubSpot be configured to send them?
+2. **HubSpot Vid** — what's the Vid format, is it included on every outbound event, and is it persistent across email changes for the same person?
+3. **Company / domain** — does each event carry a `company` field, a `company_id`, or `email_domain` as discrete fields? Or only the email, requiring SF-side parsing?
+4. **Lifecycle transitions** — does HubSpot detect job changes (via LinkedIn / Clearbit / Zoominfo enrichment), and if so, how is the signal surfaced? Property change webhook? Lifecycle stage event? Custom property `company_change_detected_at`?
+5. **Previous-company history** — does HubSpot retain `previous_company` history, and how many transitions back?
+6. **Enrichment SKU** — does Zelis have the HubSpot enrichment add-on (LinkedIn / Clearbit / Zoominfo) that powers cross-employer identity? If no — Phase 5 job-change detection has a different cost profile.
+7. **Event delivery completeness** — are ALL marketing events sent to MI, or only events tied to qualified/MQL contacts? (This is the difference between MI seeing the full funnel vs the SQL-and-below funnel.)
+8. **Free-mail handling** — when HubSpot sees `joe@gmail.com`, does it carry separate enrichment for the person's actual employer (LinkedIn-sourced), or only the literal email domain?
+9. **Account / company matching on HubSpot side** — does HubSpot match contacts to Companies internally, and can it send the HubSpot Company ID to SF so we can confirm match accuracy?
+10. **Webhooks for property changes** — does HubSpot push property-change events (e.g. `current_company` changed) to MI as a discrete event type, or only roll-up engagement events?
+11. **Field-level uniqueness guarantees** — is `external_id` actually unique-and-stable on the HubSpot side? Any history of HubSpot re-emitting the same event with a different external_id after data corrections?
+12. **Sync cadence** — real-time webhooks, scheduled batch (every N minutes), or both?
+
+### 10.5 Points David covers in the conversation
+
+The framing David walks in with:
+
+> "Marketing Influence gives Sales visibility into engagement under the Account they're working. Today HubSpot pushes us 14 fields per event and we ingest, resolve, and display engagement on Account and Opportunity pages in real time.
+>
+> Our next two feature waves expand this: (1) **domain attribution** — recognize touches from `@acme.com` even when no individual contact is matched yet, so Sales sees company-level engagement before formal Lead creation; (2) **job-change signal** — when a known contact moves to a new company, both the old Account and the new Account get the right signal: champion-risk on one side, warm-intro on the other.
+>
+> Both waves depend on data we MAY already be getting from HubSpot — and may not. I have a 12-question checklist of what we need confirmed. Once we know what HubSpot is sending, we'll know which features ship near-term vs which need HubSpot-side configuration changes first."
+
+David adjusts to his voice and slide style — that's a paragraph for him to read, not a slide.
+
+### 10.6 Deliverable status
+
+| Section                 | Filled in from codebase                                                                                                                         | Needs David / customer input                             |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 10.1 Assumption         | Yes (Iris framing)                                                                                                                              | David confirms                                           |
+| 10.2 Today's fields     | **Complete** — reverse-engineered from [`EngagementInboundRest.cls`](../../force-app/main/default/classes/engagement/EngagementInboundRest.cls) | Confirm with David that the as-shipped behaviour matches |
+| 10.3 Phase 4+5 needs    | Complete — mapped from §8 / §9 threads                                                                                                          | Customer answers determine which are gaps                |
+| 10.4 Customer questions | Complete — 12 questions ready                                                                                                                   | David edits / cuts to fit meeting time                   |
+| 10.5 Talking points     | Iris draft — David rewrites in his voice                                                                                                        | David owns                                               |
+
+— Iris
+
+---
+
+## 11. PowerPoint update implications
+
+David's TODO captured: these expansions (§8 domain attribution, §9 job-change signal, §10 HubSpot brief) imply the customer-facing deck (`~/Documents/DWood Show*.pptx` per the slide-voice memory) needs new or revised slides covering (a) **what data MI receives** — the 14 fields from §10.2 framed as the input contract, (b) **what signals MI surfaces** — the panel features by record-page context (Account / Opp / Lead / Contact / Domain in priority order), (c) **how MI behaves when data is missing vs present** — graceful degradation story so the customer understands which features are gated on HubSpot completeness. David owns the deck update; the §10 customer brief feeds the data slides directly, and §9.1 Thread 5 / §8.1 Thread 4 feed the signal-action slides. Customer-facing language stays "Marketing Influence" per the slide-voice memory — not "Engagement Attribution."
+
+— Iris
