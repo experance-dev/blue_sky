@@ -286,3 +286,83 @@ Ship Lead and Contact together. The bridge logic (post-conversion continuity) is
 Atlas: please weigh in and reply on the ticket (or directly here as a follow-up). Once the DTO call is made, this investigation moves to a ticket (`MI-LEAD-CONTACT-PANEL-001` or similar) and we dispatch.
 
 — Iris
+
+---
+
+## 8. Domain-based attribution — expansion considerations
+
+**Status:** Captured for the record. **Not Phase 1/2/3 of the Lead+Contact panel work.** This is a follow-on feature ticket. Goal of this section: get the threads on paper while the model is fresh, so the basic Lead/Contact MI work leaves clean extension hooks (notably: the recommended `AnchorEngagementDTO` shouldn't preclude a future `DomainEngagementDTO`).
+
+David's framing (paraphrased, tick-bite brain fog acknowledged but thinking sharp): broaden the Lead panel from single-point-of-contact to **all marketing touches from a given email domain**. Capture shadow engagement — anything from `@company.com` rolls up against the right anchor, even when no individual Lead or Contact has been resolved yet. Auto-promote that shadow signal into structured ACRs when the domain matches an Account. Then the hard bit: what happens when the Account doesn't exist? What happens when multiple Accounts share a domain?
+
+### 8.1 Five conceptual threads
+
+**Thread 1 — Email domain as a soft anchor.** Today every `Engagement_Touch__c` row anchors via FK (`Contact__c` / `Lead__c` / `Account__c` / `Opportunity__c`). The expansion adds an aggregation key alongside the FKs: the **email domain** extracted from `Email_At_Touch__c`. A touch with `joe@acme.com` is now claimable by any record that knows about `@acme.com` — the Lead whose `Email` ends in that domain, the Account whose website / explicit `Email_Domain__c` matches, the Opportunity rolled up from that Account. The FK is the hard anchor; the domain is the soft anchor for "this signal probably belongs here."
+
+**Thread 2 — Shadow touches.** Touches arriving from `@acme.com` where identity resolution found no matching Lead or Contact. Today those probably land in the Error Queue or get dropped at ingestion. With domain anchoring they accumulate against the domain itself and surface on the matching Account/Lead panel as **"uncontacted engagement from this company"** — a section above (or alongside) the named-Contact engagement list. BDR sees: "Acme had 47 touches this month from people we haven't talked to yet." That's a different shape of insight than "Joe at Acme opened 4 emails."
+
+**Thread 3 — Auto-ACR creation on domain match.** When `joe@acme.com` arrives and Acme Account exists with a matching domain: pipeline auto-creates a Contact on Acme (or an `AccountContactRelation` to Acme if a `joe@acme.com` Contact already exists under a different primary Account). The shadow signal gets lifted into structured CRM data the moment there's confidence it belongs. This is the "promote shadow → structured" step.
+
+**Thread 4 — Account-doesn't-exist case.** Touches accumulate against the domain in an intermediate state — call it a **Shadow Account** (modeled or virtual; §8b decides). Marketing sees domains warming up before Sales gets involved. When a deal lead picks up the trail, "Create Account from domain" is a one-click action that materializes the SF Account and reparents the shadow touches to it. Same `LeadEngagementReparentHandler` pattern, generalized.
+
+**Thread 5 — Multi-Account same-domain ambiguity.** The hard one. Real cases the model has to handle:
+
+- **Generic free-mail domains** (`@gmail.com`, `@yahoo.com`, `@outlook.com`, `@hotmail.com`) — should be blocklisted from domain-matching entirely. Touches from these emails fall back to FK-only attribution.
+- **Subsidiary companies sharing a parent domain** — Acme Holdings → Acme East, Acme West, Acme International. All carry `@acme.com` business cards. The domain is ambiguous between three SF Accounts.
+- **M&A consolidations** — domain pre-dates an SF Account merge. Touches anchored to the survivor Account; old-domain touches from acquired-company emails need to flow to the survivor.
+- **Agency contacts** — `@bigagency.com` employees writing on behalf of several different Accounts (a marketing-agency consultant working with three Zelis customers). Domain matches the agency, not the customer.
+- **Solo consultants** — `@gmail.com` while consulting for multiple Accounts. Same problem, harder because no identifying domain at all.
+
+Disambiguation strategies to consider:
+
+- **Most-recent-active-Opp rank** — when multiple Accounts match the domain, prefer the Account with the freshest open Opportunity.
+- **Manual reviewer queue** — ambiguous domains park in an admin queue for human disposition.
+- **Generic-domain blocklist (CMDT-driven)** — admin-maintained, ships with a sane default (the major free-mail domains).
+- **Domain-CAN-map-to-multiple-Accounts** — accept the ambiguity, show the same shadow touches on all matching Account panels with a "shared domain" badge so the user knows what they're looking at.
+- **Domain-on-Contact wins** — if a real Contact already exists with that email on a specific Account, treat that as ground truth for that email and let the domain rollup ignore it.
+
+### 8.2 Stakeholder questions — for David to take to Marketing Ops / BDR / Sales Enablement leadership
+
+These are business-judgment calls, not architecture. The answers shape what we even build.
+
+1. **Is shadow engagement valuable to surface, or noise?** When a BDR sees "Acme had 47 touches this month from people we haven't talked to" — does that change their day, or do they tune it out? If they tune it out, this whole expansion may not be worth building.
+2. **When auto-ACR creates a Contact, who owns it?** Marketing user? Account Owner inherited? Round-robin? Held as Unassigned until a human triages? Each answer implies different SLA and sharing setup.
+3. **Generic free-email-domain blocklist — who maintains it?** Default ship-with set (gmail/yahoo/outlook/hotmail/icloud/protonmail/aol) plus admin-overridable CMDT seems right; Marketing Ops should confirm coverage.
+4. **Multi-Account same-domain — which subsidiary wins, or do we show under all?** Marketing's call. Tied to how Zelis structures Account hierarchies (Parent + child Accounts? Flat with no parent?).
+5. **Shadow Account concept — visible to Sales, or Marketing-only until promoted?** Two camps: "Sales should see early signal" vs "noise pollutes the funnel until qualified." Marketing leadership picks.
+6. **Shadow-touch SLA — how stale before they expire?** 90 days? 6 months? Aligns with the existing `EngagementSignalDecayBatch` / `EngagementTouchArchivalBatch` retention policy David already specced (1yr no-open-opp delete, 1.5yr not-on-OCR delete).
+7. **Auto-promotion threshold — does the system auto-create the Contact on first touch, or wait for N touches before promoting shadow → structured?** Threshold model would prevent one-off rando emails from polluting Accounts.
+8. **Promotion notification — does Marketing want to know when a shadow domain crosses the threshold and becomes an attached Contact?** Probably yes for high-value Accounts; chatter post or queue or report subscription.
+
+### 8.3 Architecture questions — for Atlas + the team to plan in the build wave
+
+Technical decisions the team makes once the business answers in §8.2 land.
+
+1. **Email domain field on Account** — does Zelis already have one (a parsed `Website` formula? An explicit `Email_Domain__c`?), or do we ship a new field + populate via Flow / batch on existing Accounts? Audit Zelis Account first.
+2. **Domain extraction utility — `extractDomain(email)`** — where lives? `Utilities.cls` (personal lib, off-limits during Zelis work hours per the IP-protection rule) or a new feature-scoped `EngagementDomainMatcher.cls` in the engagement folder. Recommended: feature-scoped.
+3. **Performance: SOQL pattern for "all touches matching email-domain X"** — current touches have `Email_At_Touch__c` as raw text; matching `LIKE '%@acme.com'` is a non-indexed scan. Likely need a derived `Email_Domain__c` field on `Engagement_Touch__c` populated at ingestion + indexed for fast filtering.
+4. **Auto-ACR creation timing** — synchronous inside `EngagementTouchTriggerHandler`? Async via Platform Event into a queue? Batch on a nightly cycle? Synchronous = freshest but loads the trigger context; async = clean separation, slight lag.
+5. **Shadow Account modeling** — new `Shadow_Account__c` SObject (own record, promotable to real Account)? Or virtual — just a domain-level rollup query exposed in the panel without persisting anything? Modeling has audit + share benefits; virtual is simpler.
+6. **Reparent handler generalization** — the `LeadEngagementReparentHandler` pattern (sync, same-transaction, FLS-gated, idempotent) is the right template for "shadow domain becomes real Account → reparent shadow touches." Likely a new `ShadowAccountPromotionHandler` modeled on it.
+7. **Visibility under OWD-Private** — shadow touches whose Account doesn't exist yet have no parent sharing context. Need a default visibility model: Marketing permset only? Org-wide read for Marketing_Influence_View holders? Owned by integration user? This is a Sage question.
+8. **Third DTO shape — `DomainEngagementDTO`?** Multi-contact rollup under a domain anchor; combines the multi-row pattern of `EngagementDTO` with the anchor concept of `AnchorEngagementDTO`. Or extends `AnchorEngagementDTO` with a `nestedContacts[]` collection. **Atlas pair needed** — see fork section below.
+9. **LWC scope expansion** — does `engagementPanel` keep growing its `recordContext` enum (`Account|Opportunity|Contact|Lead|Domain`)? Or does the Domain scope want its own LWC (`engagementDomainPanel`) because the render shape is genuinely different? Reasonable case for either.
+10. **Identity resolution rules CMDT** — the existing `Touch_Routing_Rule__mdt` framework probably wants a "domain match" rule type alongside the email/name/phone match rules. Extension, not rewrite.
+
+### 8.4 Phasing — how this relates to the basic Lead+Contact panel
+
+This expansion is **explicitly not Phase 1.** The basic Lead/Contact MI panel from §§1-7 ships first as the next ticket. This domain-attribution expansion is **Phase 4** (or its own dedicated feature line). Naming it now keeps it out of the Phase 1 scope discussion.
+
+The one thing Phase 1 must do to make Phase 4 cheap: ensure the recommended `AnchorEngagementDTO` shape leaves room for a future `DomainEngagementDTO` without forcing a rewrite. Concretely — keep `AssetEngagement` as a standalone reusable inner class (or top-level class), not nested-private inside `AnchorEngagementDTO`. Both Phase 1 and Phase 4 DTOs then share the per-asset breakdown primitive cleanly.
+
+### 8.5 Architectural fork added by this expansion
+
+**§8.3 Q8 — third DTO shape (`DomainEngagementDTO`).** This is Atlas territory. The Domain scope is genuinely a third pattern, not a variant of the existing two:
+
+- `EngagementDTO` (today) — multi-row, one per engaged Contact, scoped to Account or Opportunity
+- `AnchorEngagementDTO` (recommended for Phase 1) — single-row, one anchor (Contact or Lead), with per-asset breakdown
+- `DomainEngagementDTO` (Phase 4) — multi-row aggregation under a domain anchor, possibly mixing known-Contacts + shadow-touches in the same render, with an explicit "promote to structured" affordance
+
+Atlas to weigh in (when Phase 4 reaches planning, not now): is this three distinct shapes living side by side, or does it call for a common abstract base (`EngagementResult` with subclasses) that all three implement? My read: keep them parallel and distinct — calling-card readability beats inheritance cleverness — but Atlas may see further than I do on extension cost.
+
+— Iris
