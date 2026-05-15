@@ -333,21 +333,35 @@ These are business-judgment calls, not architecture. The answers shape what we e
 6. **Shadow-touch SLA — how stale before they expire?** 90 days? 6 months? Aligns with the existing `EngagementSignalDecayBatch` / `EngagementTouchArchivalBatch` retention policy David already specced (1yr no-open-opp delete, 1.5yr not-on-OCR delete).
 7. **Auto-promotion threshold — does the system auto-create the Contact on first touch, or wait for N touches before promoting shadow → structured?** Threshold model would prevent one-off rando emails from polluting Accounts.
 8. **Promotion notification — does Marketing want to know when a shadow domain crosses the threshold and becomes an attached Contact?** Probably yes for high-value Accounts; chatter post or queue or report subscription.
+9. **Acceptable SF-data-staleness window** — added per the HubSpot Journal architectural update (§12). HubSpot's Webhooks Journal is a pull model: SF schedules a job to poll HubSpot's journal API on a cadence. Marketing Ops needs to set the tolerance for "Acme had 15 touches in the last hour but Sales doesn't see them yet." 5 min vs 15 vs 60 vs hourly drives the schedule cadence and the callout-volume budget. Recommended default: **15 minutes** unless a real Sales workflow demands tighter.
 
 ### 8.3 Architecture questions — for Atlas + the team to plan in the build wave
 
 Technical decisions the team makes once the business answers in §8.2 land.
 
-1. **Email domain field on Account** — does Zelis already have one (a parsed `Website` formula? An explicit `Email_Domain__c`?), or do we ship a new field + populate via Flow / batch on existing Accounts? Audit Zelis Account first.
-2. **Domain extraction utility — `extractDomain(email)`** — where lives? `Utilities.cls` (personal lib, off-limits during Zelis work hours per the IP-protection rule) or a new feature-scoped `EngagementDomainMatcher.cls` in the engagement folder. Recommended: feature-scoped.
-3. **Performance: SOQL pattern for "all touches matching email-domain X"** — current touches have `Email_At_Touch__c` as raw text; matching `LIKE '%@acme.com'` is a non-indexed scan. Likely need a derived `Email_Domain__c` field on `Engagement_Touch__c` populated at ingestion + indexed for fast filtering.
-4. **Auto-ACR creation timing** — synchronous inside `EngagementTouchTriggerHandler`? Async via Platform Event into a queue? Batch on a nightly cycle? Synchronous = freshest but loads the trigger context; async = clean separation, slight lag.
-5. **Shadow Account modeling** — new `Shadow_Account__c` SObject (own record, promotable to real Account)? Or virtual — just a domain-level rollup query exposed in the panel without persisting anything? Modeling has audit + share benefits; virtual is simpler.
-6. **Reparent handler generalization** — the `LeadEngagementReparentHandler` pattern (sync, same-transaction, FLS-gated, idempotent) is the right template for "shadow domain becomes real Account → reparent shadow touches." Likely a new `ShadowAccountPromotionHandler` modeled on it.
-7. **Visibility under OWD-Private** — shadow touches whose Account doesn't exist yet have no parent sharing context. Need a default visibility model: Marketing permset only? Org-wide read for Marketing_Influence_View holders? Owned by integration user? This is a Sage question.
-8. **Third DTO shape — `DomainEngagementDTO`?** Multi-contact rollup under a domain anchor; combines the multi-row pattern of `EngagementDTO` with the anchor concept of `AnchorEngagementDTO`. Or extends `AnchorEngagementDTO` with a `nestedContacts[]` collection. **Atlas pair needed** — see fork section below.
-9. **LWC scope expansion** — does `engagementPanel` keep growing its `recordContext` enum (`Account|Opportunity|Contact|Lead|Domain`)? Or does the Domain scope want its own LWC (`engagementDomainPanel`) because the render shape is genuinely different? Reasonable case for either.
-10. **Identity resolution rules CMDT** — the existing `Touch_Routing_Rule__mdt` framework probably wants a "domain match" rule type alongside the email/name/phone match rules. Extension, not rewrite.
+**Revised 2026-05-15 to reflect the HubSpot [Webhooks Journal](https://developers.hubspot.com/docs/api-reference/latest/webhooks-journal/guide) pull pattern** (see §12 for the architectural-update rationale). The original push-webhook questions (public Apex REST endpoint exposure, HubSpot signature validation) no longer apply and have been dropped.
+
+1. **Subscription configuration** — created via the `/webhooks-journal/subscriptions/2026-03` endpoint. Which CRM event types do we subscribe to? Recommended starting set: `contact.creation`, `contact.propertyChange`, `contact.deletion`, plus the marketing engagement event types HubSpot exposes. Per-subscription decisions: which `propertyName` filters (e.g., `company` for job changes; `email` for cross-domain identity).
+2. **Scheduled-job poll cadence** — how often does the SF scheduled job hit `GET /webhooks-journal/journal/2026-03/{offset}`? Trade-off: lower interval = fresher SF data + more callouts; higher interval = leaner ops but Sales sees stale signals. Iris read: **15 min default**, configurable via Custom Metadata or Custom Setting. Confirms against the §8.2 Q9 staleness tolerance.
+3. **Offset persistence** — where does SF store `currentOffset` (UUID returned by each Journal poll, e.g. `0197f5c0-4d9b-7932-83ec-06d56430c359`)? Options: (a) **Custom Setting** (`Engagement_Settings__c.Journal_Offset__c`) — fastest, no SObject ceremony, fine for one journal; (b) **new `Integration_Journal_Cursor__c` SObject** — supports tracking multiple journals (Contact, Lead, Company, Deal) independently; supports audit history. **Atlas pair** — see §8.5 fork additions. Iris read: SObject. Single Custom Setting row paints us into a corner the moment we want Company or Deal journals.
+4. **Failure handling mid-batch** — when the per-contact callback to `GET /crm/objects/2026-03/contacts/{id}` fails partway through a journal page, do we (a) skip the failing record and log + advance offset; (b) requeue the offset for the next poll; (c) abort the batch and leave offset unchanged for retry? Default recommended: **(a) skip + log into the existing Error Queue, advance offset.** The 3-day journal retention window means a transient failure auto-replays via the next poll; an offset-stuck pattern means we miss everything new behind it.
+5. **Snapshot baseline for initial backfill** — HubSpot's `/webhooks-journal/snapshots/2026-03` provides point-in-time CRM-object exports. For the initial Phase 4 backfill (load every existing HubSpot Contact into MI baseline), do we use a snapshot or iterate the live Contacts API? Snapshots are async + bulk-friendly; the live API is rate-limited per-call. Recommended: **snapshot for initial backfill; journal for ongoing**.
+6. **OAuth scope grants** — 5 webhook-journal scopes required: `developer.webhooks_journal.read`, `developer.webhooks_journal.subscriptions.read`, `developer.webhooks_journal.subscriptions.write`, `developer.webhooks_journal.snapshots.read`, `developer.webhooks_journal.snapshots.write`. Plus object-specific reads (e.g., `crm.objects.contacts.read`). Pre-approved in the Zelis HubSpot portal? See §10.4 Q new-2.
+7. **Email domain field on Account** — does Zelis already have one (a parsed `Website` formula? An explicit `Email_Domain__c`?), or do we ship a new field + populate via Flow / batch on existing Accounts? Audit Zelis Account first.
+8. **Domain extraction utility — `extractDomain(email)`** — where lives? `Utilities.cls` (personal lib, off-limits during Zelis work hours per the IP-protection rule) or a new feature-scoped `EngagementDomainMatcher.cls` in the engagement folder. Recommended: feature-scoped.
+9. **Performance: SOQL pattern for "all touches matching email-domain X"** — current touches have `Email_At_Touch__c` as raw text; matching `LIKE '%@acme.com'` is a non-indexed scan. Likely need a derived `Email_Domain__c` field on `Engagement_Touch__c` populated at ingestion + indexed for fast filtering.
+10. **Auto-ACR creation timing** — synchronous inside `EngagementTouchTriggerHandler` (post-Journal-write)? Async via Platform Event into a queue? Batch on a nightly cycle? Synchronous = freshest but loads the trigger context; async = clean separation, slight lag. With pull-not-push, sync within the Journal-poll scheduled job is also viable since latency is already cadence-bounded.
+11. **Shadow Account modeling** — new `Shadow_Account__c` SObject (own record, promotable to real Account)? Or virtual — just a domain-level rollup query exposed in the panel without persisting anything? Modeling has audit + share benefits; virtual is simpler.
+12. **Reparent handler generalization** — the `LeadEngagementReparentHandler` pattern (sync, same-transaction, FLS-gated, idempotent) is the right template for "shadow domain becomes real Account → reparent shadow touches." Likely a new `ShadowAccountPromotionHandler` modeled on it.
+13. **Visibility under OWD-Private** — shadow touches whose Account doesn't exist yet have no parent sharing context. Need a default visibility model: Marketing permset only? Org-wide read for Marketing_Influence_View holders? Owned by integration user? This is a Sage question.
+14. **Third DTO shape — `DomainEngagementDTO`?** Multi-contact rollup under a domain anchor; combines the multi-row pattern of `EngagementDTO` with the anchor concept of `AnchorEngagementDTO`. Or extends `AnchorEngagementDTO` with a `nestedContacts[]` collection. **Atlas pair needed** — see §8.5 fork.
+15. **LWC scope expansion** — does `engagementPanel` keep growing its `recordContext` enum (`Account|Opportunity|Contact|Lead|Domain`)? Or does the Domain scope want its own LWC (`engagementDomainPanel`) because the render shape is genuinely different? Reasonable case for either.
+16. **Identity resolution rules CMDT** — the existing `Touch_Routing_Rule__mdt` framework probably wants a "domain match" rule type alongside the email/name/phone match rules. Extension, not rewrite.
+
+**Dropped from the original §8.3 list** (push pattern only; no longer applicable under Journal pull):
+
+- ~~Public Apex REST endpoint exposure for HubSpot push~~ — outbound-only callouts under Journal pull
+- ~~HubSpot signature validation on inbound webhooks~~ — no inbound webhooks; SF authenticates outbound via Named Credential + OAuth
 
 ### 8.4 Phasing — how this relates to the basic Lead+Contact panel
 
@@ -515,17 +529,17 @@ What David should tell the customer about what's already working: **Phase 1 is l
 
 Mapped against Phase 4 + 5 capabilities:
 
-| Capability (Phase)                                     | HubSpot dependency                                                                | Confirmed today?                          |
-| ------------------------------------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------- |
-| Domain anchoring (§8 Thread 1)                         | `email_domain` field on event, OR derivable from `email`                          | Derivable, no HubSpot change required     |
-| Shadow touches (§8 Thread 2)                           | Events delivered even when no SF Contact match exists                             | **Unknown — ASK**                         |
-| Auto-ACR on domain match (§8 Thread 3)                 | Originating `email` + `current_company` on the contact record                     | **Unknown — ASK**                         |
-| Account-doesn't-exist case (§8 Thread 4)               | Events for unknown companies — does HubSpot send them?                            | **Unknown — ASK**                         |
-| Multi-Account same-domain disambiguation (§8 Thread 5) | Per-event `company_id` or `account_external_id` to disambiguate                   | **Unknown — ASK**                         |
-| Job-change signal (§9 Thread 1)                        | Lifecycle transition events; `previous_company`, `company_change_date` properties | **Unknown — likely needs enrichment SKU** |
-| Cross-domain person identity (§9 Thread 1)             | HubSpot Vid (stable contact ID) included on every event                           | **Unknown — ASK**                         |
-| Anchor-reliability decay (future)                      | Channel-reliability score or signal-decay metadata per event                      | **Unknown — ASK**                         |
-| Cross-domain person matching (§9)                      | Stable identifier surviving email changes                                         | **Unknown — same as Vid question**        |
+| Capability (Phase)                                     | HubSpot dependency                                                                                                                                                                                                 | Confirmed today?                          |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------- |
+| Domain anchoring (§8 Thread 1)                         | `email_domain` field on event, OR derivable from `email`                                                                                                                                                           | Derivable, no HubSpot change required     |
+| Shadow touches (§8 Thread 2)                           | Events delivered even when no SF Contact match exists                                                                                                                                                              | **Unknown — ASK**                         |
+| Auto-ACR on domain match (§8 Thread 3)                 | Originating `email` + `current_company` on the contact record                                                                                                                                                      | **Unknown — ASK**                         |
+| Account-doesn't-exist case (§8 Thread 4)               | Events for unknown companies — does HubSpot send them?                                                                                                                                                             | **Unknown — ASK**                         |
+| Multi-Account same-domain disambiguation (§8 Thread 5) | Per-event `company_id` or `account_external_id` to disambiguate                                                                                                                                                    | **Unknown — ASK**                         |
+| Job-change signal (§9 Thread 1)                        | Detected via the `contact.propertyChange` event on the Webhooks Journal where `propertyName = 'company'`; supplemented by `previous_company` + `company_change_date` enrichment properties on the Contact callback | **Unknown — likely needs enrichment SKU** |
+| Cross-domain person identity (§9 Thread 1)             | HubSpot Vid (stable contact ID) included on every event                                                                                                                                                            | **Unknown — ASK**                         |
+| Anchor-reliability decay (future)                      | Channel-reliability score or signal-decay metadata per event                                                                                                                                                       | **Unknown — ASK**                         |
+| Cross-domain person matching (§9)                      | Stable identifier surviving email changes                                                                                                                                                                          | **Unknown — same as Vid question**        |
 
 The italicized ASKs are the §10.4 question list.
 
@@ -544,7 +558,10 @@ Numbered, scannable. David walks into the meeting with this list.
 9. **Account / company matching on HubSpot side** — does HubSpot match contacts to Companies internally, and can it send the HubSpot Company ID to SF so we can confirm match accuracy?
 10. **Webhooks for property changes** — does HubSpot push property-change events (e.g. `current_company` changed) to MI as a discrete event type, or only roll-up engagement events?
 11. **Field-level uniqueness guarantees** — is `external_id` actually unique-and-stable on the HubSpot side? Any history of HubSpot re-emitting the same event with a different external_id after data corrections?
-12. **Sync cadence** — real-time webhooks, scheduled batch (every N minutes), or both?
+12. **Sync cadence** — real-time webhooks, scheduled batch (every N minutes), or both? (Note: under the Journal pull pattern this becomes "what's our poll cadence" — driven by §8.2 Q9 staleness tolerance.)
+13. **Webhooks Journal API availability** — is the Journal API enabled for the Zelis HubSpot portal? The Journal API has tier requirements; some HubSpot tiers don't expose it. If unavailable, we fall back to live CRM API polling (more rate-limited) or HubSpot signing up for a tier that supports it.
+14. **OAuth scope grants** — are the 5 Journal scopes (`developer.webhooks_journal.read`, `.subscriptions.read`, `.subscriptions.write`, `.snapshots.read`, `.snapshots.write`) plus object-specific reads (`crm.objects.contacts.read` and any others we need) pre-approved on the Zelis HubSpot app, or do we need to request them?
+15. **Journal retention window** — HubSpot's default is 3 days; some enterprise tiers can extend. What's the current window for the Zelis portal? Drives our failure-recovery margin: if a SF poll job is offline for 5 days, we lose the events older than the retention window and need a Snapshot replay to reconcile.
 
 ### 10.5 Points David covers in the conversation
 
@@ -575,5 +592,86 @@ David adjusts to his voice and slide style — that's a paragraph for him to rea
 ## 11. PowerPoint update implications
 
 David's TODO captured: these expansions (§8 domain attribution, §9 job-change signal, §10 HubSpot brief) imply the customer-facing deck (`~/Documents/DWood Show*.pptx` per the slide-voice memory) needs new or revised slides covering (a) **what data MI receives** — the 14 fields from §10.2 framed as the input contract, (b) **what signals MI surfaces** — the panel features by record-page context (Account / Opp / Lead / Contact / Domain in priority order), (c) **how MI behaves when data is missing vs present** — graceful degradation story so the customer understands which features are gated on HubSpot completeness. David owns the deck update; the §10 customer brief feeds the data slides directly, and §9.1 Thread 5 / §8.1 Thread 4 feed the signal-action slides. Customer-facing language stays "Marketing Influence" per the slide-voice memory — not "Engagement Attribution."
+
+— Iris
+
+---
+
+## 12. Architectural update — HubSpot Webhooks Journal (pull) supersedes push model
+
+**Date:** 2026-05-15. **Surfaced by:** David. **Source:** [HubSpot Webhooks Journal API guide](https://developers.hubspot.com/docs/api-reference/latest/webhooks-journal/guide).
+
+The §§8-10 baseline assumed a **push** integration: HubSpot calls a Salesforce-exposed `@RestResource` endpoint per event ([`EngagementInboundRest.cls`](../../force-app/main/default/classes/engagement/EngagementInboundRest.cls), which is what Phase 1 currently ships). The Webhooks Journal supersedes (or supplements) that pattern with a **pull** model: Salesforce schedules a job that polls HubSpot's journal API and walks an offset cursor. Phase 4 ingestion is being re-architected around it.
+
+### 12.1 What changes architecturally
+
+| Dimension          | Old (push)                                                    | New (Journal pull)                                                                                                                        |
+| ------------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger            | HubSpot calls our SF Apex REST endpoint on each event         | SF scheduled job polls `GET /webhooks-journal/journal/2026-03/earliest` (then walks via returned `currentOffset`)                         |
+| Public surface     | New Apex REST endpoint exposed externally                     | None — outbound-only callout from SF                                                                                                      |
+| Replay             | Manual config; lost events re-pushed only if HubSpot re-emits | Automatic — 3-day retention window (default); SF can rewind to any offset within window                                                   |
+| Failure recovery   | Push fails silently if SF endpoint is down                    | Self-correcting — next scheduled poll resumes from last persisted offset                                                                  |
+| Rate control       | HubSpot's send rate (uncontrolled by SF)                      | SF's poll cadence (we own it)                                                                                                             |
+| Auth model         | HubSpot signs requests; SF verifies signature                 | SF authenticates outbound via Named Credential + OAuth (5 webhook-journal scopes + object-specific reads)                                 |
+| Object payload     | Full event body posted by HubSpot                             | Journal returns event metadata + object ID; **per-object callback to `GET /crm/objects/2026-03/contacts/{id}`** retrieves the full record |
+| Offset format      | N/A                                                           | UUID — e.g. `0197f5c0-4d9b-7932-83ec-06d56430c359`                                                                                        |
+| Bulk baseline path | N/A                                                           | Separate `/webhooks-journal/snapshots/2026-03` endpoint for point-in-time CRM exports                                                     |
+
+### 12.2 What stays the same
+
+- Full Contact data still requires a callback (`GET /crm/objects/2026-03/contacts/{id}`) — the journal entries are change metadata + object IDs, not the full record body. The Phase 1 field map in §10.2 still applies; what changes is _how_ SF retrieves those fields, not which fields are consumed.
+- Subscription configuration still goes through HubSpot's Subscriptions API (`/webhooks-journal/subscriptions/2026-03`) — original §8.3 Q1 stands, tightened in the revised §8.3.
+- DTO architecture from §8.5 (third `DomainEngagementDTO` shape) is unchanged — the data shape isn't sensitive to push-vs-pull at the ingestion boundary.
+- Identity resolution (`IdentityResolutionService`) is unchanged; it operates on the resolved `Engagement_Touch__c` rows regardless of how they were ingested.
+
+### 12.3 Phase 1 (today) coexistence
+
+The currently-shipped `EngagementInboundRest` REST endpoint is **NOT being retired in this rev.** Two patterns can legitimately coexist:
+
+- **Push retained** for low-latency / event-driven sources that want to write directly (other internal Zelis systems, future non-HubSpot integrations)
+- **Journal pull** for HubSpot specifically, where the offset-driven replay + automatic recovery semantics are worth the cadence trade-off
+
+Decision needed (§12.5 fork): does the team eventually deprecate the push REST endpoint once Journal pull is mature, or keep it as a parallel ingestion path? Recommended: **keep both** — they serve different source-system contracts.
+
+### 12.4 New build streams (when Phase 4 reaches planning)
+
+Concrete deliverables the Journal pattern adds:
+
+| Stream                                                                                                                                  | Owner        | Days                                |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ----------------------------------- |
+| Named Credential + OAuth flow for HubSpot Journal scopes                                                                                | Atlas + Sage | 0.5-1                               |
+| `HubSpotJournalPoller.cls` — scheduled Apex job; reads offset, calls journal, walks pages, persists new offset                          | Boomer       | 2-3                                 |
+| `HubSpotContactFetcher.cls` — bulkified callback to `GET /crm/objects/2026-03/contacts/{id}` for each journal entry's referenced object | Boomer       | 1-1.5                               |
+| Offset persistence (Custom Setting OR new `Integration_Journal_Cursor__c` SObject — see §12.5 fork)                                     | Atlas/Boomer | 0.5-1                               |
+| `HubSpotJournalPollerTest.cls` — HttpCalloutMock for journal + contact endpoints; offset-advance / failure / retention-edge cases       | Pippa        | 1.5-2                               |
+| Snapshot-baseline batch (initial Phase 4 backfill from `/snapshots`)                                                                    | Boomer       | 1-2                                 |
+| Schedule cadence configuration (CMDT or Custom Setting)                                                                                 | Atlas        | 0.25                                |
+| **Phase 4 ingestion-layer total**                                                                                                       |              | **~7-10 days, parallel-dispatched** |
+
+This is **in addition to** the §6 Phase 1 estimate, and **in addition to** the §8 / §9 feature build streams. Phase 4 is meaningfully larger than the Phase 1 base because we're re-architecting the ingestion boundary.
+
+### 12.5 Architectural fork added by §12
+
+**Offset state shape — Custom Setting vs SObject.** Atlas decision when Phase 4 reaches planning.
+
+| Option                                      | Pros                                                                                 | Cons                                                                                                                    | Iris read |
+| ------------------------------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- | --------- |
+| Custom Setting `Engagement_Settings__c`     | Zero new SObject; single-row hierarchy setting; cached by platform; fast             | Hard to track multiple journals (Contact + Lead + Company + Deal) independently; no audit history of offset progression |           |
+| New SObject `Integration_Journal_Cursor__c` | Multi-journal support; audit history of offset advance; standard sharing; reportable | New SObject ceremony; record-level CRUD overhead on each poll                                                           | **Pick**  |
+
+**Why SObject:** the moment Phase 4 grows beyond just the Contact journal — and §10.4 Q9 already hints at HubSpot Company matching, which means a Company journal too — the single-row Custom Setting paints us into a corner. The SObject cost is marginal (one record per journal, updated on each poll), and the audit history of "offset X advanced at time Y" is valuable for debugging stuck-cursor scenarios.
+
+Atlas: confirm or counter when Phase 4 hits planning. The Phase 1 constraint to leave room for this: ensure the eventual journal-poller class isn't tightly coupled to its offset-store implementation (DI / interface seam from day one, per `IEngagementService` pattern).
+
+### 12.6 New questions to push back at David (Journal-pattern-specific)
+
+These questions only arise because of the pull model — they weren't on the table under push:
+
+1. **HubSpot tier confirmation** — does Zelis's HubSpot subscription tier expose the Webhooks Journal API at all? Not all tiers do. If the answer is "no," Phase 4 has a different cost profile (live CRM API polling, more rate-limited, no automatic replay). David needs to ask.
+2. **OAuth app provisioning** — who owns the Zelis HubSpot OAuth app? Is there an existing connected app we extend, or do we provision a new one for MI? Sage involvement on auth governance.
+3. **Storage of refresh token + secret** — Named Credential with stored-credential type? Or external credential pattern with custom callout adapter? Sage call.
+4. **Schedule ownership** — when SF runs a scheduled job hitting HubSpot every 15 min, who is the "running user" for those callouts? Integration user with its own permset (`Engagement_Attribution_User` already exists per the Phase 1 inbound REST header comment) or a dedicated `MI_Integration_Journal_User`?
+5. **Production rollout strategy** — when we cut over from "push-only" (Phase 1 today) to "pull + push coexistence" (Phase 4), do we shadow-run both for a window to confirm parity, or hard-cut on a date? Implications for both data hygiene and customer comms.
+6. **Customer-facing implications for the deck** — David's PowerPoint update (§11) needs a slide on "how MI gets data from HubSpot" — and the answer changed from push to pull. The slide-rewrite cost is low, but the customer-conversation framing changes: it's now "we pull from HubSpot on a cadence you can configure" rather than "HubSpot pushes to us." That's a different sale.
 
 — Iris
