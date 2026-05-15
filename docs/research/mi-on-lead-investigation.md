@@ -675,3 +675,93 @@ These questions only arise because of the pull model — they weren't on the tab
 6. **Customer-facing implications for the deck** — David's PowerPoint update (§11) needs a slide on "how MI gets data from HubSpot" — and the answer changed from push to pull. The slide-rewrite cost is low, but the customer-conversation framing changes: it's now "we pull from HubSpot on a cadence you can configure" rather than "HubSpot pushes to us." That's a different sale.
 
 — Iris
+
+---
+
+## 13. Platform Events — where EDA fits in the MI architecture (and where it doesn't)
+
+**Date:** 2026-05-15. **Surfaced by:** David asking whether Event-Driven Architecture is the right fit for the work in §§8-12. **Atlas's read** (paired): yes for cross-cutting, cross-system, multi-subscriber concerns; **no** for intra-Apex synchronous single-transaction flows.
+
+This section names exactly which MI concerns become Platform Events, which stay direct method calls, and why. The pattern is **already proven in this org** — CSI-7162's [`Jira_Push_Request__e`](../../force-app/main/default/objects/Jira_Push_Request__e) + [`JiraPushService.cls`](../../force-app/main/default/classes/JiraPushService.cls) + [`JiraPushDispatcher.cls`](../../force-app/main/default/classes/JiraPushDispatcher.cls) + [`Jira_Push_Object__mdt`](../../force-app/main/default/objects/Jira_Push_Object__mdt) ship today. Phase 4 inherits that shape rather than inventing a new one.
+
+### 13.1 Why EDA fits some of this work
+
+Four reasons EDA is the right call for the cross-cutting Phase 4 / Phase 5 concerns:
+
+1. **Decoupling** — the publisher doesn't know or care which subscribers exist. When a touch resolves to a Contact, the publisher fires `Contact_Identified__e` once; subscribers (orphan-touch re-resolver, signal router, auto-ACR creator, panel refresh) react independently. Adding a sixth subscriber doesn't touch the publisher.
+2. **Multi-subscriber** — most of the Phase 4 / Phase 5 business signals have N downstream cascades. EDA is the only pattern that scales cleanly past "1-2 hardcoded consumers."
+3. **Audit trail** — every published event is logged via the dispatcher pattern; `API_Exception_Log__c` captures failures with the transaction Id. Direct method calls don't leave that trail.
+4. **Pattern already proven** — CSI-7162's PE stack is in production. The `alreadyPublished` static Set ([`JiraPushService.cls#L39`](../../force-app/main/default/classes/JiraPushService.cls)), the `PublishAfterCommit` configuration, the dispatcher's group-by-Source_Object bulkification ([`JiraPushDispatcher.cls#L186`](../../force-app/main/default/classes/JiraPushDispatcher.cls)) — these are battle-tested. Phase 4 instantiates them N more times for N more events.
+
+### 13.2 Events to publish
+
+| Event                               | Publishes when                                                                                                                                                         | Subscribers                                                                                                                     | Why EDA                                                                                                     |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `Contact_Identified__e`             | A touch resolves to a Contact (sync, from `IdentityResolutionService`), OR a Contact arrives via HubSpot Journal poll (async)                                          | Orphan-touch re-resolver, signal router, auto-ACR creator, panel refresh                                                        | Multi-consumer; new consumers add without touching publisher                                                |
+| `Account_Resolved__e`               | New Account created in SF, OR an orphan touch's domain matches an existing Account                                                                                     | HubSpot Contact backfill (outbound callout), orphan touch re-anchor, account-hierarchy traversal                                | Decouples "Account exists" signal from the N downstream cascades                                            |
+| `Person_Job_Change_Detected__e`     | Journal poll detects a `contact.propertyChange` where `propertyName = 'company'` (§12 + §10.3)                                                                         | Old Account champion-loss flag, new Account/Lead creation, warm-intro signal, signal decay on the old side + rebuild on the new | Cross-cutting business signal — multiple consumers (sales notifications, CRM updates, reporting)            |
+| `Touch_Ambiguous__e`                | An incoming touch's email-domain matches multiple Accounts (subsidiary / agency / generic-domain edge case from §8.1 Thread 5)                                         | Reviewer queue insert, Account-Hierarchy parent-lookup, CMDT-driven priority resolver                                           | The §8 multi-Account-same-domain disambiguation — naturally async                                           |
+| `Lead_Converted__e`                 | Lead conversion fires (today's [`LeadEngagementReparentHandler.handleAfterUpdate`](../../force-app/main/default/classes/engagement/LeadEngagementReparentHandler.cls)) | Touch reparent subscriber, signal-fire subscriber, future Phase 4 / Phase 5 subscribers                                         | Cleanly separates the trigger handler from the N reparent/signal concerns — today they're all in one method |
+| **existing** `Jira_Push_Request__e` | CSI-7162 — Opp qualifying-field change                                                                                                                                 | [`JiraPushDispatcher`](../../force-app/main/default/classes/JiraPushDispatcher.cls) → JCFS outbound callout                     | Already shipped; reference implementation for the pattern                                                   |
+
+### 13.3 Where EDA is overkill / wrong fit
+
+Atlas's pushback: not everything we're building should be a PE. Naming the cases where EDA is the wrong call:
+
+| Subject                                                                         | Why NOT EDA                                                                                                                                                                           |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HubSpot Journal poll itself (§12)                                               | It's a scheduled SF batch, not an event publisher. Polling ≠ event-driven; it's pull-mode async. PE would just wrap the poll for no decoupling benefit                                |
+| Sync happy-path touch insert + resolution-to-existing-Contact                   | Single-transaction flow with one consumer — PE adds latency + ceremony for zero decoupling value. The existing `IdentityResolutionService.resolveAll(touches)` direct call is correct |
+| LWC `refreshApex` wire-getter pattern                                           | Already reactive at the LWC layer; PE round-trip would defeat the `best-practices/lwc.md` wire pattern. Use `refreshApex` after writes; don't fire a PE for "panel needs refresh"     |
+| CMDT lookups (`Touch_Routing_Rule__mdt`, future `Domain_Account_Priority__mdt`) | Synchronous Apex against in-memory CMDT cache — millisecond operations. PE wrapping is pure overhead                                                                                  |
+| Single-subscriber sync logic                                                    | If only one piece of code reacts to "X happened," call X's method directly. EDA's value is N consumers; with N=1, just call the method                                                |
+
+The test: **"would I add a second subscriber in the next two phases?"** If yes → PE. If no → direct call.
+
+### 13.4 Pattern requirements (lift from CSI-7162)
+
+Every new MI PE follows the CSI-7162 contract. Verified against the actual implementation:
+
+- **Recursion guard** — per-transaction static `Set<String>` keyed by `SObjectName:Id:ChangeType` to prevent re-fire within the same Apex transaction. Reference: `JiraPushService.alreadyPublished` ([line 39](../../force-app/main/default/classes/JiraPushService.cls)); the guard is checked at line 117 and added at line 120 of `JiraPushService`. Phase 4 events instantiate the same pattern per event type.
+- **CMDT kill-switch** — Phase 4 introduces `Engagement_Event_Config__mdt` (see §13.5 fork) with an `Active__c` per event type. Failed-closed: events don't publish when `Active__c = false`. Mirrors `Jira_Push_Object__mdt` (one row per Source_Object, `Active__c` + `Source_Field_Set__c`).
+- **PublishAfterCommit** — events publish only after the originating DML commits, so rollback doesn't fire phantoms. Configuration is on the PE definition itself; see `Jira_Push_Request__e` for the working example.
+- **Per-event audit log** — failed publishes write to `API_Exception_Log__c` with the transaction Id. Reference: `JiraPushService` lines 162-166 wrap `EventBus.publish` and log per-result failures.
+- **Dispatcher class per event** — `ContactIdentifiedDispatcher`, `AccountResolvedDispatcher`, `PersonJobChangeDetectedDispatcher`, etc. Each follows the `JiraPushDispatcher` shape: trigger fires → group events by `Source_Object` ([line 186](../../force-app/main/default/classes/JiraPushDispatcher.cls)) → bulk-dispatch with concrete typed lists.
+- **DI seam for the publisher** — `JiraPushService` uses an `IEventPublisher` interface (line 58) backed by a `private class EventBusPublisher` (line 60) so tests inject a mock without DML. Every MI EDA service inherits this seam.
+
+### 13.5 Atlas-side architectural forks added by §13
+
+Two new forks. Both pair when Phase 4 reaches planning, not now.
+
+**Fork A — CMDT shape: one CMDT per event type vs unified `Engagement_Event_Config__mdt`.**
+
+| Option                                                           | Pros                                                                                   | Cons                                                  | Iris read |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- | --------- |
+| One CMDT per event type (`Contact_Identified_Config__mdt`, etc.) | Each event has its own switches; clean isolation; per-event field schemas              | More CMDT objects to manage; harder admin UI overview |           |
+| Unified `Engagement_Event_Config__mdt` (one row per event type)  | Single admin UI; simpler kill-switch overview; mirrors `Jira_Push_Object__mdt` exactly | Cross-event coupling on schema changes                | **Pick**  |
+
+Iris leans unified for admin clarity and pattern-symmetry with `Jira_Push_Object__mdt`. Atlas overrule welcome.
+
+**Fork B — Dispatcher shape: one dispatcher per event vs unified `EngagementEventDispatcher`.**
+
+| Option                                              | Pros                                                                                                                                 | Cons                                                                       | Iris read |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- | --------- |
+| Per-event dispatcher (mirrors `JiraPushDispatcher`) | Fault isolation — one event type failing doesn't poison another; clean test scope; trigger-handler-per-PE pattern is platform-native | More files                                                                 | **Pick**  |
+| Unified `EngagementEventDispatcher`                 | Fewer files                                                                                                                          | Single point of failure; harder to scope fault containment; harder to test |           |
+
+Iris leans per-event for fault isolation. Same as CSI-7162's shipped pattern.
+
+### 13.6 Cross-section update — additions to §8.3
+
+The Phase 4 architecture questions in §8.3 should add two EDA-specific questions (not retroactively inserted into §8.3 to keep the commit narrative clean; tracking them here for the ticket-author to fold in):
+
+- **Q17 (EDA)** — which PEs publish as **PUBLIC** platform events (cross-app subscribable, other Zelis features can listen) vs **PRIVATE** (only our MI subscribers)? Public events let other Zelis features react to MI signals (e.g., Marketing Cloud Account Engagement triggers off `Person_Job_Change_Detected__e`); Private keeps the surface tight and reduces governance review burden. **Iris read:** start Private for all, promote to Public per-event as cross-feature consumers are identified.
+- **Q18 (EDA)** — Apex subscriber vs Flow subscriber for each PE? Flow is BA-editable and admin-friendly; Apex is testable, bulkified, and easier to version-control. **Iris read:** Apex for everything that touches data integrity (auto-ACR creation, reparent, signal-decay); Flow OK for notification-only subscribers (Chatter post, Bell ping) where bulkification doesn't matter.
+
+### 13.7 Cross-reference to CSI-7162 — pattern continuity
+
+The MI EDA pattern proposed here is the same pattern CSI-7162 already proves in production. [`JiraPushService`](../../force-app/main/default/classes/JiraPushService.cls) + [`JiraPushDispatcher`](../../force-app/main/default/classes/JiraPushDispatcher.cls) + [`Jira_Push_Request__e`](../../force-app/main/default/objects/Jira_Push_Request__e) + [`Jira_Push_Object__mdt`](../../force-app/main/default/objects/Jira_Push_Object__mdt) are the reference implementation. Phase 4 isn't inventing a new architecture — it's instantiating the existing pattern N more times for N more events. That dramatically reduces design risk and lets Boomer's team apply known-good code shapes (the `alreadyPublished` recursion guard, the `IEventPublisher` DI seam, the group-by-Source_Object dispatcher bulkification) without re-deriving them.
+
+The discipline implications for Phase 4: every MI PE pull request gets reviewed against the CSI-7162 reference. Deviations get justified in the PR description. New patterns are not invented mid-build.
+
+— Iris
