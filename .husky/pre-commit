@@ -9,23 +9,25 @@ if [ $? -ne 0 ]; then
 fi
 
 # 2) Salesforce Code Analyzer — pre-commit gate
-#    Blocks on HIGH and MEDIUM (severity-threshold 2).
-#    LOW passes pre-commit (caught at CI; pre-commit prioritizes speed).
+#    Blocks on Critical (sev1) + High (sev2) + Medium (sev3) — severity-threshold 3.
+#    Low (sev4) passes pre-commit (caught at CI; pre-commit prioritizes speed).
+#    Info (sev5) passes always (logged only).
 #    Apex only at this stage (.cls / .trigger); LWC/JS handled in CI.
+#    Matches docs/standards/sf-best-practices.md §12.1 severity table.
 STAGED_APEX=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cls|trigger)$' | tr '\n' ',' | sed 's/,$//')
 
 if [ -n "$STAGED_APEX" ]; then
   echo ""
-  echo "▶ Salesforce Code Analyzer on staged Apex (HIGH+MEDIUM blocks)..."
+  echo "▶ Salesforce Code Analyzer on staged Apex (Critical+High+Medium block)..."
   mkdir -p reports
   sf code-analyzer run \
     --target "$STAGED_APEX" \
-    --severity-threshold 2 \
+    --severity-threshold 3 \
     --output-file reports/scanner-precommit.json 2>&1 | tail -12
   STATUS=$?
   if [ $STATUS -ne 0 ]; then
     echo ""
-    echo "❌ Code Analyzer found HIGH or MEDIUM severity issues."
+    echo "❌ Code Analyzer found Critical, High, or Medium severity issues."
     echo "   Per Zelis deployment gate, fix all findings before committing."
     echo "   Report: reports/scanner-precommit.json"
     echo "   Emergency bypass: git commit --no-verify (document why in commit msg)"
