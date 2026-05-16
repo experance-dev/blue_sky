@@ -19,6 +19,7 @@
  * @group Engagement Attribution
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 sweep: §3.0/§3.1 observability — insertSignals catch blocks now use Logger.logException + e.getTypeName() + txn correlator (no raw e.getMessage() in user-facing rethrow); mirrors OpportunityTriggerHandler gold-standard pattern.
  * @last 2026-05-13 — Q11 wave 2: PATH_CONSULTANT now reads Contact.Is_Consultant__c (populated by admin flow). PATH_ACR still gates on AccountContactRelation.IsDirect=false (Q10).
  */
 public with sharing class EngagementSignalRouter {
@@ -470,14 +471,22 @@ public with sharing class EngagementSignalRouter {
         'insertSignals'
       );
     } catch (DmlException e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'insertSignals');
+      Logger.logException(e, CLASS_NAME, 'insertSignals');
       throw new EngagementException(
-        'Failed to insert engagement signals: ' + e.getMessage()
+        'Failed to insert engagement signals. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     } catch (Exception e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'insertSignals');
+      Logger.logException(e, CLASS_NAME, 'insertSignals');
       throw new EngagementException(
-        'Unable to insert engagement signals: ' + e.getMessage()
+        'Unable to insert engagement signals. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
