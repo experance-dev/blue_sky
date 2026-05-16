@@ -1,0 +1,162 @@
+# Salesforce Code Analyzer — CI merge gate.
+#
+# Per docs/standards/sf-best-practices.md §12.1 + §12.2 + §12.5:
+#   - Blocks PR merge on Critical (sev1) + High (sev2) + Medium (sev3) + Low (sev4).
+#   - Info (sev5) is logged only.
+#   - Magnus-signed waivers (§12.3.1–.5) ride inline via `@SuppressWarnings`;
+#     analyzer honors them automatically.
+#   - Shell discipline: `set -eo pipefail`, exit status captured BEFORE any pipe,
+#     `--target` repeatable (NEVER comma-joined). Reference: .husky/pre-commit.
+#
+# Companion gate to .husky/pre-commit (pre-commit threshold 3; CI threshold 4).
+# Posts the report as a PR comment so Magnus + Sage + Atlas can scan inline.
+
+name: Salesforce Code Analyzer
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - develop
+      - UAT
+      - main
+  pull_request:
+    branches:
+      - develop
+      - UAT
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  analyze:
+    name: sf code-analyzer run (severity-threshold 4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli
+
+      - name: Install Salesforce Code Analyzer plugin
+        run: sf plugins install code-analyzer
+
+      - name: Print CLI + analyzer versions (for audit trail)
+        run: |
+          set -eo pipefail
+          sf --version
+          sf plugins --core
+
+      - name: Run analyzer (CI severity-threshold 4 — blocks sev1+sev2+sev3+sev4)
+        id: analyzer
+        # §12.5: pipefail mandatory; exit status captured BEFORE any pipe.
+        # §12.1 CI column: threshold 4 blocks Low and above; only Info (sev5)
+        # passes (logged via the JSON report).
+        run: |
+          set -eo pipefail
+          mkdir -p reports
+
+          set +e
+          sf code-analyzer run \
+            --workspace force-app/main/default \
+            --severity-threshold 4 \
+            --output-file reports/scanner-ci.json \
+            --output-file reports/scanner-ci.html \
+            > reports/scanner-ci-stdout.log 2>&1
+          STATUS=$?
+          set -e
+
+          # Display only — never the gate signal.
+          tail -40 reports/scanner-ci-stdout.log || true
+
+          echo "analyzer_status=${STATUS}" >> "$GITHUB_OUTPUT"
+          # Defer the actual exit until after the PR-comment step has run, so
+          # reviewers see the report inline even on a failing gate.
+          exit 0
+
+      - name: Upload analyzer reports (HTML + JSON + stdout)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanner-ci-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Post analyzer summary to PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        env:
+          ANALYZER_STATUS: ${{ steps.analyzer.outputs.analyzer_status }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'reports/scanner-ci.json';
+            const status = process.env.ANALYZER_STATUS;
+            let body = `### Salesforce Code Analyzer — CI gate\n\n`;
+            body += `**Exit status:** \`${status}\` `;
+            body += status === '0'
+              ? '(no sev1–sev4 findings — gate PASSED)\n\n'
+              : '(sev1–sev4 findings present — gate BLOCKS)\n\n';
+
+            if (fs.existsSync(path)) {
+              try {
+                const report = JSON.parse(fs.readFileSync(path, 'utf8'));
+                const violations = Array.isArray(report) ? report : (report.violations || []);
+                const bySev = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+                for (const v of violations) {
+                  const s = v.severity ?? v.sev;
+                  if (s && bySev[s] !== undefined) bySev[s] += 1;
+                }
+                body += `| Severity | Count | CI gate |\n`;
+                body += `| --- | --- | --- |\n`;
+                body += `| sev1 (Critical) | ${bySev[1]} | BLOCKS |\n`;
+                body += `| sev2 (High) | ${bySev[2]} | BLOCKS |\n`;
+                body += `| sev3 (Medium) | ${bySev[3]} | BLOCKS |\n`;
+                body += `| sev4 (Low) | ${bySev[4]} | BLOCKS |\n`;
+                body += `| sev5 (Info) | ${bySev[5]} | logged only |\n\n`;
+                body += `Full report: \`reports/scanner-ci.{json,html}\` (artifact: scanner-ci-${context.runId}).\n`;
+                body += `Standards reference: [§12.1](../tree/${context.sha}/docs/standards/sf-best-practices.md#121--sf-code-analyzer-run-is-a-merge-gate-severity-threshold-is-spotless).\n`;
+              } catch (err) {
+                body += `_Report parse error: ${err.message}_\n`;
+              }
+            } else {
+              body += `_No report file found at \`${path}\`._\n`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+      - name: Enforce analyzer gate (block on non-zero exit)
+        # §12.5 gate-fires-and-gates rule: the workflow MUST fail when the
+        # analyzer found sev1–sev4. Re-emit the captured status as the job's
+        # final exit code — the PR comment has already posted by now.
+        run: |
+          set -eo pipefail
+          STATUS="${{ steps.analyzer.outputs.analyzer_status }}"
+          if [ "${STATUS}" != "0" ]; then
+            echo "Code Analyzer found sev1–sev4 violations (exit ${STATUS})."
+            echo "Per docs/standards/sf-best-practices.md §12.1, this PR cannot merge."
+            echo "Fix all findings or land a Magnus-signed §12.3.N waiver."
+            exit "${STATUS}"
+          fi
+          echo "Code Analyzer SPOTLESS — no sev1–sev4 findings."

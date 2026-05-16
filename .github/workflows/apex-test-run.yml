@@ -1,0 +1,304 @@
+# Apex + Jest test gate — full-suite, per-PR scratch org, canon-aware.
+#
+# Per docs/standards/sf-best-practices.md §13.1 + §13.2:
+#   - Full Apex suite via RunLocalTests (NEVER RunSpecifiedTests).
+#   - Full LWC Jest suite.
+#   - Failures compared against docs/testing/known-failures-canon.md:
+#       * fail not in canon  → BLOCK (new regression)
+#       * fail in canon      → passes (acknowledged drift)
+#       * canonized PASS     → flag (PR comment; non-blocking) — canon prune needed
+#
+# Shell discipline (§12.5): set -eo pipefail; exit status captured BEFORE pipes.
+#
+# Prerequisites (David provisions; documented in PR body):
+#   - secrets.SF_CONSUMER_KEY   — Connected App consumer key (CI JWT app)
+#   - secrets.SF_JWT_KEY        — PEM private key matching the app's cert
+#   - secrets.SF_DEVHUB_USERNAME — Dev Hub user authorized for the app
+
+name: Apex + Jest tests
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - develop
+      - UAT
+      - main
+  pull_request:
+    branches:
+      - develop
+      - UAT
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    name: RunLocalTests + sfdx-lwc-jest (canon-aware)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      SF_DISABLE_AUTOUPDATE: "true"
+      SF_DISABLE_TELEMETRY: "true"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install repo dependencies
+        run: npm ci
+
+      - name: Install Salesforce CLI
+        run: npm install --global @salesforce/cli
+
+      - name: Print CLI version (audit trail)
+        run: sf --version
+
+      - name: Write JWT private key to disk
+        # File-mode 600; cleaned up at job end via runner ephemerality.
+        run: |
+          set -eo pipefail
+          mkdir -p .ci
+          umask 077
+          printf '%s' "${SF_JWT_KEY}" > .ci/server.key
+          test -s .ci/server.key
+        env:
+          SF_JWT_KEY: ${{ secrets.SF_JWT_KEY }}
+
+      - name: Auth Dev Hub via JWT
+        run: |
+          set -eo pipefail
+          sf org login jwt \
+            --username "${SF_DEVHUB_USERNAME}" \
+            --jwt-key-file .ci/server.key \
+            --client-id "${SF_CONSUMER_KEY}" \
+            --alias ci-devhub \
+            --set-default-dev-hub
+        env:
+          SF_DEVHUB_USERNAME: ${{ secrets.SF_DEVHUB_USERNAME }}
+          SF_CONSUMER_KEY: ${{ secrets.SF_CONSUMER_KEY }}
+
+      - name: Create scratch org
+        id: scratch
+        run: |
+          set -eo pipefail
+          ALIAS="ci-${GITHUB_RUN_ID}"
+          sf org create scratch \
+            --definition-file config/project-scratch-def.json \
+            --alias "${ALIAS}" \
+            --duration-days 1 \
+            --set-default \
+            --wait 20 \
+            --no-namespace
+          echo "scratch_alias=${ALIAS}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy source to scratch org
+        run: |
+          set -eo pipefail
+          sf project deploy start \
+            --target-org "${{ steps.scratch.outputs.scratch_alias }}" \
+            --wait 30 \
+            --ignore-conflicts
+
+      - name: Run Apex tests (RunLocalTests; full suite)
+        id: apex
+        # §13.1 — never RunSpecifiedTests. §12.5 — capture STATUS before any pipe.
+        run: |
+          set -eo pipefail
+          mkdir -p reports/apex
+
+          set +e
+          sf apex run test \
+            --target-org "${{ steps.scratch.outputs.scratch_alias }}" \
+            --test-level RunLocalTests \
+            --code-coverage \
+            --wait 60 \
+            --result-format json \
+            --output-dir reports/apex \
+            > reports/apex/run-stdout.log 2>&1
+          STATUS=$?
+          set -e
+
+          tail -60 reports/apex/run-stdout.log || true
+          echo "apex_status=${STATUS}" >> "$GITHUB_OUTPUT"
+          # Don't fail here — the canon-compare step is the gate.
+          exit 0
+
+      - name: Run LWC Jest tests (full suite + coverage)
+        id: jest
+        run: |
+          set -eo pipefail
+          mkdir -p reports/jest
+
+          set +e
+          npx sfdx-lwc-jest --coverage \
+            > reports/jest/run-stdout.log 2>&1
+          STATUS=$?
+          set -e
+
+          tail -60 reports/jest/run-stdout.log || true
+          echo "jest_status=${STATUS}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Compare Apex results against known-failures canon
+        id: canon
+        # §13.2 — fail-not-in-canon BLOCKS; fail-in-canon passes; canonized PASS flags.
+        # Apex run --output-dir writes test-result.json (camelCase outcome fields).
+        uses: actions/github-script@v7
+        env:
+          APEX_STATUS: ${{ steps.apex.outputs.apex_status }}
+          JEST_STATUS: ${{ steps.jest.outputs.jest_status }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            // ---- Load Apex run JSON ----------------------------------------
+            const apexDir = 'reports/apex';
+            let apexResult = null;
+            if (fs.existsSync(apexDir)) {
+              const candidates = fs.readdirSync(apexDir)
+                .filter(f => f.endsWith('.json') && f.includes('test-result'));
+              if (candidates.length) {
+                apexResult = JSON.parse(
+                  fs.readFileSync(path.join(apexDir, candidates[0]), 'utf8'),
+                );
+              }
+            }
+
+            const tests = apexResult?.tests ?? [];
+            const summary = apexResult?.summary ?? {};
+            const fails = tests.filter(t => t.Outcome === 'Fail' || t.outcome === 'Fail');
+            const passes = tests.filter(t => t.Outcome === 'Pass' || t.outcome === 'Pass');
+
+            // ---- Load canon ------------------------------------------------
+            const canonPath = 'docs/testing/known-failures-canon.md';
+            const canonSet = new Set();
+            if (fs.existsSync(canonPath)) {
+              const lines = fs.readFileSync(canonPath, 'utf8').split('\n');
+              for (const line of lines) {
+                // Markdown table row: | TestClass | methodName | severity | ... |
+                const m = line.match(/^\|\s*([A-Za-z0-9_]+)\s*\|\s*([A-Za-z0-9_]+)\s*\|/);
+                if (m && m[1] !== 'Test class' && !m[1].startsWith('-')) {
+                  canonSet.add(`${m[1]}.${m[2]}`);
+                }
+              }
+            }
+
+            // ---- Categorize ------------------------------------------------
+            const newRegressions = [];
+            const ackDrift = [];
+            for (const f of fails) {
+              const cls = f.ApexClass?.Name ?? f.apexClass?.name ?? f.FullName?.split('.')[0];
+              const method = f.MethodName ?? f.methodName;
+              const key = `${cls}.${method}`;
+              if (canonSet.has(key)) ackDrift.push(key);
+              else newRegressions.push({ key, message: f.Message ?? f.message ?? '' });
+            }
+
+            const canonizedNowPassing = [];
+            for (const p of passes) {
+              const cls = p.ApexClass?.Name ?? p.apexClass?.name ?? p.FullName?.split('.')[0];
+              const method = p.MethodName ?? p.methodName;
+              const key = `${cls}.${method}`;
+              if (canonSet.has(key)) canonizedNowPassing.push(key);
+            }
+
+            // ---- Slowest 5 -------------------------------------------------
+            const slowest = [...tests]
+              .map(t => ({
+                name: `${t.ApexClass?.Name ?? t.apexClass?.name ?? '?'}.${t.MethodName ?? t.methodName ?? '?'}`,
+                ms: t.RunTime ?? t.runTime ?? 0,
+              }))
+              .sort((a, b) => b.ms - a.ms)
+              .slice(0, 5);
+
+            // ---- Coverage --------------------------------------------------
+            const coverage =
+              summary.testRunCoverage ??
+              summary.orgWideCoverage ??
+              apexResult?.coverage?.coverage ??
+              'n/a';
+
+            // ---- Build comment --------------------------------------------
+            let body = `### Apex + Jest test gate\n\n`;
+            body += `| Suite | Passed | Failed | Coverage |\n`;
+            body += `| --- | --- | --- | --- |\n`;
+            body += `| Apex | ${passes.length} | ${fails.length} | ${coverage} |\n`;
+            body += `| Jest | exit \`${process.env.JEST_STATUS}\` | — | see artifact |\n\n`;
+
+            body += `**Canon comparison** (per [§13.2](../tree/${context.sha}/docs/standards/sf-best-practices.md#132--pre-existing-failures-live-in-docstestingknown-failures-canonmd-ci-compares-actuals-against-canon)):\n\n`;
+            body += `- new regressions (BLOCK): **${newRegressions.length}**\n`;
+            body += `- acknowledged drift (canon hit): **${ackDrift.length}**\n`;
+            body += `- canonized tests now PASSING (flag — prune canon): **${canonizedNowPassing.length}**\n\n`;
+
+            if (newRegressions.length) {
+              body += `**New regressions:**\n\n`;
+              for (const r of newRegressions.slice(0, 25)) {
+                body += `- \`${r.key}\` — ${r.message.split('\n')[0].slice(0, 200)}\n`;
+              }
+              if (newRegressions.length > 25) body += `_…and ${newRegressions.length - 25} more._\n`;
+              body += `\n`;
+            }
+
+            if (canonizedNowPassing.length) {
+              body += `**Canonized tests now passing — please prune canon:**\n\n`;
+              for (const k of canonizedNowPassing) body += `- \`${k}\`\n`;
+              body += `\n`;
+            }
+
+            body += `**Slowest 5 Apex methods:**\n\n`;
+            for (const s of slowest) body += `- \`${s.name}\` — ${s.ms}ms\n`;
+
+            // ---- Post comment ---------------------------------------------
+            if (context.eventName === 'pull_request') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            } else {
+              core.notice(body);
+            }
+
+            // ---- Gate decision --------------------------------------------
+            const jestFailed = process.env.JEST_STATUS !== '0';
+            const apexNewRegression = newRegressions.length > 0;
+            if (apexNewRegression || jestFailed) {
+              core.setFailed(
+                `Test gate FAILED — apex new regressions: ${newRegressions.length}, ` +
+                `jest exit: ${process.env.JEST_STATUS}.`,
+              );
+            }
+
+      - name: Upload test artifacts (Apex + Jest reports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}
+          path: |
+            reports/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Delete scratch org (always, even on failure)
+        if: always() && steps.scratch.outputs.scratch_alias != ''
+        run: |
+          set -eo pipefail
+          sf org delete scratch \
+            --target-org "${{ steps.scratch.outputs.scratch_alias }}" \
+            --no-prompt || true
