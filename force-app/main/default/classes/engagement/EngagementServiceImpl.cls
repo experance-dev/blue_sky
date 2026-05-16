@@ -582,8 +582,8 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
     sourceEventTypeDisplayMap = new Map<String, String>();
 
     // §12.3.2 waiver — schema-describe-guard pattern; required to safely fail
-    // open when the CMDT fields aren't deployed yet. Magnus-signed canonical
-    // suppression scope.
+    // open when the CMDT fields aren't deployed yet. Canonical suppression
+    // scope per docs/standards/sf-best-practices.md §12.3.2.
     Map<String, Schema.SObjectField> cmdtFields = Engagement_Picklist_Display__mdt.SObjectType.getDescribe()
       .fields.getMap();
     String[] required = new List<String>{

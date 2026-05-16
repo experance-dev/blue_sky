@@ -169,10 +169,9 @@ public with sharing class EngagementAdminController {
    *
    *              **Implementation status**: contract + validation are in
    *              place. The `enqueueDeployment` call + `Metadata.DeployCallback`
-   *              implementation is owned by Boomer (Sr Apex) — landing in a
-   *              follow-up commit. Until then this method throws an
-   *              `AuraHandledException` so the LWC error surface lights up
-   *              cleanly during local development.
+   *              implementation lands in a follow-up commit. Until then this
+   *              method throws an `AuraHandledException` so the LWC error
+   *              surface lights up cleanly during local development.
    *
    * @param payload Routing-rule attributes (see above).
    * @return Deployment job Id once enqueued.
@@ -181,7 +180,7 @@ public with sharing class EngagementAdminController {
   public static String createTouchRoutingRule(Map<String, Object> payload) {
     try {
       validateRoutingRulePayload(payload, true);
-      // TODO: Boomer — wire enqueueDeployment + DeployCallback.
+      // TODO: David Wood — wire enqueueDeployment + DeployCallback.
       throw new AuraHandledException(
         'Routing rule deploy is not yet implemented. Track CSI-7162 follow-up.'
       );
@@ -201,7 +200,7 @@ public with sharing class EngagementAdminController {
    *              edit-mode form can leave the field read-only).
    *
    *              **Implementation status**: contract + validation are in
-   *              place. The deploy guts are Boomer's.
+   *              place. The deploy guts land in a follow-up commit.
    *
    * @param developerName CMDT row to update. Must already exist.
    * @param payload Mutable routing-rule attributes (see `createTouchRoutingRule`).
@@ -246,7 +245,7 @@ public with sharing class EngagementAdminController {
         'Routing rule not found: ' + developerName
       );
     }
-    // TODO: Boomer — wire enqueueDeployment + DeployCallback.
+    // TODO: David Wood — wire enqueueDeployment + DeployCallback.
     throw new AuraHandledException(
       'Routing rule deploy is not yet implemented. Track CSI-7162 follow-up.'
     );
