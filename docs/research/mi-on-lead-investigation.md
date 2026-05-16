@@ -765,3 +765,320 @@ The MI EDA pattern proposed here is the same pattern CSI-7162 already proves in 
 The discipline implications for Phase 4: every MI PE pull request gets reviewed against the CSI-7162 reference. Deviations get justified in the PR description. New patterns are not invented mid-build.
 
 — Iris
+
+---
+
+## 14. Auto-OCR for company touches + opt-out impedance queue
+
+**Status:** **Release 1 scope** per David 2026-05-16. Folds into the Phase 1 build, not a follow-on. Customer wants every engaged Contact from a company auto-added to the OCR on that company's Opportunities, with an opt-out path that requires the Sales rep to write a >= 10-character reason and submit to a Sales Operations review queue.
+
+### 14.1 Five conceptual threads
+
+**Thread 1 — Auto-OCR mechanic.** Trigger point: the existing [`EngagementSignalRouter`](../../force-app/main/default/classes/engagement/EngagementSignalRouter.cls) evaluation pass. When a touch routes through an `Account_Match` or `ACR_Same_Account_Topic_Match` rule (existing `Touch_Routing_Rule__mdt` rule types), the routing step ALSO evaluates each open Opportunity on the matched Account and auto-creates an OCR for the engaged Contact if one doesn't already exist. Reuses the [`addToOcrSafe`](../../force-app/main/default/classes/engagement/EngagementServiceImpl.cls) race-protection contract — same re-query-and-insert pattern, just called from the router instead of the LWC.
+
+**Thread 2 — OCR sprawl risk.** A high-engagement deal could end up with 30-50+ OCRs. This is a real downside the customer needs to opt into knowingly. Two mitigations the architecture should leave room for:
+
+- **Confidence-threshold gate** on auto-add (only auto-add if Touch_Routing_Rule's match-confidence is above N). CMDT-driven so admins tune per-rule.
+- **Topic-relevance gate** (only auto-add if the touch's Topic is one of the Opp's active topics, mirroring the existing `getForOpportunity` topic filter at [`EngagementServiceImpl#L58`](../../force-app/main/default/classes/engagement/EngagementServiceImpl.cls)). Reduces sprawl by ignoring off-topic touches.
+
+Default behaviour without these gates: auto-add for every Contact that routes against the Opp's Account. Likely too aggressive — recommend shipping with topic-relevance gate ON by default.
+
+**Thread 3 — Opt-out impedance pattern (the modal).** When a Sales rep clicks "Remove from Deal Team" on the engagementPanel:
+
+- Opens new modal `c/removeFromDealTeamModal` (sibling to existing `c/addToDealTeamModal`)
+- Requires `Reason__c` Long Text input — VR enforces `LEN(TRIM(Reason__c)) >= 10`
+- On submit: creates `OCR_Removal_Request__c` with `Status__c = 'Pending'`, does NOT delete the OCR
+- Panel row immediately re-renders with "Removal pending review" badge + reason tooltip
+- The rep is unblocked from their workflow (the OCR stays for now, the request is in flight)
+
+This is the **impedance**: not friction-for-friction's-sake, but enough effort to ensure the removal is intentional and reviewable. Sales rep can't drive-by-delete an OCR.
+
+**Thread 4 — Sales Operations approval queue.** New SObject `OCR_Removal_Request__c`:
+
+| Field               | Type                | Notes                                                                                 |
+| ------------------- | ------------------- | ------------------------------------------------------------------------------------- |
+| `Opportunity__c`    | Lookup(Opportunity) | The Opp the OCR sits on                                                               |
+| `Contact__c`        | Lookup(Contact)     | The Contact being proposed for removal                                                |
+| `OCR_Id__c`         | Text(18) external   | Snapshot of the OpportunityContactRole Id; preserves the link if the OCR gets deleted |
+| `Removed_By__c`     | Lookup(User)        | Defaults to running user                                                              |
+| `Reason__c`         | Long Text (255)     | VR: `LEN(TRIM(Reason__c)) >= 10`, NOT(ISBLANK(Reason\_\_c))                           |
+| `Status__c`         | Picklist            | Pending / Approved / Denied                                                           |
+| `Reviewer__c`       | Lookup(User)        | Ops user who actioned                                                                 |
+| `Reviewed_At__c`    | Datetime            | Set on status flip from Pending                                                       |
+| `Approval_Notes__c` | Long Text           | Optional Ops note on decision                                                         |
+| `Submitted_At__c`   | Datetime            | Defaults to NOW()                                                                     |
+
+**On `Status__c` transition to `Approved`** — trigger handler calls `OpportunityContactRolesSelector.selectById` + DMLManager.deleteAsUser on the snapshotted `OCR_Id__c`.
+
+**On transition to `Denied`** — no DML on OCR (it was never deleted); the panel row reverts to its normal "On Deal Team" rendering. Reason and decision stay logged on the Removal_Request record for audit.
+
+**Thread 5 — Audit + pattern detection.** Every approval/denial logged with reason. Sales Ops runs a report on "OCR removals last 30 days by Sales rep" to spot patterns:
+
+- One rep always removing the same persona (e.g., always removing Legal contacts) — signals either coaching opportunity or that Legal genuinely doesn't belong
+- Repeated denials of one rep's requests — coaching signal
+- Spike in removals on one Opp — could indicate the auto-add is sprawling on that deal specifically and a CMDT tuning is needed
+
+### 14.2 Stakeholder questions — for Sales Operations leadership
+
+1. **Review SLA** — how fast does Sales Ops commit to reviewing pending removal requests? 24 hours? Same day? End of week? Drives whether we need an "escalation" mechanic for stale Pending requests.
+2. **Approved vs Denied policy framing** — what does "Approved" mean in policy terms? "Sales is right, this Contact shouldn't be on the deal team"? Or just "we agree to remove it but not necessarily that Sales's reason was valid"? Same question for Denied. Marketing this internally matters.
+3. **Escalation on volume** — if a single Sales rep submits 10+ removals in a week, does that auto-escalate to the rep's manager for coaching? Or stays silent and only surfaces in the periodic report?
+4. **Re-add after Denied** — if Ops denies a removal, can the Sales rep re-submit with a new reason? Or is one Denied final until something material changes? Iris read: allow re-submit but the prior Denied stays in audit trail.
+5. **Bulk-approve UX** — Sales Ops will likely have a queue page (List View) and approve in batches. Do we need a custom bulk-approve LWC, or is the standard Mass-Action with a quick-action enough? Iris read: standard quick-action is enough for v1.
+6. **Notify the Sales rep** when their request is Approved or Denied? Channel (Bell / email / Chatter)? Iris read: yes, Bell notification + optional email per the §15 notification rules.
+
+### 14.3 Architecture questions — for Atlas + team
+
+1. **Auto-OCR creation timing** — synchronous inside `EngagementSignalRouter` (post-routing, same transaction as the touch insert)? Async via Platform Event (`Contact_Identified__e` from §13 already exists)? Iris read: **async via PE**. Auto-OCR is a downstream cascade, not part of the routing-decision atomicity. Reuses `Contact_Identified__e` subscriber pattern from §13.2.
+2. **Race protection** — `addToOcrSafe` already handles the "another transaction beat us to it" race. Reuse verbatim from the router subscriber; no new race logic needed.
+3. **OCR_Removal_Request queue ownership** — Salesforce Queue or Group? Sales Ops likely wants a Queue (List View, Mass Action). Standard pattern.
+4. **OCR_Removal_Request trigger handler** — new `OcrRemovalRequestTriggerHandler` on after-update extending the existing `TriggerHandler` framework; status-flip-to-Approved fires the OCR delete via DMLManager. Mirrors [`LeadEngagementReparentHandler`](../../force-app/main/default/classes/engagement/LeadEngagementReparentHandler.cls) shape.
+5. **engagementPanel UX state** — the panel needs a new derived state per row: `pendingRemoval` boolean. Decorate path in [`engagementPanel.js#L201`](../../force-app/main/default/lwc/engagementPanel/engagementPanel.js) extends with `pendingRemovalReason` + tooltip rendering. Atlas + Coda coordinate.
+6. **Permset additions** — Sales rep needs CREATE on `OCR_Removal_Request__c`; Sales Ops needs CREATE + UPDATE. New permset atom `Additional_Permissions_Marketing_Influence_OCR_Removal_Reviewer` or fold the reviewer perms into the existing `Power_User` tier. Iris read: new atom; reviewer is a distinct persona from Power User.
+7. **Reopen-after-delete** — if Ops Approved a removal and the OCR is deleted, but later a new touch routes the same Contact back onto the Account: does auto-OCR re-create it? Two camps: (a) yes, the routing rule is the source of truth and a new touch is a new signal; (b) no, the Removal_Request acts as a permanent block list. Iris read: (a) — but the Removal_Request stays in audit so Ops sees the pattern.
+
+### 14.4 Architectural fork added by §14
+
+**Re-add policy after Approved-removal.** Iris recommends (a) — let the routing rule re-add if a new touch matches; the prior Removal_Request stays as audit. Atlas pair: confirm or counter. The alternative (b — permanent block list keyed on Contact+Opportunity) creates a different kind of complexity (block-list maintenance, stale-block-list cleanup) that may not be worth it.
+
+---
+
+## 15. Rules-engine-driven notifications + new-contact workflow
+
+**Status:** **Release 1 scope** per David 2026-05-16. Folds into the Phase 1 build. David's framing: notifications on top events (job changes, new contacts, etc.) should be **rules-engine-driven and generic**, not bespoke per event type. New contacts are special because they drive a simple workflow.
+
+### 15.1 Five conceptual threads
+
+**Thread 1 — Notification as a rule-engine-fired action.** Extend the existing `Touch_Routing_Rule__mdt` (or add a sibling `Notification_Rule__mdt`) with action fields:
+
+| Field                            | Type     | Purpose                                                                                                |
+| -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------ |
+| `Fire_Notification__c`           | Boolean  | When true, a rule match produces a notification in addition to (or instead of) a routing signal        |
+| `Notification_Recipient_Type__c` | Picklist | Account_Owner / Opp_Owner / Marketing_Ops / Custom_Queue / Submitting_User                             |
+| `Notification_Template__c`       | Text(80) | Reference to a `Notification_Template__c` row (templated subject + body with merge fields)             |
+| `Notification_Priority__c`       | Picklist | Low / Normal / High — drives the channel mix (High → email + Bell; Normal → Bell; Low → digest only)   |
+| `Notification_Channels__c`       | Multi-pl | In_App / Chatter / Email / Slack / Mobile_Push — defaults from Priority but can be overridden per rule |
+
+Iris recommendation: **sibling `Notification_Rule__mdt`** CMDT, not extension of `Touch_Routing_Rule__mdt`. Routing and notification are different concerns; CMDT-row reuse buys nothing if the field set diverges.
+
+**Thread 2 — Delivery channels.**
+
+- **Salesforce In-App Notification** (bell icon) — `Messaging.CustomNotificationType` API; cheapest, fastest, default for Normal priority
+- **Chatter @mention** — `FeedItem` insert; good for collaboration handoffs ("AE → SDR, take a look at Joe")
+- **Email** — only for High priority; **respect the no-real-emails-from-tests memory** — production email path goes through `buildXEmail()` step that returns the message without dispatch; tests assert on shape; never grant Single-Email permission to test users
+- **Slack** — if Zelis has Salesforce-for-Slack; Platform Event subscriber bridge if so
+- **Mobile push** — Salesforce Mobile App; piggy-backs on In-App Notification config
+
+**Thread 3 — New-contact workflow.** When a touch arrives, IDs a brand-new Contact (auto-created via Phase 4 domain-attribution work from §8), and the new Contact matches a "Welcome Workflow Eligible" rule:
+
+- Bell notification to Account Owner: "New Contact identified at Acme Corp — Joe Patel, Director of Procurement. Engaged 3 times in last 7 days."
+- Auto-create Task assigned to Account Owner: "Reach out to Joe Patel — see Engagement panel for context"
+- Surface in engagementPanel with a "New" badge (decorate path in [`engagementPanel.js#L201`](../../force-app/main/default/lwc/engagementPanel/engagementPanel.js))
+- Optionally fire Chatter post in the Account record's feed
+
+The "Welcome Workflow Eligible" rule is itself a `Notification_Rule__mdt` row with `Trigger_Event__c = 'Contact_Created_From_Domain'` + an Apex predicate (`HasMinimumEngagementCount` returning true at 3+ touches in 7 days).
+
+**Thread 4 — Generic, not bespoke.** David's intent: the notification system needs to be GENERIC + extensible. New event types add a new rule + a new template, NOT new code. The CMDT pattern + the EDA subscriber pattern from §13 are the two extension points; the Apex code is generic — `NotificationRuleEvaluator` evaluates the rule set on each subscribed event, builds the `Messaging.CustomNotificationType` payload, and dispatches.
+
+**Thread 5 — Pattern alignment with §13 EDA.** Notifications subscribe to the existing PE inventory from §13.2:
+
+| PE                              | NotificationRule eval triggers when                                | Example rule                                                                                  |
+| ------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `Contact_Identified__e`         | New Contact created from domain match                              | Notify Account Owner — "New Contact at Acme: Joe Patel"                                       |
+| `Person_Job_Change_Detected__e` | Journal poll detects `contact.propertyChange` propertyName=company | Notify OLD Account Owner ("champion gone"), NEW Account Owner ("warm intro available")        |
+| `Account_Resolved__e`           | Domain-shadow Account materializes to real Account                 | Notify Marketing Ops — "Shadow domain @acme.com promoted to Acme Corp Account"                |
+| `Touch_Ambiguous__e`            | Multi-Account same-domain ambiguity                                | Notify the Custom_Queue (`Marketing Ops Review`) — "Domain @bigagency.com matches 3 Accounts" |
+| `Lead_Converted__e`             | Lead conversion                                                    | Notify Lead's previous Owner + new Opp Owner                                                  |
+
+### 15.2 Stakeholder questions — for Sales / Marketing Ops / BDR leadership
+
+1. **Channel preference per Persona** — does the IE Sales user want Bell-only, while Marketing Ops wants Bell + email digest? Per-Persona-PSG default channels, with per-user override? Iris read: yes, per-Persona defaults overridable per user.
+2. **Recipient policy for unowned Accounts** — if an Account has no Owner (Owner = integration user), who gets the notification? Marketing Ops queue? Round-robin to sales-rep-on-call? Skip entirely?
+3. **Snooze / mute rules** — can users mute notifications from a specific Account or for a window? Standard Bell-notification mute pattern works; confirm it's enough.
+4. **Notification fatigue threshold** — if Acme generates 30 notifications in a day (heavy engagement spike), do we batch into a digest, or send every one? Iris read: per-rule batching threshold (CMDT field); default batch-after-5-in-1-hour.
+5. **Escalation paths** — when a High-priority notification is unread for 24 hours, does it escalate (manager Bell ping)? Or just stay unread? Iris read: escalation is overkill for v1; revisit in v2.
+6. **Off-hours behaviour** — Bell notifications fire instantly. Should they suppress / batch during nights and weekends? Iris read: respect user's Salesforce notification preferences; don't reinvent.
+
+### 15.3 Architecture questions — for Atlas + team
+
+1. **CMDT shape — sibling Notification_Rule**mdt or field-extension of Touch_Routing_Rule**mdt?** Iris recommends sibling.
+2. **Template SObject** — `Notification_Template__mdt` (CMDT) or `Notification_Template__c` (regular SObject, admin-editable)? CMDT is deploy-only-edit; SObject is admin-runtime-edit. Customer likely wants runtime edit → SObject.
+3. **NotificationRuleEvaluator class** — new feature-scoped Apex; subscribes to the §13 PE inventory; evaluates `Notification_Rule__mdt` rows; calls `Messaging.CustomNotificationType.sendNotification()` (Bell), `EmailService.buildAndQueue()` (Email), `ChatterPostService.post()` (Chatter). Same per-channel-dispatcher seam pattern as §13's `IEventPublisher`.
+4. **Email path** — explicitly named: production path goes through `EngagementNotificationEmail.buildEmail(recipient, templateRow, mergeFields)` returning `Messaging.SingleEmailMessage`, with a thin `dispatch()` wrapper. Tests assert on shape of returned message. Per the no-real-emails memory.
+5. **In-App Notification setup** — `CustomNotificationType` metadata records (e.g., `MI_Standard_Notification`, `MI_High_Priority_Notification`) deployed with the feature. Confirm Zelis sandboxes / prod don't already have a notification-type cap (org limit 50; usually not a problem but verify).
+6. **Slack integration scope** — IF Zelis has Salesforce-for-Slack, an additional Platform Event subscriber bridges; otherwise out of scope for v1. David confirms.
+7. **Task auto-creation pattern for new-contact workflow** — DMLManager.insertAsUser on a `Task` record. Owner = Account Owner. Subject + Description from `Notification_Template__c` merge fields. Standard pattern; no fork.
+
+### 15.4 Architectural fork added by §15
+
+**Template storage — CMDT vs SObject.** Iris recommends `Notification_Template__c` (SObject, admin-editable at runtime). CMDT requires a deploy for every template edit; customers don't tolerate that for notification text. Atlas confirms.
+
+---
+
+## 16. Draft-mode automations + propose-then-confirm pattern
+
+**Status:** **Release 1 scope** per David 2026-05-16. Cross-cutting infrastructure — not bound to one feature. Customer needs the option to flag certain MI automations as "draft mode" — the system proposes an action, durably records the proposal, and a reviewer approves or denies before the action executes.
+
+### 16.1 Conceptual model
+
+**Thread 1 — `MI_Automation_Proposal__c` SObject.** Every MI automation that's customer-flagged-as-draft-mode creates a proposal record before acting:
+
+| Field                 | Type           | Notes                                                                                                                    |
+| --------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `Type__c`             | Picklist       | OCR_Auto_Add / Contact_Auto_Create / Account_Auto_Match / Job_Change_Update / ACR_Auto_Create / Shadow_Account_Promotion |
+| `Source_Object__c`    | Text(80)       | The SObject that triggered the proposal (e.g., `Engagement_Touch__c`)                                                    |
+| `Source_Record_Id__c` | Text(18)       | The triggering record's Id                                                                                               |
+| `Proposed_Action__c`  | Long Text JSON | Serialized payload the action would execute if approved (target SObject, fields, values)                                 |
+| `Status__c`           | Picklist       | Pending / Approved / Denied / Auto-Approved / Expired                                                                    |
+| `Reviewer__c`         | Lookup(User)   | Set on review                                                                                                            |
+| `Reviewed_At__c`      | Datetime       | Set on review                                                                                                            |
+| `Approval_Notes__c`   | Long Text      | Optional reviewer note                                                                                                   |
+| `Submitted_At__c`     | Datetime       | Default NOW()                                                                                                            |
+| `Expires_At__c`       | Datetime       | Auto-Expired if not reviewed by this date; configurable per Type                                                         |
+| `Confidence_Score__c` | Number         | The triggering rule's match-confidence; feeds auto-approve evaluation                                                    |
+
+**Thread 2 — Per-automation draft-mode CMDT.** New `MI_Automation_Setting__mdt`:
+
+| Field                    | Type      | Notes                                                                                                                       |
+| ------------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `Automation_Type__c`     | Picklist  | Same picklist as Proposal.Type\_\_c                                                                                         |
+| `Draft_Mode__c`          | Boolean   | When true → creates a Proposal; when false → executes directly                                                              |
+| `Auto_Approve_If__c`     | Text(255) | Optional Apex predicate class name; if predicate returns true, auto-approve without manual review (e.g., `Confidence > 90`) |
+| `Reviewer_Queue__c`      | Text(80)  | Queue Developer Name for the review queue                                                                                   |
+| `Default_Expiry_Days__c` | Number    | Default expiry window in days (e.g., 7 — drop proposal if not reviewed in 7 days)                                           |
+| `Active__c`              | Boolean   | Kill-switch per automation type                                                                                             |
+
+**Thread 3 — Audit trail durability.** David explicitly said "remember each of those." Every proposal — Approved, Denied, Auto-Approved, Expired — is durable. Reports answer:
+
+- "What would have happened if we'd been fully automated?" → COUNT Proposal WHERE Status = Auto-Approved + Approved
+- "What did Sales Ops gatekeep?" → COUNT Proposal WHERE Status = Denied
+- "What slipped through review?" → COUNT Proposal WHERE Status = Expired
+
+**Thread 4 — Customer-easing slider.** The `Auto_Approve_If__c` predicate is the customer's slider: ship fully manual (no predicate, every proposal reviewed), ease into "auto-approve high-confidence + manual-review low-confidence" (predicate `Confidence >= 90`), eventually flip `Draft_Mode__c = false` per automation type when the customer trusts the system. **The architecture supports the trust journey, not just the endpoint.**
+
+**Thread 5 — Pattern reuse with §14.** `OCR_Removal_Request__c` (§14) is one specific instance of the propose-then-confirm pattern. `MI_Automation_Proposal__c` (§16) is the generic version. **Fork below** — keep separate or unify?
+
+### 16.2 Stakeholder questions
+
+1. **Default Draft_Mode per automation type** — which automations ship Draft-Mode-ON by default, and which ship Draft-Mode-OFF? Iris read: ship ON for everything that creates or modifies a Contact / OCR / Account record; OFF for non-mutating signals (notifications, panel-rendering decisions).
+2. **Reviewer assignment per type** — OCR_Auto_Add → Sales Ops queue; Contact_Auto_Create → Marketing Ops queue; Account_Auto_Match → Sales Ops; Shadow_Account_Promotion → Marketing Ops. Customer confirms the matrix.
+3. **Expiry policy** — proposal auto-expires at N days unreviewed. Default 7 days. Customer confirms; per-type override via CMDT.
+4. **Expired-proposal disposition** — when a proposal expires without review, what happens to the underlying action? (a) action drops, the system never executes it; (b) action auto-executes (assume-Approved); (c) action escalates to a fallback reviewer. Iris read: (a) — silent expiry, log and move on; reviewer-team-not-keeping-up isn't a reason to bypass review.
+5. **Bulk-approve UX** — same question as §14.2 Q5. Likely same answer (standard quick-action).
+6. **Denial reason required?** — VR requires `Approval_Notes__c` on Denied? Iris read: yes for Denied, optional for Approved.
+
+### 16.3 Architecture questions
+
+1. **Unified-or-separate SObject (the §16.4 fork)** — Atlas decides.
+2. **Proposal-creation timing** — proposal record created BEFORE the would-be-action runs. If the automation is wired through an EDA subscriber, the subscriber's first step is "check Draft_Mode for this Type; if true → create Proposal + return; if false → execute directly". Pattern is uniform across all subscriber implementations.
+3. **Auto-approve predicate invocation** — dynamic class instantiation. Same pattern as `RecordCleanupRule.Predicate_Apex_Class__c` already in use (see [`Record_Retention_Rule.Engagement_Touch_Old_NoOpenOpp.md-meta.xml`](../../force-app/main/default/customMetadata/Record_Retention_Rule.Engagement_Touch_Old_NoOpenOpp.md-meta.xml) — `Predicate_Apex_Class__c = KeepIfAccountHasOpenOpportunity`).
+4. **Proposal-execution on Approved** — trigger handler on `MI_Automation_Proposal__c` after-update; on Status → Approved, deserializes `Proposed_Action__c` JSON and dispatches to the right executor (`OcrAutoAddExecutor`, `ContactAutoCreateExecutor`, etc.). Each executor is a small class with one job; the proposal record carries the JSON payload of args.
+5. **Expiry batch** — `MIAutomationProposalExpiryBatch` daily scheduled job; finds Pending proposals past `Expires_At__c`; flips Status to Expired. Standard pattern.
+6. **Reviewer permset** — new atom `Additional_Permissions_Marketing_Influence_Automation_Reviewer`. Grants CREATE + UPDATE on `MI_Automation_Proposal__c`; queue membership composes separately.
+7. **engagementPanel surface** — when a Contact has a Pending Contact_Auto_Create proposal, the panel could show it with a "Proposed" badge (similar to §14's "Pending removal"). v1 may not need this; v2 surfaces.
+
+### 16.4 Architectural fork added by §16
+
+**SObject shape — `OCR_Removal_Request__c` + `MI_Automation_Proposal__c` separate (§14 + §16 distinct) vs unified `MI_Automation_Proposal__c` with `Type__c = 'OCR_Removal'` as one of the values.**
+
+| Option                                                    | Pros                                                                                                                                          | Cons                                                                                                                                                                                | Iris read |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Separate SObjects (Removal_Request + Automation_Proposal) | Clean per-type schemas; different review semantics; Sales-removes-Ops-approves vs system-proposes-Sales-approves are honestly different flows | More SObjects; more triggers; more permsets                                                                                                                                         | **Pick**  |
+| Unified `MI_Automation_Proposal__c` only                  | Fewer SObjects; one report, one queue page, one trigger                                                                                       | Conflates two genuinely different review-direction patterns; field-set bloat (OCR-removal needs Reason >= 10 VR; auto-add doesn't); generic schema obscures the intent of each flow |           |
+
+Iris leans **separate.** The Sales-removes-Ops-approves flow (§14) has VR-on-Reason, a specific Sales-rep-as-submitter UX, and Ops-as-reviewer policy. The system-proposes-Sales-approves flow (§16) has auto-approve predicates, a JSON payload, and a different reviewer matrix. Forcing both into one SObject means the schema serves neither cleanly. Atlas: confirm or counter.
+
+---
+
+## 17. Generalized exception logging + generalized retention framework
+
+**Status:** **Release 1 scope** per David 2026-05-16. Atlas reverses the earlier separate-SObject recommendation for trigger-error logging; we generalize instead. David's question — "we can reuse the API error log, and if we didn't generalize, we need to now, right?" — is correct. We generalize now.
+
+### 17.1 Generalize `API_Exception_Log__c` → `System_Exception_Log__c`
+
+**Why now:** Phase 1's Auto-OCR (§14), Notification Rule evaluator (§15), Proposal-executor (§16), HubSpot Journal poller (§12), and the §13 EDA dispatchers all log failures. Five new error-producing subsystems land in Release 1. Without generalization, we either (a) duplicate per-subsystem log SObjects — five more SObjects, five more triggers, five more retention rules — or (b) cram everything into `API_Exception_Log__c` whose name lies about its purpose.
+
+**Migration story:**
+
+1. Create new SObject `System_Exception_Log__c` with the same field set as `API_Exception_Log__c` + one new field `Log_Source__c` picklist (API / Trigger / Batch / Queueable / Scheduled / Future / Manual / EDA_Subscriber / Notification / Proposal_Executor)
+2. **Dual-write window**: existing `Logger.logApiException` writes to BOTH `API_Exception_Log__c` AND `System_Exception_Log__c` (Log_Source = 'API'). New callers write only to `System_Exception_Log__c`. Window length: one release cycle.
+3. Migrate any reports / dashboards / integrations pointing at `API_Exception_Log__c` to the new SObject during the window.
+4. End of window: deprecate `Logger.logApiException` (still works, no-op write-back-compat), switch to `Logger.logException(source, ...)` as the single entrypoint.
+5. Eventually delete `API_Exception_Log__c` (destructive change deploys after the window closes).
+
+**Why new SObject + dual-write rather than rename in place:** rename in place breaks every existing report, dashboard, integration, and external-system reference. Dual-write lets us migrate consumers at their own pace. Two-week window is enough for most consumers; longer-tail integrations get explicit notification.
+
+**Net new Logger surface:**
+
+```apex
+// Existing (preserved for back-compat during dual-write window)
+Logger.logApiException(ex, className, methodName);
+
+// New unified entrypoint
+Logger.logException(LogSource source, Exception ex, String className, String methodName);
+Logger.logException(LogSource source, String message, String className, String methodName);
+
+// Convenience wrappers (delegate to logException)
+Logger.logTriggerException(...);
+Logger.logBatchException(...);
+Logger.logQueueableException(...);
+Logger.logEdaSubscriberException(...);
+```
+
+`LogSource` is an Apex enum mirroring the picklist. Convenience wrappers keep call sites readable.
+
+**Header / comment voice (per the feedback memory):** the renamed/new SObject and its Logger entrypoints get rich header comments explaining the migration window so a developer picking this up cold understands why two log tables briefly exist.
+
+### 17.2 Generalize the retention framework
+
+**Already SObject-agnostic.** The existing [`Record_Retention_Rule__mdt`](../../force-app/main/default/objects/Record_Retention_Rule__mdt/Record_Retention_Rule__mdt.object-meta.xml) supports `SObject_API_Name__c`, `Age_Field_API_Name__c`, `Age_Threshold_Days__c`, `Predicate_Apex_Class__c`, `SOQL_Where_Clause__c`, `Field_Regex_Match__c`, `Action__c`, `Active__c` ([reference rule](../../force-app/main/default/customMetadata/Record_Retention_Rule.Engagement_Touch_Old_NoOpenOpp.md-meta.xml)). The batch framework ([`RecordCleanupBatch`](../../force-app/main/default/classes/retention/RecordCleanupBatch.cls), [`RecordCleanupContext`](../../force-app/main/default/classes/retention/RecordCleanupContext.cls), [`RecordCleanupRule`](../../force-app/main/default/classes/retention/RecordCleanupRule.cls), [`RecordCleanupScheduler`](../../force-app/main/default/classes/retention/RecordCleanupScheduler.cls)) drives off the rule rows. So 80% of the work David's asking for is already done.
+
+**What's still needed** for log-table retention:
+
+1. **Time-based unconditional retention rules** — for logs, the rule shape is simpler: "delete `System_Exception_Log__c` rows older than 90 days, no predicate, no where-clause filter, no regex." Existing rule shape supports this (leave Predicate_Apex_Class**c / SOQL_Where_Clause**c / Field_Regex_Match\_\_c blank); batch's null-tolerance needs verification.
+2. **Per-Log_Source\_\_c retention rules** — admins want different retention windows per source. CMDT supports this today via `SOQL_Where_Clause__c = "Log_Source__c = 'API'"` for one rule + `Log_Source__c = 'Trigger'` for another. No schema change required.
+3. **Soft-delete option** — current `Action__c` picklist has Delete. Add Soft_Delete value. New field `Soft_Delete_Field__c` (e.g., `Is_Archived__c`) gets set true rather than DML.deleteAsUser. For high-volume logs, soft-delete avoids storage-reclaim cost but keeps records queryable; hard-delete eventually runs on a longer cadence.
+4. **Retention-rule priority for conflict resolution** — when two rules target overlapping records (one says "keep 90 days for source=API", another says "keep 30 days for source=Trigger"), most-restrictive-wins is the cleanest default. Add a `Priority__c` Number field for explicit overrides when admins need them. Iris read: ship with most-restrictive-wins default; add `Priority__c` field but only consult it when admins set non-null values.
+
+**Pair with the existing future-ticket** `project-record-cleanup-framework` (memory) — the planned generalization of LogCleanup into a CMDT-driven SObject-agnostic retention framework already targets `salesforce-utilities` open-source. §17.2 adds log-source-specific rule shapes to that scope.
+
+### 17.3 Architecture questions
+
+1. **Migration path — rename SObject in place vs new SObject + dual-write window.** Iris recommends new SObject + dual-write (~2 week window). Rename in place breaks too many consumers.
+2. **Retention-rule conflict resolution — most-restrictive default + Priority field for overrides.** Iris read: ship with most-restrictive default; Priority field is dormant unless admins set it.
+3. **Soft-delete vs hard-delete per rule.** Per-rule choice via `Action__c` picklist extension. Soft-delete needs the target SObject to have a "soft-deleted" field; logs get `Is_Archived__c` Boolean.
+4. **Batch null-tolerance verification** — confirm `RecordCleanupBatch` handles the "no predicate / no where-clause / no regex" rule shape cleanly. If not, one-line fix. Verification task before §17.2 builds.
+5. **Logger API back-compat** — `Logger.logApiException` stays as a no-op-equivalent wrapper around `Logger.logException(LogSource.API, ...)` for the migration window. Deprecation comment in header per the change-log memory.
+
+### 17.4 Architectural forks added by §17
+
+**Fork A — migration path.** Iris recommends new SObject + dual-write. Rename-in-place is too disruptive.
+
+**Fork B — retention conflict resolution.** Iris recommends most-restrictive-wins default + `Priority__c` field for explicit overrides. Atlas confirms.
+
+**Fork C — soft-delete field design.** Add Soft_Delete value to `Action__c` + new `Soft_Delete_Field__c` text field on the rule CMDT. Atlas confirms.
+
+---
+
+## Architecture fork inventory (cumulative across the investigation)
+
+Phase-tagged so the team knows when each fork demands a decision.
+
+| Phase   | Section | Fork                                                                              | Iris recommendation                                         |
+| ------- | ------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Phase 1 | §3.4    | DTO shape — reuse `EngagementDTO` half-populated vs new `AnchorEngagementDTO`     | New `AnchorEngagementDTO`                                   |
+| Phase 1 | §14.4   | Re-add policy after Approved removal — routing-can-re-add vs permanent-block-list | Routing can re-add; Removal_Request stays as audit          |
+| Phase 1 | §15.4   | Notification template storage — CMDT vs SObject                                   | SObject (admin runtime-editable)                            |
+| Phase 1 | §16.4   | Proposal SObject — separate (Removal_Request + Automation_Proposal) vs unified    | Separate                                                    |
+| Phase 1 | §17.4A  | Log migration path — rename in place vs new SObject + dual-write                  | New SObject + dual-write                                    |
+| Phase 1 | §17.4B  | Retention rule conflict resolution                                                | Most-restrictive default + Priority field for overrides     |
+| Phase 1 | §17.4C  | Soft-delete vs hard-delete shape                                                  | Per-rule via `Action__c` extension + `Soft_Delete_Field__c` |
+| Phase 4 | §8.5    | Third DTO shape — `DomainEngagementDTO` parallel vs common abstract base          | Keep parallel and distinct                                  |
+| Phase 4 | §12.5   | Journal offset state — Custom Setting vs SObject                                  | SObject (`Integration_Journal_Cursor__c`)                   |
+| Phase 4 | §13.5A  | PE CMDT shape — per-event vs unified                                              | Unified (`Engagement_Event_Config__mdt`)                    |
+| Phase 4 | §13.5B  | PE dispatcher shape — per-event vs unified                                        | Per-event (mirrors CSI-7162 `JiraPushDispatcher`)           |
+| Phase 5 | §9.4    | Employment history storage — SObject vs 2-fields vs HubSpot-owned                 | New SObject `Contact_Employment_History__c`                 |
+
+**Cumulative count: 12 architectural forks across the investigation. 7 of them now sit in Phase 1.**
+
+— Iris
