@@ -5,10 +5,18 @@
  *              re-queries the touches to confirm the lookup swap was applied.
  *              The Salesforce platform fires `LeadTrigger` automatically as
  *              part of conversion, so tests do not invoke the handler directly.
+ *
+ *              §2.4 guard branch coverage: the bottom test exercises the
+ *              `Engagement_Touch__c.Lead__c.isAccessible()` short-circuit
+ *              under a no-permset persona — Lead conversion by a non-MI user
+ *              must not block on the reparent SOQL.
  * @group Engagement Attribution
  * @see LeadEngagementReparentHandler
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 sweep: added §2.4 `isAccessible()` guard-branch
+ *                    coverage (`leadConversionByNoPermPersonaDoesNotBlock`)
+ *                    to pin Boomer's canonical Lead-guard short-circuit.
  */
 @IsTest
 private class LeadEngagementReparentHandlerTest {
@@ -180,6 +188,92 @@ private class LeadEngagementReparentHandlerTest {
       assertReparented(byExtId.get('EXT-B-1'), contactB, accountB);
       assertReparented(byExtId.get('EXT-B-2'), contactB, accountB);
     }
+  }
+
+  /**
+   * @description §2.4 guard branch — `reparentTouches` short-circuits when
+   *              the converting user lacks FLS on `Engagement_Touch__c.Lead__c`.
+   *              A no-perm persona converting a Lead must NOT raise
+   *              `QueryException` ("No such column 'Lead__c'") under
+   *              `WITH USER_MODE`, and must NOT throw `EngagementException`
+   *              upward — Lead conversion is a core platform operation that
+   *              any user with Lead Convert permission can perform, and the
+   *              MI reparent handler is a sidecar that must never block the
+   *              core flow.
+   *
+   *              If the guard ever regresses, the SOQL inside
+   *              `reparentTouches` raises `QueryException` synchronously
+   *              inside the conversion trigger context — the conversion
+   *              `Database.LeadConvertResult` reflects failure and this
+   *              test fails. That's the bug it catches.
+   *
+   *              Note: the seed Touch is inserted under the permsetted user
+   *              (to satisfy create-FLS), then the conversion runs under the
+   *              no-perm persona. The Touch must still exist post-conversion
+   *              with `Lead__c` unchanged — the handler short-circuited, did
+   *              not reparent.
+   */
+  @IsTest
+  static void leadConversionByNoPermPersonaDoesNotBlock() {
+    // Seed the Lead + Touch under the permsetted user. Cross-user share to
+    // the no-perm persona so it can see-and-convert the Lead. Touch sharing
+    // is unnecessary — the handler's no-perm SOQL will short-circuit before
+    // it queries touches.
+    Lead l;
+    Engagement_Touch__c seededTouch;
+    System.runAs(getTestUser()) {
+      l = newLead(
+        'NoPerm',
+        'Convert',
+        'NoPerm Co',
+        'noperm@convert.example.com'
+      );
+      Database.insert(l, AccessLevel.SYSTEM_MODE);
+      seededTouch = newTouch(l.Id, 'EXT-NOPERM-1');
+      Database.insert(seededTouch, AccessLevel.SYSTEM_MODE);
+    }
+
+    User noPermUser = PersonaTestFactory.userFor(PersonaTestFactory.NO_PERM);
+    // Cross-user share the Lead so the no-perm persona can see + convert.
+    EngagementTestFixtures.shareRecordsToUsers(
+      new List<SObject>{ l },
+      new List<User>{ noPermUser },
+      'Edit'
+    );
+
+    Database.LeadConvertResult lcr;
+    System.runAs(noPermUser) {
+      Test.startTest();
+      lcr = convertLead(l.Id);
+      Test.stopTest();
+    }
+
+    Assert.isTrue(
+      lcr.isSuccess(),
+      'Expected Lead conversion to succeed under no-perm persona — MI sidecar handler must not block core flow.'
+    );
+
+    // Re-query under SYSTEM_MODE: the handler short-circuited, so Lead__c is
+    // still set (NOT reparented) and Contact__c / Account__c are still null.
+    Engagement_Touch__c after = [
+      SELECT Id, Lead__c, Contact__c, Account__c
+      FROM Engagement_Touch__c
+      WHERE Id = :seededTouch.Id
+      LIMIT 1
+    ];
+    Assert.areEqual(
+      l.Id,
+      after.Lead__c,
+      'Expected Lead__c untouched — handler guard should have short-circuited under no-perm persona.'
+    );
+    Assert.isNull(
+      after.Contact__c,
+      'Expected Contact__c still null — no reparent happened under no-perm persona.'
+    );
+    Assert.isNull(
+      after.Account__c,
+      'Expected Account__c still null — no reparent happened under no-perm persona.'
+    );
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────

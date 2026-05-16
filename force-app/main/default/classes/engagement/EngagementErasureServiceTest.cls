@@ -2,10 +2,17 @@
  * @description Tests for the subject-erasure cascade service. Verifies the
  *              Contact and Lead variants delete the right children, empty the
  *              recycle bin (hard-delete), and short-circuit on empty input.
+ *              Also pins the §2.4 `isAccessible()` guard branches on the three
+ *              Contact-path helpers — under a no-permset persona the cascade
+ *              must no-op silently rather than block the Contact delete.
  * @group Engagement Attribution
  * @see EngagementErasureService
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 sweep: persona-coverage tests for the three
+ *                    Contact-path `isAccessible()` guard branches (Touch /
+ *                    Signal / Dismissal). Mirrors the Lead-path canonical and
+ *                    closes the coverage drop introduced by adding the guards.
  */
 @IsTest
 private class EngagementErasureServiceTest {
@@ -263,6 +270,180 @@ private class EngagementErasureServiceTest {
         'Expected the audit message to name the subject type.'
       );
     }
+  }
+
+  /**
+   * @description §2.4 guard branch — `collectTouchIdsForContacts` short-
+   *              circuits when the running user lacks FLS on
+   *              `Engagement_Touch__c.Contact__c`. Under a no-permset persona,
+   *              the cascade must no-op silently and return an empty summary —
+   *              never block the Contact delete with a `QueryException` and
+   *              never throw `EngagementException`.
+   *
+   *              The seed Contact + Touch are inserted in SYSTEM_MODE under
+   *              the permsetted user so post-call assertions confirm rows
+   *              were NOT deleted by the no-perm cascade. If the guard ever
+   *              regresses, the SOQL inside `collectTouchIdsForContacts`
+   *              raises `QueryException` ("No such column 'Contact__c' on
+   *              entity 'Engagement_Touch__c'") and this test fails loudly —
+   *              that's the bug it catches.
+   *
+   *              Mirrors `EngagementTouchesSelectorTest.selectByAccountIdsAcrossPersonas`
+   *              negative-path tail (no-perm persona, §2.4 contract).
+   */
+  @IsTest
+  static void eraseForContactsNoOpsWhenTouchContactFlsBlocked() {
+    Account acc;
+    Contact c;
+    Engagement_Touch__c touch;
+    System.runAs(getTestUser()) {
+      acc = newAccount('No-FLS Co');
+      Database.insert(acc, AccessLevel.SYSTEM_MODE);
+      c = newContact('NoFls', 'Subject', acc.Id);
+      Database.insert(c, AccessLevel.SYSTEM_MODE);
+      touch = newTouch(c.Id, acc.Id, 'EXT-NOFLS-1');
+      Database.insert(touch, AccessLevel.SYSTEM_MODE);
+    }
+
+    System.runAs(PersonaTestFactory.userFor(PersonaTestFactory.NO_PERM)) {
+      Test.startTest();
+      EngagementErasureService.ErasureSummary summary = EngagementErasureService.eraseForContacts(
+        new Set<Id>{ c.Id }
+      );
+      Test.stopTest();
+
+      // Guard branch: zero deletes, no exception. The cascade short-circuits
+      // on the Touch-side guard BEFORE it can issue Signal/Dismissal SOQL.
+      Assert.areEqual(
+        0,
+        summary.touchesDeleted,
+        'Expected zero touches deleted under no-perm persona (Touch.Contact__c FLS blocked).'
+      );
+      Assert.areEqual(
+        0,
+        summary.signalsDeleted,
+        'Expected zero signals deleted under no-perm persona (Signal.Contact__c FLS blocked).'
+      );
+      Assert.areEqual(
+        0,
+        summary.dismissalsDeleted,
+        'Expected zero dismissals deleted under no-perm persona (Dismissal.Contact__c FLS blocked).'
+      );
+    }
+
+    // Confirm SYSTEM_MODE view still sees the seed row — the no-perm cascade
+    // did not delete it. Closes the loop: short-circuit, not silent-delete.
+    Assert.areEqual(
+      1,
+      [SELECT COUNT() FROM Engagement_Touch__c WHERE Id = :touch.Id],
+      'Expected the seeded touch to survive the no-perm cascade.'
+    );
+  }
+
+  /**
+   * @description §2.4 guard branch — `deleteSignalsForContacts` short-
+   *              circuits when the running user lacks FLS on
+   *              `Opportunity_Engagement_Signal__c.Contact__c`. Same shape as
+   *              the Touch-side test above, scoped to the Signal-side guard.
+   *
+   *              Calls `deleteSignalsForContacts` indirectly via `eraseForContacts`
+   *              after stubbing past the Touch-side guard wouldn't be honest —
+   *              the Touch-side guard fires first for a no-perm persona, so
+   *              both branches no-op together and we cannot isolate the Signal
+   *              branch via persona alone. Instead we assert the public-API
+   *              contract for the no-perm persona: zero signals deleted, no
+   *              exception, seed Signal survives. If the Signal-side guard
+   *              ever regresses but the Touch-side guard stays, this test
+   *              would still pass (Touch guard masks it). Acceptable trade —
+   *              the Touch-side test is the primary coverage anchor; this
+   *              test pins the no-exception contract at the Signal-API
+   *              entry point as a regression lock.
+   */
+  @IsTest
+  static void eraseForContactsNoOpsWhenSignalContactFlsBlocked() {
+    Account acc;
+    Contact c;
+    Opportunity opp;
+    Opportunity_Engagement_Signal__c signal;
+    System.runAs(getTestUser()) {
+      acc = newAccount('No-FLS Signal Co');
+      Database.insert(acc, AccessLevel.SYSTEM_MODE);
+      c = newContact('NoFlsSig', 'Subject', acc.Id);
+      Database.insert(c, AccessLevel.SYSTEM_MODE);
+      opp = newOpportunity(acc.Id);
+      Database.insert(opp, AccessLevel.SYSTEM_MODE);
+      Engagement_Touch__c touch = newTouch(c.Id, acc.Id, 'EXT-NOFLS-SIG-1');
+      Database.insert(touch, AccessLevel.SYSTEM_MODE);
+      signal = newSignal(opp.Id, c.Id, touch.Id);
+      Database.insert(signal, AccessLevel.SYSTEM_MODE);
+    }
+
+    System.runAs(PersonaTestFactory.userFor(PersonaTestFactory.NO_PERM)) {
+      Test.startTest();
+      EngagementErasureService.ErasureSummary summary = EngagementErasureService.eraseForContacts(
+        new Set<Id>{ c.Id }
+      );
+      Test.stopTest();
+
+      Assert.areEqual(
+        0,
+        summary.signalsDeleted,
+        'Expected zero signals deleted under no-perm persona.'
+      );
+    }
+
+    Assert.areEqual(
+      1,
+      [
+        SELECT COUNT()
+        FROM Opportunity_Engagement_Signal__c
+        WHERE Id = :signal.Id
+      ],
+      'Expected the seeded signal to survive the no-perm cascade.'
+    );
+  }
+
+  /**
+   * @description §2.4 guard branch — `deleteDismissalsForContacts` short-
+   *              circuits when the running user lacks FLS on
+   *              `Engagement_Dismissal__c.Contact__c`. Same shape and same
+   *              caveat as the Signal-side test above (Touch guard fires
+   *              first, masks the Dismissal branch if it ever regresses;
+   *              this test pins the no-exception contract regardless).
+   */
+  @IsTest
+  static void eraseForContactsNoOpsWhenDismissalContactFlsBlocked() {
+    Account acc;
+    Contact c;
+    Engagement_Dismissal__c dismissal;
+    System.runAs(getTestUser()) {
+      acc = newAccount('No-FLS Dismissal Co');
+      Database.insert(acc, AccessLevel.SYSTEM_MODE);
+      c = newContact('NoFlsDis', 'Subject', acc.Id);
+      Database.insert(c, AccessLevel.SYSTEM_MODE);
+      dismissal = newDismissal(c.Id, acc.Id);
+      Database.insert(dismissal, AccessLevel.SYSTEM_MODE);
+    }
+
+    System.runAs(PersonaTestFactory.userFor(PersonaTestFactory.NO_PERM)) {
+      Test.startTest();
+      EngagementErasureService.ErasureSummary summary = EngagementErasureService.eraseForContacts(
+        new Set<Id>{ c.Id }
+      );
+      Test.stopTest();
+
+      Assert.areEqual(
+        0,
+        summary.dismissalsDeleted,
+        'Expected zero dismissals deleted under no-perm persona.'
+      );
+    }
+
+    Assert.areEqual(
+      1,
+      [SELECT COUNT() FROM Engagement_Dismissal__c WHERE Id = :dismissal.Id],
+      'Expected the seeded dismissal to survive the no-perm cascade.'
+    );
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
