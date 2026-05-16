@@ -40,6 +40,12 @@
  *                    per-RecordType flavors (Opportunity PE/Enterprise/IE,
  *                    Account Payer/Provider).
  */
+// PMD waivers per §12.3.5: personal-lib @IsTest infrastructure; fix belongs
+// upstream in salesforce-utilities. EagerlyLoadedDescribeSObjectResult fires
+// on the dynamic-dispatch Schema.getDescribe() helpers (lines 283, 315, 353);
+// CognitiveComplexity / ExcessiveParameterList are intrinsic to the per-RT
+// defaults registry + putIfFieldExists graceful-degradation shape.
+@SuppressWarnings('PMD.EagerlyLoadedDescribeSObjectResult, PMD.CognitiveComplexity, PMD.ExcessiveParameterList')
 @IsTest
 public without sharing class TestFactoryDefaults {
   // Permission set assigned to the default `TestFactory.createTestUser()`.
