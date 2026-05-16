@@ -27,9 +27,16 @@
  * @group Engagement Attribution
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 sweep: §6.3 upsertTouches now sets HTTP 500 on catastrophic upsert blowout so HubSpot retries; §3.1 Logger.logException + txn-correlated error responses on parseBody + upsertTouches catches.
  */
+@SuppressWarnings('PMD.CyclomaticComplexity')
 @RestResource(urlMapping='/engagement/touches/*')
 global with sharing class EngagementInboundRest {
+  // §12 narrow waiver — Class-level CC: the inbound pipeline is a six-step
+  // sequence (parse → validate → lookup topics → lookup campaigns → build →
+  // resolve → upsert). Per-method CC is in spec (highest 7); the class total
+  // flags because of the step count, not density. Each step is its own
+  // single-responsibility helper.
   // ─── Constants ────────────────────────────────────────────────────────────
 
   private static final String CLASS_NAME = 'EngagementInboundRest';
@@ -106,9 +113,13 @@ global with sharing class EngagementInboundRest {
     try {
       return (InboundPayload) JSON.deserialize(body, InboundPayload.class);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'parseBody');
+      Logger.logException(e, CLASS_NAME, 'parseBody');
       RestContext.response.statusCode = 400;
-      result.errors.add('Invalid JSON: ' + e.getMessage());
+      // Sanitized response: HubSpot retries on 4xx are upstream policy; the
+      // caller needs a stable correlator, not raw parser detail.
+      result.errors.add(
+        'Invalid JSON. Error ID: ' + System.Request.getCurrent().getRequestId()
+      );
       return null;
     }
   }
@@ -297,9 +308,15 @@ global with sharing class EngagementInboundRest {
       Schema.SObjectField externalIdField = Engagement_Touch__c.External_Id__c;
       Database.upsert(touches, externalIdField, false, AccessLevel.USER_MODE);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'upsertTouches');
+      // §6.3 — catastrophic upsert blowout (vs per-event validation rejection).
+      // Surface HTTP 500 so the upstream webhook retries per its idempotency
+      // contract; returning 200 here would have HubSpot ACK and drop the batch.
+      Logger.logException(e, CLASS_NAME, 'upsertTouches');
+      RestContext.response.statusCode = 500;
       result.errored += touches.size();
-      result.errors.add('Upsert failed: ' + e.getMessage());
+      result.errors.add(
+        'Upsert failed. Error ID: ' + System.Request.getCurrent().getRequestId()
+      );
     }
   }
 
@@ -317,7 +334,12 @@ global with sharing class EngagementInboundRest {
    * @description Per-event JSON shape from HubSpot. Field names use
    *              snake_case to match the source-system convention; they map
    *              directly to incoming JSON keys via `JSON.deserialize`.
+   *              The snake_case is load-bearing — renaming would break the
+   *              HubSpot contract. PMD's `FieldNamingConventions` rule is
+   *              suppressed at the class level for this DTO only; not a
+   *              project-wide pattern (per §12.3.3 scope).
    */
+  @SuppressWarnings('PMD.FieldNamingConventions')
   global class InboundEvent {
     global String external_id;
     global String source_system;
@@ -348,6 +370,11 @@ global with sharing class EngagementInboundRest {
     global Integer errored;
     global List<String> errors;
 
+    /**
+     * @description No-arg constructor — initialises all counters to zero
+     *              and the errors list to empty so the handler can
+     *              increment + append without null-check noise.
+     */
     global InboundResult() {
       this.received = 0;
       this.resolved = 0;

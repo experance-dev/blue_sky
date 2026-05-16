@@ -117,11 +117,14 @@ public with sharing class LeadEngagementReparentHandler extends TriggerHandler {
         CLASS_NAME,
         'reparentTouches'
       );
-    } catch (DmlException e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'reparentTouches');
+    } catch (Exception e) {
+      Logger.logException(e, CLASS_NAME, 'reparentTouches');
       throw new EngagementException(
-        'Failed to reparent engagement touches after Lead conversion: ' +
-        e.getMessage()
+        'Failed to reparent engagement touches after Lead conversion. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }

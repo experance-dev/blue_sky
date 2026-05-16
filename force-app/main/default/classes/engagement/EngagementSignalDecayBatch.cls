@@ -151,6 +151,10 @@ public with sharing class EngagementSignalDecayBatch implements Database.Batchab
   /**
    * @description Linear decay: 100 at age 0, floors at 0 when age >= decayDays.
    *              Rounded to whole numbers because `Confidence__c` has scale 0.
+   * @param occurredAt Touch occurrence timestamp (parent of the signal).
+   * @param decayDays Whole-day decay window — confidence floors at 0 once age
+   *                  reaches this value.
+   * @return Computed confidence in the [0, 100] integer range.
    */
   @TestVisible
   private static Decimal computeConfidence(
@@ -174,10 +178,11 @@ public with sharing class EngagementSignalDecayBatch implements Database.Batchab
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'execute');
       throw new EngagementException(
-        'Signal decay update failed: ' +
-          e.getMessage() +
-          ' - ' +
-          e.getStackTraceString()
+        'Signal decay update failed. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }

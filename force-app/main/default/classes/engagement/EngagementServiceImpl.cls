@@ -18,9 +18,15 @@
  * @group Engagement Attribution
  * @author David Wood
  * @since May 2026
- * @last 2026-05-13 — Q11 wave 2: isConsultant flag now reads Contact.Is_Consultant__c (admin flow). Q8 wave 2: AssetEngagement.touchType resolves via Engagement_Picklist_Display__mdt (Source_Event_Type__c → Display_Label__c), falling back to raw Touch_Type__c.
+ * @last 2026-05-16 — PR #6 sweep: §3.1 Logger.logException + txn-correlated rethrows on all catch sites; §2.3 dismissSignal now routes via DMLManager.updateAsUser; §1.2.1 loadSourceEventTypeDisplayMap converted from CMDT SOQL to Engagement_Picklist_Display__mdt.getAll() with in-memory filter.
  */
+@SuppressWarnings('PMD.CyclomaticComplexity, PMD.CognitiveComplexity')
 public with sharing class EngagementServiceImpl implements IEngagementService {
+  // §12 narrow waiver — Class-level CC + Cognitive: this service joins five
+  // independent data sources (touches, OCR, ACR, dismissals, CMDT picklist
+  // display) into a single DTO surface. Per-method complexity is in spec
+  // (highest is 9 on assembleDTOs); the class-level total reflects the
+  // breadth of the join pipeline, each step a single-responsibility helper.
   // ─── Constants ────────────────────────────────────────────────────────────
 
   private static final String CLASS_NAME = 'EngagementServiceImpl';
@@ -138,12 +144,15 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
    *                  platform behaviour silently un-flags any prior primary.
    * @return AddToOcrResult capturing success or race-detection state.
    */
+  @SuppressWarnings('PMD.ExcessiveParameterList')
   public AddToOcrResult addToOcrSafe(
     Id contactId,
     Id opportunityId,
     String role,
     Boolean isPrimary
   ) {
+    // 4-param contract mirrors the LWC wire signature — keeps the controller
+    // pass-through trivial and avoids a DTO repack on a hot path.
     validateAddToOcrInput(contactId, opportunityId, role);
 
     List<OpportunityContactRole> existingOcrs = OpportunityContactRolesSelector.selectByOpportunityAndContact(
@@ -164,15 +173,14 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
 
     try {
       DMLManager.insertAsUser(ocr);
-    } catch (DmlException e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'addToOcrSafe');
-      throw new EngagementException(
-        'Failed to add Contact to Deal Team: ' + e.getMessage()
-      );
     } catch (Exception e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'addToOcrSafe');
+      Logger.logException(e, CLASS_NAME, 'addToOcrSafe');
       throw new EngagementException(
-        'Unable to add Contact to Deal Team: ' + e.getMessage()
+        'Unable to add Contact to Deal Team. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
 
@@ -196,23 +204,15 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
         Dismissed__c = true,
         Dismissed_Reason__c = reason
       );
-      Database.update(signal, AccessLevel.USER_MODE);
-    } catch (DmlException e) {
-      Logger.error(
-        'dismissSignal DML failure for signalId=' +
-          signalId +
-          ': ' +
-          e.getMessage(),
-        CLASS_NAME,
-        'dismissSignal'
-      );
-      throw new EngagementException(
-        'Failed to dismiss signal: ' + e.getMessage()
-      );
+      DMLManager.updateAsUser(new List<SObject>{ signal });
     } catch (Exception e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'dismissSignal');
+      Logger.logException(e, CLASS_NAME, 'dismissSignal');
       throw new EngagementException(
-        'Unable to dismiss signal: ' + e.getMessage()
+        'Unable to dismiss signal. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
@@ -247,12 +247,15 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
     );
     try {
       DMLManager.insertAsUser(d);
-    } catch (DmlException e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'dismissContact');
-      throw new EngagementException(e.getMessage());
     } catch (Exception e) {
-      Logger.error(e.getMessage(), CLASS_NAME, 'dismissContact');
-      throw new EngagementException(e.getMessage());
+      Logger.logException(e, CLASS_NAME, 'dismissContact');
+      throw new EngagementException(
+        'Unable to dismiss contact. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
+      );
     }
   }
 
@@ -334,13 +337,25 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
    *              by lastTouchAt DESC. Contacts dismissed by the running user
    *              are skipped when their MAX(Occurred_At) is at or before the
    *              dismissal timestamp — a newer touch makes them reappear.
+   * @param touches Source touches (any Contact mix; grouped internally).
+   * @param ocrByContactId Map of OCR by ContactId for the active Opportunity
+   *                       scope; empty map on Account scope.
+   * @param acrByContactId Map of ACR by ContactId for the active Account
+   *                       scope; empty map when ACR is not relevant.
+   * @param dismissalsByContact Map of MAX(Dismissed_At) by ContactId for the
+   *                            running user in the active scope.
+   * @return List of EngagementDTOs sorted by lastTouchAt DESC, nulls last.
    */
+  @SuppressWarnings('PMD.ExcessiveParameterList')
   private static List<EngagementDTO> assembleDTOs(
     List<Engagement_Touch__c> touches,
     Map<Id, OpportunityContactRole> ocrByContactId,
     Map<Id, AccountContactRelation> acrByContactId,
     Map<Id, DateTime> dismissalsByContact
   ) {
+    // Four maps are the natural shape of the pipeline join — each comes from
+    // its own hoisted SOQL and is consumed once. A DTO repack would add a
+    // construction layer without simplifying the call site.
     Map<Id, List<Engagement_Touch__c>> touchesByContact = groupTouchesByContact(
       touches
     );
@@ -369,6 +384,10 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
    *              is at or after the contact's most-recent touch. A null
    *              dismissal (no dismissal recorded) or a touch newer than the
    *              dismissal returns false.
+   * @param contactId Contact under evaluation.
+   * @param touchesByContact Grouped touches indexed by ContactId.
+   * @param dismissalsByContact Map of MAX(Dismissed_At) by ContactId.
+   * @return True when the contact is currently dismissed; false otherwise.
    */
   private static Boolean isDismissed(
     Id contactId,
@@ -404,12 +423,14 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
     return grouped;
   }
 
+  @SuppressWarnings('PMD.ExcessiveParameterList')
   private static EngagementDTO buildDtoForContact(
     Id contactId,
     List<Engagement_Touch__c> contactTouches,
     OpportunityContactRole ocr,
     AccountContactRelation acr
   ) {
+    // Same rationale as `assembleDTOs` — pipeline-join inputs, consumed once.
     EngagementDTO dto = new EngagementDTO();
     dto.contactId = contactId;
 
@@ -520,6 +541,7 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
    *              map is loaded once per transaction.
    * @param sourceEventType Raw API value from the touch's Source_Event_Type__c.
    * @param fallback Display value to return if no mapping exists.
+   * @return Display label from CMDT or the fallback when no row matches.
    */
   @TestVisible
   private static String displayLabelFor(
@@ -536,26 +558,32 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
 
   /**
    * @description Lazy-loads + caches the `API_Value__c → Display_Label__c`
-   *              map for the Source_Event_Type__c picklist. CMDT rows are
-   *              filtered to `Active__c = true` and the matching
-   *              `Field_API_Name__c` so unrelated picklist mappings are
-   *              ignored. Subsequent calls in the same transaction hit the
-   *              cached map without re-querying.
+   *              map for the Source_Event_Type__c picklist. Reads
+   *              `Engagement_Picklist_Display__mdt.getAll().values()` (zero
+   *              SOQL — CMDT is platform-cached per §1.2.1), filters in
+   *              memory to `Active__c = TRUE` and the matching
+   *              `Field_API_Name__c`. Subsequent calls in the same
+   *              transaction hit the cached map without re-walking the
+   *              metadata collection.
    *
-   *              Dynamic SOQL with `Database.queryWithBinds` so this is safe
-   *              in orgs where the CMDT fields haven't been deployed yet
-   *              (each field is gated by a Schema describe check; missing
-   *              field → empty map, no parse error). The guard also checks
-   *              `isAccessible()` so orgs where the field exists but the
-   *              running profile lacks FLS short-circuit cleanly rather than
-   *              throwing a USER_MODE column parse error.
+   *              Schema describe guard remains so the call is safe in orgs
+   *              where the CMDT fields haven't been deployed yet (missing
+   *              field → empty map). USER_MODE is not relevant on CMDT —
+   *              the platform bypasses CRUD/FLS for `__mdt` types by rule.
+   * @return Map of `API_Value__c → Display_Label__c` for the active rows of
+   *         the `Source_Event_Type__c` field. Empty when the CMDT fields are
+   *         missing or FLS-blocked.
    */
+  @SuppressWarnings('PMD.EagerlyLoadedDescribeSObjectResult')
   private static Map<String, String> loadSourceEventTypeDisplayMap() {
     if (sourceEventTypeDisplayMap != null) {
       return sourceEventTypeDisplayMap;
     }
     sourceEventTypeDisplayMap = new Map<String, String>();
 
+    // §12.3.2 waiver — schema-describe-guard pattern; required to safely fail
+    // open when the CMDT fields aren't deployed yet. Magnus-signed canonical
+    // suppression scope.
     Map<String, Schema.SObjectField> cmdtFields = Engagement_Picklist_Display__mdt.SObjectType.getDescribe()
       .fields.getMap();
     String[] required = new List<String>{
@@ -573,21 +601,17 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
       }
     }
 
-    String soql =
-      'SELECT API_Value__c, Display_Label__c ' +
-      'FROM Engagement_Picklist_Display__mdt ' +
-      'WHERE Active__c = TRUE ' +
-      'AND Field_API_Name__c = :fieldKey';
-    Map<String, Object> binds = new Map<String, Object>{
-      'fieldKey' => SOURCE_EVENT_TYPE_KEY
-    };
+    // §1.2.1 — Type.getAll() over CMDT SOQL: zero governor cost, platform-cached.
     for (
-      Engagement_Picklist_Display__mdt row : (List<Engagement_Picklist_Display__mdt>) Database.queryWithBinds(
-        soql,
-        binds,
-        AccessLevel.USER_MODE
-      )
+      Engagement_Picklist_Display__mdt row : Engagement_Picklist_Display__mdt.getAll()
+        .values()
     ) {
+      if (row.Active__c != true) {
+        continue;
+      }
+      if (row.Field_API_Name__c != SOURCE_EVENT_TYPE_KEY) {
+        continue;
+      }
       if (String.isNotBlank(row.API_Value__c)) {
         sourceEventTypeDisplayMap.put(row.API_Value__c, row.Display_Label__c);
       }
@@ -620,6 +644,7 @@ public with sharing class EngagementServiceImpl implements IEngagementService {
    *              Implemented as an insertion-style swap loop because Apex's
    *              `List.sort()` requires Comparable on the element type and
    *              DTOs are returned to Aura/LWC as serialized JSON.
+   * @param dtos The DTO list to sort; mutated in place.
    */
   private static void sortByLastTouchDesc(List<EngagementDTO> dtos) {
     Integer size = dtos.size();

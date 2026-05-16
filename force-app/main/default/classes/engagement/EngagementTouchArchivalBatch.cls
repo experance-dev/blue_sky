@@ -98,10 +98,11 @@ public with sharing class EngagementTouchArchivalBatch implements Database.Batch
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'execute');
       throw new EngagementException(
-        'Touch archival update failed: ' +
-          e.getMessage() +
-          ' - ' +
-          e.getStackTraceString()
+        'Touch archival update failed. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }

@@ -69,9 +69,11 @@ public with sharing class ContactEngagementErasureHandler extends TriggerHandler
       // surface the failure to the operator / compliance officer.
       Logger.logException(e, CLASS_NAME, 'beforeDelete');
       throw new EngagementException(
-        'Engagement cascade-delete failed: ' +
-          e.getMessage() +
-          '. Touches / signals / dismissals may still exist for this Contact.'
+        'Engagement cascade-delete failed. Touches / signals / dismissals may still exist for this Contact. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }

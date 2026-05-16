@@ -12,7 +12,7 @@
     <enableSearch>false</enableSearch>
     <enableSharing>true</enableSharing>
     <enableStreamingApi>true</enableStreamingApi>
-    <externalSharingModel>ReadWrite</externalSharingModel>
+    <externalSharingModel>Private</externalSharingModel>
     <label>Engagement Dismissal</label>
     <nameField>
         <displayFormat>DISM-{00000}</displayFormat>
@@ -23,6 +23,6 @@
     </nameField>
     <pluralLabel>Engagement Dismissals</pluralLabel>
     <searchLayouts />
-    <sharingModel>ReadWrite</sharingModel>
+    <sharingModel>Private</sharingModel>
     <visibility>Public</visibility>
 </CustomObject>

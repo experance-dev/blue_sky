@@ -57,9 +57,11 @@ public with sharing class LeadEngagementErasureHandler extends TriggerHandler {
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'beforeDelete');
       throw new EngagementException(
-        'Engagement cascade-delete failed: ' +
-          e.getMessage() +
-          '. Touches / signals may still exist for this Lead.'
+        'Engagement cascade-delete failed. Touches / signals may still exist for this Lead. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }

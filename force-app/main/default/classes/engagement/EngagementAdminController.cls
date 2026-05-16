@@ -9,8 +9,18 @@
  * @group Engagement Attribution
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 sweep: §3.4 admin moderation audit-trail (Logger.info on testTouch/retryResolution/ignoreTouch success); §3.2 txn correlation ID via buildAura() on every AuraHandledException; §3.1 Logger.logException across all catch sites; §1.2.1 Touch_Routing_Rule__mdt.getInstance() over CMDT SOQL; validateRoutingRulePayload decomposed into focused per-field helpers.
  */
+@SuppressWarnings('PMD.CyclomaticComplexity, PMD.CognitiveComplexity')
 public with sharing class EngagementAdminController {
+  // §12 narrow waiver — Class-level CC + Cognitive: this controller fronts
+  // four independent admin surfaces (Test-a-Touch, Rule Coverage, Routing
+  // Rule CRUD, Error Queue). Per-method complexity is in spec (highest is 10,
+  // and that's the canonical try/catch + AuraHandledException perimeter on
+  // updateTouchRoutingRule); the class-level total flags because the surface
+  // count is high, not because any path is dense. Proposed standards-doc
+  // canon: class-level CC waiver on @AuraEnabled-only controllers whose
+  // per-method CC is ≤10.
   // ─── Constants ────────────────────────────────────────────────────────────
 
   private static final String CLASS_NAME = 'EngagementAdminController';
@@ -37,6 +47,21 @@ public with sharing class EngagementAdminController {
     'Form',
     'Event'
   };
+
+  /**
+   * @description Builds a sanitized AuraHandledException carrying the txn
+   *              correlation ID. Per §3.2 the admin gets an actionable
+   *              "Error ID: X" thread to query Logger_Log__c against — the
+   *              raw stack stays in Logger via `Logger.logException`.
+   * @return AuraHandledException with the generic-failure message + txn ID.
+   */
+  private static AuraHandledException buildAura() {
+    return new AuraHandledException(
+      GENERIC_FAILURE +
+        ' Error ID: ' +
+        System.Request.getCurrent().getRequestId()
+    );
+  }
 
   // ─── Test-a-Touch ─────────────────────────────────────────────────────────
 
@@ -65,12 +90,28 @@ public with sharing class EngagementAdminController {
       runResolution(reloaded, messages);
 
       Set<Id> signalIds = routeIfResolved(reloaded, messages);
+      // §3.4 — admin moderation audit. Captures actor + action + target on the
+      // success path so "who synthesised this touch" is recoverable without
+      // git-archaeology.
+      Logger.info(
+        UserInfo.getUserName() +
+          ' tested touch ' +
+          reloaded.Id +
+          ' email=' +
+          input.email +
+          ' resolution=' +
+          reloaded.Resolution_Status__c +
+          ' signals=' +
+          signalIds.size(),
+        CLASS_NAME,
+        'testTouch'
+      );
       return buildResult(reloaded, signalIds, messages);
     } catch (AuraHandledException ahe) {
       throw ahe;
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'testTouch');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
   }
 
@@ -93,7 +134,7 @@ public with sharing class EngagementAdminController {
       return assembleRuleCoverage(rules, countsByPath);
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'getRuleCoverage');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
   }
 
@@ -148,7 +189,7 @@ public with sharing class EngagementAdminController {
       throw ahe;
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'createTouchRoutingRule');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
   }
 
@@ -172,32 +213,43 @@ public with sharing class EngagementAdminController {
     Map<String, Object> payload
   ) {
     try {
-      if (String.isBlank(developerName)) {
-        throw new AuraHandledException('Developer Name is required.');
-      }
-      validateRoutingRulePayload(payload, false);
-      List<Touch_Routing_Rule__mdt> existing = [
-        SELECT Id, DeveloperName
-        FROM Touch_Routing_Rule__mdt
-        WHERE DeveloperName = :developerName
-        WITH USER_MODE
-        LIMIT 1
-      ];
-      if (existing.isEmpty()) {
-        throw new AuraHandledException(
-          'Routing rule not found: ' + developerName
-        );
-      }
-      // TODO: Boomer — wire enqueueDeployment + DeployCallback.
-      throw new AuraHandledException(
-        'Routing rule deploy is not yet implemented. Track CSI-7162 follow-up.'
-      );
+      return doUpdateTouchRoutingRule(developerName, payload);
     } catch (AuraHandledException ahe) {
       throw ahe;
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'updateTouchRoutingRule');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
+  }
+
+  /**
+   * @description Inner step for `updateTouchRoutingRule` — validates the
+   *              identifier + payload, confirms the CMDT row exists, then
+   *              delegates to the (still-pending) deploy pipeline. Split
+   *              out so the public method retains a clean try/catch
+   *              perimeter without inflating cyclomatic complexity.
+   * @param developerName CMDT DeveloperName of the rule to update.
+   * @param payload Mutable routing-rule attributes (see `createTouchRoutingRule`).
+   * @return Deployment job Id (or throws when the deploy pipeline is wired).
+   */
+  private static String doUpdateTouchRoutingRule(
+    String developerName,
+    Map<String, Object> payload
+  ) {
+    if (String.isBlank(developerName)) {
+      throw new AuraHandledException('Developer Name is required.');
+    }
+    validateRoutingRulePayload(payload, false);
+    // §1.2.1 — Type.getInstance() over CMDT SOQL: zero governor cost.
+    if (Touch_Routing_Rule__mdt.getInstance(developerName) == null) {
+      throw new AuraHandledException(
+        'Routing rule not found: ' + developerName
+      );
+    }
+    // TODO: Boomer — wire enqueueDeployment + DeployCallback.
+    throw new AuraHandledException(
+      'Routing rule deploy is not yet implemented. Track CSI-7162 follow-up.'
+    );
   }
 
   // ─── Error Queue ──────────────────────────────────────────────────────────
@@ -216,7 +268,7 @@ public with sharing class EngagementAdminController {
       return queryTouchIssues(pageSize);
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'getTouchesWithIssues');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
   }
 
@@ -245,12 +297,24 @@ public with sharing class EngagementAdminController {
       messages.add('Retry initiated for ' + reloaded.Name + '.');
       runResolution(reloaded, messages);
       Set<Id> signalIds = routeIfResolved(reloaded, messages);
+      // §3.4 — admin moderation audit on the success path.
+      Logger.info(
+        UserInfo.getUserName() +
+          ' retried resolution for touch ' +
+          touchId +
+          ' resolution=' +
+          reloaded.Resolution_Status__c +
+          ' signals=' +
+          signalIds.size(),
+        CLASS_NAME,
+        'retryResolution'
+      );
       return buildResult(reloaded, signalIds, messages);
     } catch (AuraHandledException ahe) {
       throw ahe;
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'retryResolution');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
   }
 
@@ -278,11 +342,23 @@ public with sharing class EngagementAdminController {
           : reason
       );
       DMLManager.updateAsUser(touchUpdate);
+      // §3.4 — admin moderation audit on the success path. Reason is captured
+      // verbatim so a future reviewer can reconstruct the rationale; the touch
+      // row itself also retains Processing_Message__c for direct inspection.
+      Logger.info(
+        UserInfo.getUserName() +
+          ' ignored touch ' +
+          touchId +
+          ' reason=' +
+          (String.isBlank(reason) ? 'Ignored by admin.' : reason),
+        CLASS_NAME,
+        'ignoreTouch'
+      );
     } catch (AuraHandledException ahe) {
       throw ahe;
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'ignoreTouch');
-      throw new AuraHandledException(GENERIC_FAILURE);
+      throw buildAura();
     }
   }
 
@@ -510,6 +586,10 @@ public with sharing class EngagementAdminController {
    *              Throws `AuraHandledException` on the first failure with a
    *              user-facing message; the LWC binds the exception body to
    *              `errorMessage` for inline display.
+   * @param payload Routing-rule attributes (see `createTouchRoutingRule`).
+   * @param isCreate True when the request is a create (forces DeveloperName
+   *                 validation); false on update (DeveloperName is supplied
+   *                 separately and immutable).
    */
   private static void validateRoutingRulePayload(
     Map<String, Object> payload,
@@ -519,30 +599,47 @@ public with sharing class EngagementAdminController {
       throw new AuraHandledException('Payload is required.');
     }
     if (isCreate) {
-      String devName = (String) payload.get('developerName');
-      if (String.isBlank(devName)) {
-        throw new AuraHandledException('Developer Name is required.');
-      }
-      if (!Pattern.matches('^[A-Za-z][A-Za-z0-9_]{0,39}$', devName)) {
-        throw new AuraHandledException(
-          'Developer Name must start with a letter and contain only letters, numbers, and underscores (max 40 chars).'
-        );
-      }
+      validateDeveloperName((String) payload.get('developerName'));
     }
-    String label = (String) payload.get('masterLabel');
+    validateLabel((String) payload.get('masterLabel'));
+    validateDescription((String) payload.get('description'));
+    validateMatchPath((String) payload.get('matchPath'));
+    validateConfidence(toInteger(payload.get('confidence')));
+    validatePriority(toInteger(payload.get('priority')));
+    validateIntentLevel((String) payload.get('minIntentLevel'));
+    validatePersonaFilter((String) payload.get('personaFilter'));
+    validateTouchTypeFilter((String) payload.get('touchTypeFilter'));
+  }
+
+  private static void validateDeveloperName(String devName) {
+    if (String.isBlank(devName)) {
+      throw new AuraHandledException('Developer Name is required.');
+    }
+    if (!Pattern.matches('^[A-Za-z][A-Za-z0-9_]{0,39}$', devName)) {
+      throw new AuraHandledException(
+        'Developer Name must start with a letter and contain only letters, numbers, and underscores (max 40 chars).'
+      );
+    }
+  }
+
+  private static void validateLabel(String label) {
     if (String.isBlank(label)) {
       throw new AuraHandledException('Label is required.');
     }
     if (label.length() > 80) {
       throw new AuraHandledException('Label must be 80 characters or fewer.');
     }
-    String description = (String) payload.get('description');
+  }
+
+  private static void validateDescription(String description) {
     if (description != null && description.length() > 255) {
       throw new AuraHandledException(
         'Description must be 255 characters or fewer.'
       );
     }
-    String matchPath = (String) payload.get('matchPath');
+  }
+
+  private static void validateMatchPath(String matchPath) {
     if (String.isBlank(matchPath)) {
       throw new AuraHandledException('Match Path is required.');
     }
@@ -551,21 +648,27 @@ public with sharing class EngagementAdminController {
         'Match Path must be 80 characters or fewer.'
       );
     }
-    Integer confidence = toInteger(payload.get('confidence'));
+  }
+
+  private static void validateConfidence(Integer confidence) {
     if (confidence == null) {
       throw new AuraHandledException('Confidence is required.');
     }
     if (confidence < 0 || confidence > 100) {
       throw new AuraHandledException('Confidence must be between 0 and 100.');
     }
-    Integer priority = toInteger(payload.get('priority'));
+  }
+
+  private static void validatePriority(Integer priority) {
     if (priority == null) {
       throw new AuraHandledException('Priority is required.');
     }
     if (priority < 1) {
       throw new AuraHandledException('Priority must be a whole number ≥ 1.');
     }
-    String intentLevel = (String) payload.get('minIntentLevel');
+  }
+
+  private static void validateIntentLevel(String intentLevel) {
     if (
       String.isNotBlank(intentLevel) &&
       !VALID_INTENT_LEVELS.contains(intentLevel)
@@ -574,23 +677,28 @@ public with sharing class EngagementAdminController {
         'Min Intent Level must be Low, Medium, or High.'
       );
     }
-    String personaFilter = (String) payload.get('personaFilter');
+  }
+
+  private static void validatePersonaFilter(String personaFilter) {
     if (personaFilter != null && personaFilter.length() > 80) {
       throw new AuraHandledException(
         'Persona Filter must be 80 characters or fewer.'
       );
     }
-    String touchTypeFilter = (String) payload.get('touchTypeFilter');
-    if (String.isNotBlank(touchTypeFilter)) {
-      for (String tt : touchTypeFilter.split(';')) {
-        if (String.isBlank(tt)) {
-          continue;
-        }
-        if (!VALID_TOUCH_TYPES.contains(tt.trim())) {
-          throw new AuraHandledException(
-            'Touch Type Filter contains an unsupported value: ' + tt
-          );
-        }
+  }
+
+  private static void validateTouchTypeFilter(String touchTypeFilter) {
+    if (String.isBlank(touchTypeFilter)) {
+      return;
+    }
+    for (String tt : touchTypeFilter.split(';')) {
+      if (String.isBlank(tt)) {
+        continue;
+      }
+      if (!VALID_TOUCH_TYPES.contains(tt.trim())) {
+        throw new AuraHandledException(
+          'Touch Type Filter contains an unsupported value: ' + tt
+        );
       }
     }
   }
@@ -599,6 +707,9 @@ public with sharing class EngagementAdminController {
    * @description Helper — accepts Integer, Decimal, or numeric String and
    *              returns Integer (or null on blank). JSON-bound payloads
    *              tend to arrive as Decimal; we normalize once.
+   * @param v Object to coerce (Integer, Decimal, Double, String, or null).
+   * @return Integer value, or null when the input is null, blank, or
+   *         non-numeric.
    */
   private static Integer toInteger(Object v) {
     if (v == null) {

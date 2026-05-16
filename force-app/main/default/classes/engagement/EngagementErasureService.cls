@@ -29,9 +29,33 @@
  * @group Engagement Attribution
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 sweep: §2.4 isAccessible() guard on collectTouchIdsForLeads; §3.0 stack-trace removed from rethrow messages, txn correlator added; before-delete trigger-context gate enforces the GDPR cascade boundary.
  */
 public with sharing class EngagementErasureService {
   private static final String CLASS_NAME = 'EngagementErasureService';
+
+  /**
+   * @description Trigger-context gate flag, test-side opt-in. The cascade
+   *              public API (`eraseForContacts` / `eraseForLeads`) is only
+   *              legitimate when invoked from a before-delete trigger
+   *              handler — any other caller (a future LWC admin tool, an
+   *              inbound REST endpoint, a batch) would be invoking
+   *              compliance erasure outside the GDPR cascade boundary and
+   *              the residual cleanup audit-trail would be missed.
+   *              Defense-in-depth: `with sharing` and DMLManager still
+   *              enforce CRUD/FLS, but this guard makes the abuse path
+   *              loudly fail rather than silently delete.
+   *
+   *              **Test-context behaviour.** `Test.isRunningTest()` opts
+   *              out by default — service-level unit tests should not need
+   *              to fake a trigger context to exercise the cascade.
+   *              Tests that explicitly want to assert the gate behaviour
+   *              set `enforceTriggerGateInTest = true` and verify the
+   *              `EngagementException` is thrown when invoked outside a
+   *              before-delete trigger context.
+   */
+  @TestVisible
+  private static Boolean enforceTriggerGateInTest = false;
 
   // ─── Result type ──────────────────────────────────────────────────────────
 
@@ -45,6 +69,11 @@ public with sharing class EngagementErasureService {
     public Integer touchesDeleted;
     public List<String> messages;
 
+    /**
+     * @description No-arg constructor — initialises counters to zero and
+     *              the messages list to empty so callers can increment +
+     *              append without null-check noise.
+     */
     public ErasureSummary() {
       this.dismissalsDeleted = 0;
       this.signalsDeleted = 0;
@@ -68,6 +97,7 @@ public with sharing class EngagementErasureService {
     if (contactIds == null || contactIds.isEmpty()) {
       return summary;
     }
+    enforceTriggerGate('eraseForContacts');
     try {
       Set<Id> touchIds = collectTouchIdsForContacts(contactIds);
       deleteSignalsForContacts(contactIds, touchIds, summary);
@@ -78,10 +108,11 @@ public with sharing class EngagementErasureService {
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'eraseForContacts');
       throw new EngagementException(
-        'Subject-erasure cascade failed for Contacts: ' +
-          e.getMessage() +
-          ' - ' +
-          e.getStackTraceString()
+        'Subject-erasure cascade failed for Contacts. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
@@ -101,6 +132,7 @@ public with sharing class EngagementErasureService {
     if (leadIds == null || leadIds.isEmpty()) {
       return summary;
     }
+    enforceTriggerGate('eraseForLeads');
     try {
       Set<Id> touchIds = collectTouchIdsForLeads(leadIds);
       deleteSignalsForTouches(touchIds, summary);
@@ -110,10 +142,47 @@ public with sharing class EngagementErasureService {
     } catch (Exception e) {
       Logger.logException(e, CLASS_NAME, 'eraseForLeads');
       throw new EngagementException(
-        'Subject-erasure cascade failed for Leads: ' +
-          e.getMessage() +
-          ' - ' +
-          e.getStackTraceString()
+        'Subject-erasure cascade failed for Leads. Contact your Administrator and let them know: ' +
+          e.getTypeName() +
+          ' [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
+      );
+    }
+  }
+
+  // ─── Private — caller gate ────────────────────────────────────────────────
+
+  /**
+   * @description Asserts the caller is executing inside a delete-trigger
+   *              context. Throws `EngagementException` (logged) when invoked
+   *              from a non-trigger context — protects the compliance API
+   *              from incidental misuse by future LWC tools, REST endpoints,
+   *              or batches that would skip the cascade audit-trail.
+   *              In test context the gate is opt-in via
+   *              `enforceTriggerGateInTest` so existing service-level unit
+   *              tests don't need to fake a trigger to exercise the
+   *              cascade.
+   * @param methodName Service method name surfaced in the Logger entry and
+   *                   in the rejected-call audit trail.
+   */
+  private static void enforceTriggerGate(String methodName) {
+    if (Test.isRunningTest() && !enforceTriggerGateInTest) {
+      return;
+    }
+    if (!Trigger.isExecuting || !Trigger.isBefore || !Trigger.isDelete) {
+      Logger.error(
+        UserInfo.getUserName() +
+          ' invoked ' +
+          methodName +
+          ' outside a before-delete trigger context — rejected.',
+        CLASS_NAME,
+        methodName
+      );
+      throw new EngagementException(
+        'Subject-erasure cascade may only be invoked from a before-delete trigger handler. Contact your Administrator. [txn:' +
+          System.Request.getCurrent().getRequestId() +
+          ']'
       );
     }
   }
@@ -170,6 +239,19 @@ public with sharing class EngagementErasureService {
   // ─── Private — Lead cascade helpers ───────────────────────────────────────
 
   private static Set<Id> collectTouchIdsForLeads(Set<Id> leadIds) {
+    // Marketing Influence is an OWD-Private, permset-gated feature. A Lead can
+    // be deleted by any user in the org — including users with no MI permset
+    // and therefore no FLS on Engagement_Touch__c.Lead__c. Under WITH USER_MODE
+    // such a user's SOQL on Lead__c raises QueryException ("No such column")
+    // because USER_MODE hides FLS-blocked fields from the schema. Gate on
+    // Lead__c accessibility and no-op silently when the deleting user can't
+    // see the field — there is nothing for that user to cascade in their
+    // user-mode view, and the cascade must never block Lead delete for
+    // non-MI personas. Mirrors LeadEngagementReparentHandler.reparentTouches.
+    if (!Schema.sObjectType.Engagement_Touch__c.fields.Lead__c.isAccessible()) {
+      return new Set<Id>();
+    }
+
     List<Engagement_Touch__c> touches = [
       SELECT Id
       FROM Engagement_Touch__c

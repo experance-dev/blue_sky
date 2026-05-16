@@ -60,11 +60,14 @@
         <apexClass>TouchTopicSelector</apexClass>
         <enabled>true</enabled>
     </classAccesses>
-    <customPermissions>
-        <enabled>true</enabled>
-        <name>Marketing_Influence_View</name>
-    </customPermissions>
     <!--
+      Marketing_Influence_View custom permission is INTENTIONALLY omitted from
+      the Integration atom. That custom-perm gates the LWC panel + the
+      EngagementController @AuraEnabled surface (Sales/Service user-facing).
+      The Integration user only posts inbound REST and never renders the LWC,
+      so granting it the View perm would be over-provisioning and could
+      surface MI-only fields in unrelated FLS contexts. Per Sage on PR #6.
+
       PSG composition (Zelis admins): assign STANDALONE to the HubSpot integration
       user. The existing `HubSpot Integration Permissions` and `HubSpot Integration
       PermissionsV2` permsets handle the Zelis-side HubSpot grants; this atom

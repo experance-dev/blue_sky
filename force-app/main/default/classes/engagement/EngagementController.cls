@@ -8,6 +8,7 @@
  * @since May 2026
  */
 public with sharing class EngagementController {
+  private static final String CLASS_NAME = 'EngagementController';
   private static IEngagementService service = new EngagementServiceImpl();
 
   /**
@@ -20,9 +21,10 @@ public with sharing class EngagementController {
     try {
       return service.getForOpportunity(opportunityId);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), 'EngagementController', 'getForOpportunity');
+      Logger.logException(e, CLASS_NAME, 'getForOpportunity');
       throw new AuraHandledException(
-        'Unable to load engagement data for this opportunity.'
+        'Unable to load engagement data for this opportunity. Error ID: ' +
+        System.Request.getCurrent().getRequestId()
       );
     }
   }
@@ -37,9 +39,10 @@ public with sharing class EngagementController {
     try {
       return service.getForAccount(accountId);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), 'EngagementController', 'getForAccount');
+      Logger.logException(e, CLASS_NAME, 'getForAccount');
       throw new AuraHandledException(
-        'Unable to load engagement data for this account.'
+        'Unable to load engagement data for this account. Error ID: ' +
+        System.Request.getCurrent().getRequestId()
       );
     }
   }
@@ -52,6 +55,7 @@ public with sharing class EngagementController {
    * @param isPrimary Whether to mark the new OCR as Primary.
    * @return AddToOcrResult capturing success or race-detection state.
    */
+  @SuppressWarnings('PMD.ExcessiveParameterList')
   @AuraEnabled
   public static AddToOcrResult addToOcrSafe(
     Id contactId,
@@ -59,12 +63,16 @@ public with sharing class EngagementController {
     String role,
     Boolean isPrimary
   ) {
+    // 4-param signature is the LWC wire contract. Repacking into a DTO costs
+    // a JSON round-trip in jest tests and the AddToDealTeamModal payload for
+    // zero readability gain at the call site.
     try {
       return service.addToOcrSafe(contactId, opportunityId, role, isPrimary);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), 'EngagementController', 'addToOcrSafe');
+      Logger.logException(e, CLASS_NAME, 'addToOcrSafe');
       throw new AuraHandledException(
-        'Unable to add the contact to the deal team.'
+        'Unable to add the contact to the deal team. Error ID: ' +
+        System.Request.getCurrent().getRequestId()
       );
     }
   }
@@ -80,8 +88,11 @@ public with sharing class EngagementController {
     try {
       service.dismissSignal(signalId, reason);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), 'EngagementController', 'dismissSignal');
-      throw new AuraHandledException('Unable to dismiss the signal.');
+      Logger.logException(e, CLASS_NAME, 'dismissSignal');
+      throw new AuraHandledException(
+        'Unable to dismiss the signal. Error ID: ' +
+        System.Request.getCurrent().getRequestId()
+      );
     }
   }
 
@@ -104,9 +115,10 @@ public with sharing class EngagementController {
     try {
       service.dismissContact(contactId, opportunityId, accountId);
     } catch (Exception e) {
-      Logger.error(e.getMessage(), 'EngagementController', 'dismissContact');
+      Logger.logException(e, CLASS_NAME, 'dismissContact');
       throw new AuraHandledException(
-        'Unable to dismiss this contact. Try again.'
+        'Unable to dismiss this contact. Try again. Error ID: ' +
+        System.Request.getCurrent().getRequestId()
       );
     }
   }
