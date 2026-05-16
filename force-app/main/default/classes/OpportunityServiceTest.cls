@@ -540,14 +540,31 @@ private class OpportunityServiceTest {
 
   /**
    * @description processEnrollmentRequests issues a SOQL and enqueues a
-   *              job when matching Opportunities exist. With no matching
-   *              rows in test scope, the job still enqueues with an
-   *              empty input map. We just need the method to complete
-   *              without throwing - that covers the QueryBuilder /
+   *              GetEnrollmentStatus job. The Queueable fires an HTTP callout
+   *              to the enrollment service when it runs; under Test.stopTest()
+   *              it executes synchronously, so a mock must be registered or
+   *              the platform throws "Methods defined as TestMethod do not
+   *              support Web service callouts." We just need the method to
+   *              complete without throwing - covers the QueryBuilder /
    *              OpportunitySelector / GetEnrollmentStatus wiring.
+   *
+   *              Sister principle to feedback-no-real-emails-from-tests: no
+   *              real outbound from tests, callout or otherwise. Captured as
+   *              a 200/OK with an empty JSON body because the Queueable
+   *              tolerates empty inputs gracefully.
    */
   @IsTest
   static void testProcessEnrollmentRequestsCompletesWithNoMatchingRecords() {
+    Test.setMock(
+      HttpCalloutMock.class,
+      new HttpCalloutMockFactory(
+        200,
+        'OK',
+        '{}',
+        new Map<String, String>{ 'Content-Type' => 'application/json' }
+      )
+    );
+
     Test.startTest();
     try {
       OpportunityService.processEnrollmentRequests();
