@@ -6,13 +6,12 @@
  *              to a method on this class.
  *
  * @group Opportunity
- *
- * Change Log:
- * | Date       | Ticket   | Author     | Description                                                                       |
- * |------------|----------|------------|-----------------------------------------------------------------------------------|
- * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events. v1 ships          |
- * |            |          |            | filter-free (publishes for every Opportunity); business-rule filters layered on  |
- * |            |          |            | in a follow-up modification when business supplies them.                          |
+ * @author David Wood
+ * @since May 2026
+ * @last 2026-05-12 — CSI-7162: wire Opportunity to Jira-push integration via
+ *                    Platform Events. v1 ships filter-free (publishes for every
+ *                    Opportunity); business-rule filters layered on in a follow-up
+ *                    modification when business supplies them.
  */
 public with sharing class OpportunityService {
   private static final String ALREADY_CLONED = 'Already_Cloned__c';

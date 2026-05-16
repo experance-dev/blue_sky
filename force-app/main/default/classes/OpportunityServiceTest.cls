@@ -10,12 +10,12 @@
  *              Id + ':' + ChangeType. Tests assert on the full shape.
  *
  * @group Opportunity
- *
- * Change Log:
- * | Date       | Ticket   | Author      | Description                                                          |
- * |------------|----------|-------------|----------------------------------------------------------------------|
- * | 2026-05-12 | CSI-7162 | David Wood  | Tests for Opportunity Jira-push routing: bulk, per-qualifying-field coverage,    |
- * |            |          |             | re-fire idempotency, USER_MODE perm-denial, recursion-guard key shape (H4).      |
+ * @see OpportunityService
+ * @author David Wood
+ * @since May 2026
+ * @last 2026-05-12 — CSI-7162: tests for Opportunity Jira-push routing — bulk,
+ *                    per-qualifying-field coverage, re-fire idempotency,
+ *                    USER_MODE perm-denial, recursion-guard key shape (H4).
  */
 @IsTest
 private class OpportunityServiceTest {
