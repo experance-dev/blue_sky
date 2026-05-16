@@ -280,16 +280,19 @@ private class EngagementSignalDecayBatchTest {
    */
   @IsTest
   static void computeConfidenceFutureDatedTouchReturns100() {
-    DateTime tomorrow = Datetime.now().addDays(1);
-    Decimal confidence = EngagementSignalDecayBatch.computeConfidence(
-      tomorrow,
-      60
-    );
-    Assert.areEqual(
-      100,
-      confidence,
-      'Expected confidence 100 for a future-dated touch (negative age).'
-    );
+    // Pure in-memory arithmetic; runAs satisfies PMD without affecting math.
+    System.runAs(getTestUser()) {
+      DateTime tomorrow = Datetime.now().addDays(1);
+      Decimal confidence = EngagementSignalDecayBatch.computeConfidence(
+        tomorrow,
+        60
+      );
+      Assert.areEqual(
+        100,
+        confidence,
+        'Expected confidence 100 for a future-dated touch (negative age).'
+      );
+    }
   }
 
   // ─── Setup helpers ─────────────────────────────────────────────────────────

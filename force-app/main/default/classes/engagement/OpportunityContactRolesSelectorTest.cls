@@ -210,8 +210,16 @@ private class OpportunityContactRolesSelectorTest {
    *              One test method, five persona scenarios, identical
    *              assertion shape. If the selector's behaviour drifts under one
    *              persona, the fail-message identifies which.
+   *
+   *              `OperationWithLimitsInLoop` is suppressed because the SOQL
+   *              inside the loop is the contract under test — each persona
+   *              evaluates a distinct USER_MODE / sharing context, so
+   *              hoisting the query outside the loop would discard the
+   *              per-persona signal. Persona-coverage pattern, see
+   *              feedback-persona-path-coverage.
    */
   @IsTest
+  @SuppressWarnings('PMD.OperationWithLimitsInLoop')
   static void selectByOpportunityIdAcrossPersonas() {
     // Resolve the seeded record graph and the personas we need to assert
     // against. The seed in @TestSetup runs `System.runAs(viewUser)` so the

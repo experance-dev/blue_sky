@@ -173,11 +173,15 @@ public without sharing class KeepIfAccountHasOpenOpportunityTest {
    */
   @IsTest
   static void testNullRecordIsConservativelyKept() {
-    KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
-    Assert.isTrue(
-      predicate.shouldKeep(null),
-      'Null record should be conservatively kept.'
-    );
+    // Pure in-memory predicate dispatch; runAs satisfies PMD without changing
+    // semantics (no SOQL/DML touches the user context).
+    System.runAs(TestFactory.getTestUser('System Administrator')) {
+      KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
+      Assert.isTrue(
+        predicate.shouldKeep(null),
+        'Null record should be conservatively kept.'
+      );
+    }
   }
 
   /**

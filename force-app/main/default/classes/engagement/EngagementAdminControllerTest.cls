@@ -606,7 +606,14 @@ private class EngagementAdminControllerTest {
    *              must be re-written, not just patched.
    */
   @IsTest
+  @SuppressWarnings('PMD.OperationWithLimitsInLoop')
   static void getRuleCoverageAcrossPersonas() {
+    // Persona coverage pattern (feedback-persona-path-coverage): each
+    // iteration is an isolated runAs context exercising a distinct
+    // permission boundary. The selector SOQL inside `getRuleCoverage` is
+    // the shape under test — it MUST run once per persona because each
+    // user's CMT visibility / sharing context is the assertion. Cannot
+    // refactor without losing the per-persona signal.
     Test.startTest();
 
     for (

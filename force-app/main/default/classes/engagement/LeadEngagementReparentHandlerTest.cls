@@ -18,16 +18,14 @@ private class LeadEngagementReparentHandlerTest {
 
   /**
    * @description Provisions a test user with the engagement permission set
-   *              plus permission to modify Leads.
+   *              plus permission to modify Leads. No seed world is created —
+   *              each test method builds its own Leads/touches so the
+   *              conversion data stays isolated per-method.
    */
   @TestSetup
   static void setup() {
     EngagementTestFixtures.disableAllProcessAutomation();
-    User u = provisionTestUser();
-    System.runAs(u) {
-      // No seed world here — each test creates its own Leads/touches to keep
-      // the conversion data isolated per-method.
-    }
+    provisionTestUser();
   }
 
   /**

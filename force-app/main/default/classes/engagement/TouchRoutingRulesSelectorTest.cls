@@ -17,18 +17,22 @@ private class TouchRoutingRulesSelectorTest {
    */
   @IsTest
   static void selectActiveOrderedByPriorityReturnsSeededRules() {
-    Test.startTest();
-    List<Touch_Routing_Rule__mdt> rules = TouchRoutingRulesSelector.selectActiveOrderedByPriority();
-    Test.stopTest();
+    // CMT reads are SYSTEM-context by platform contract; runAs is a pure
+    // PMD-rule satisfier here (the selector ignores user context for CMT).
+    System.runAs(TestFactory.createTestUser(true, 'Standard User')) {
+      Test.startTest();
+      List<Touch_Routing_Rule__mdt> rules = TouchRoutingRulesSelector.selectActiveOrderedByPriority();
+      Test.stopTest();
 
-    Assert.isTrue(
-      rules.size() >= 5,
-      'Expected at least 5 seeded active routing rules; found ' + rules.size()
-    );
-    Assert.areEqual(
-      10,
-      (Integer) rules[0].Priority__c,
-      'Expected the highest-priority rule (Priority=10) first.'
-    );
+      Assert.isTrue(
+        rules.size() >= 5,
+        'Expected at least 5 seeded active routing rules; found ' + rules.size()
+      );
+      Assert.areEqual(
+        10,
+        (Integer) rules[0].Priority__c,
+        'Expected the highest-priority rule (Priority=10) first.'
+      );
+    }
   }
 }

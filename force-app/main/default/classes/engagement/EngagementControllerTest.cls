@@ -545,7 +545,13 @@ private class EngagementControllerTest {
    *              confidence.
    */
   @IsTest
+  @SuppressWarnings('PMD.OperationWithLimitsInLoop')
   static void getForOpportunityAcrossPersonas() {
+    // Persona coverage pattern (feedback-persona-path-coverage): each
+    // iteration is an isolated runAs context. The controller call inside
+    // the loop is the test's whole point — it MUST run once per persona
+    // because each user's permission boundary is the assertion. Cannot
+    // refactor without losing the per-persona signal.
     MockEngagementService mock = new MockEngagementService();
     mock.opportunityResult = new List<EngagementDTO>{
       new EngagementDTO(),

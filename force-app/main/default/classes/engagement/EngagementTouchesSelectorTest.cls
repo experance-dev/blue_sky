@@ -338,8 +338,16 @@ private class EngagementTouchesSelectorTest {
    *              layer; a runtime assertion would either succeed for the
    *              wrong reason (record was shared) or fail with a noisy
    *              field-access exception that obscures intent.
+   *
+   *              `OperationWithLimitsInLoop` is suppressed because the SOQL
+   *              inside the loop is the contract under test — each persona
+   *              evaluates a distinct USER_MODE / sharing context, so
+   *              hoisting the query outside the loop would discard the
+   *              per-persona signal. Persona-coverage pattern, see
+   *              feedback-persona-path-coverage.
    */
   @IsTest
+  @SuppressWarnings('PMD.OperationWithLimitsInLoop')
   static void selectByAccountIdsAcrossPersonas() {
     // Build a fresh Account + 2 active touches under the seed user; then
     // share to all good-path personas. This is independent of the per-test

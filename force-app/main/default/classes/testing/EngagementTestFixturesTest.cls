@@ -103,26 +103,31 @@ private class EngagementTestFixturesTest {
 
   /**
    * @description Unauthorized user is provisioned without the permset.
+   *              The assertion runs as the current Sysadmin context (the
+   *              setup user); the unauth user is the asserted-about subject,
+   *              not the runAs target.
    */
   @IsTest
   static void provisionUnauthorizedUserHasNoPermset() {
-    Test.startTest();
-    User u = EngagementTestFixtures.provisionUnauthorizedUser(
-      LAST_NAME + 'Unauth'
-    );
-    Test.stopTest();
-    Integer assignments = [
-      SELECT COUNT()
-      FROM PermissionSetAssignment
-      WHERE
-        AssigneeId = :u.Id
-        AND PermissionSet.Name = :EngagementTestFixtures.PERMISSION_SET
-    ];
-    Assert.areEqual(
-      0,
-      assignments,
-      'Expected zero engagement permset assignments on unauthorized user.'
-    );
+    System.runAs(TestFactory.createTestUser(true, 'System Administrator')) {
+      Test.startTest();
+      User u = EngagementTestFixtures.provisionUnauthorizedUser(
+        LAST_NAME + 'Unauth'
+      );
+      Test.stopTest();
+      Integer assignments = [
+        SELECT COUNT()
+        FROM PermissionSetAssignment
+        WHERE
+          AssigneeId = :u.Id
+          AND PermissionSet.Name = :EngagementTestFixtures.PERMISSION_SET
+      ];
+      Assert.areEqual(
+        0,
+        assignments,
+        'Expected zero engagement permset assignments on unauthorized user.'
+      );
+    }
   }
 
   /**
@@ -131,31 +136,34 @@ private class EngagementTestFixturesTest {
    */
   @IsTest
   static void fakeIdHelpersReturnValidPrefixedIds() {
-    Id touchId = EngagementTestFixtures.fakeTouchId();
-    Id contactId = EngagementTestFixtures.fakeContactId();
-    Id oppId = EngagementTestFixtures.fakeOpportunityId();
-    Id sigId = EngagementTestFixtures.fakeSignalId();
-    Id accountId = EngagementTestFixtures.fakeAccountId();
-    Assert.isNotNull(touchId, 'fakeTouchId should not be null.');
-    Assert.isNotNull(contactId, 'fakeContactId should not be null.');
-    Assert.isNotNull(oppId, 'fakeOpportunityId should not be null.');
-    Assert.isNotNull(sigId, 'fakeSignalId should not be null.');
-    Assert.isNotNull(accountId, 'fakeAccountId should not be null.');
-    Assert.areEqual(
-      '003',
-      contactId.toString().substring(0, 3),
-      'fakeContactId should have Contact prefix 003.'
-    );
-    Assert.areEqual(
-      '006',
-      oppId.toString().substring(0, 3),
-      'fakeOpportunityId should have Opportunity prefix 006.'
-    );
-    Assert.areEqual(
-      '001',
-      accountId.toString().substring(0, 3),
-      'fakeAccountId should have Account prefix 001.'
-    );
+    // Pure helper math; runAs satisfies PMD without changing semantics.
+    System.runAs(TestFactory.createTestUser(true, 'Standard User')) {
+      Id touchId = EngagementTestFixtures.fakeTouchId();
+      Id contactId = EngagementTestFixtures.fakeContactId();
+      Id oppId = EngagementTestFixtures.fakeOpportunityId();
+      Id sigId = EngagementTestFixtures.fakeSignalId();
+      Id accountId = EngagementTestFixtures.fakeAccountId();
+      Assert.isNotNull(touchId, 'fakeTouchId should not be null.');
+      Assert.isNotNull(contactId, 'fakeContactId should not be null.');
+      Assert.isNotNull(oppId, 'fakeOpportunityId should not be null.');
+      Assert.isNotNull(sigId, 'fakeSignalId should not be null.');
+      Assert.isNotNull(accountId, 'fakeAccountId should not be null.');
+      Assert.areEqual(
+        '003',
+        contactId.toString().substring(0, 3),
+        'fakeContactId should have Contact prefix 003.'
+      );
+      Assert.areEqual(
+        '006',
+        oppId.toString().substring(0, 3),
+        'fakeOpportunityId should have Opportunity prefix 006.'
+      );
+      Assert.areEqual(
+        '001',
+        accountId.toString().substring(0, 3),
+        'fakeAccountId should have Account prefix 001.'
+      );
+    }
   }
 
   /**
@@ -164,36 +172,40 @@ private class EngagementTestFixturesTest {
    */
   @IsTest
   static void mapToSourceEventCoversAllKnownValues() {
-    Assert.areEqual(
-      'Page View',
-      EngagementTestFixtures.mapToSourceEvent('Page'),
-      'Page should map to Page View.'
-    );
-    Assert.areEqual(
-      'Form Submission',
-      EngagementTestFixtures.mapToSourceEvent('Form'),
-      'Form should map to Form Submission.'
-    );
-    Assert.areEqual(
-      'Event Attendance',
-      EngagementTestFixtures.mapToSourceEvent('Event'),
-      'Event should map to Event Attendance.'
-    );
-    Assert.areEqual(
-      'Download',
-      EngagementTestFixtures.mapToSourceEvent('Download'),
-      'Download passes through unchanged.'
-    );
-    Assert.areEqual(
-      'Webinar',
-      EngagementTestFixtures.mapToSourceEvent('Webinar'),
-      'Webinar passes through unchanged.'
-    );
-    Assert.areEqual(
-      'Unknown',
-      EngagementTestFixtures.mapToSourceEvent('Unknown'),
-      'Unknown labels pass through (no exception).'
-    );
+    // Pure string-mapping helper; runAs satisfies PMD without changing
+    // semantics (no SOQL/DML or sharing context exercised).
+    System.runAs(TestFactory.createTestUser(true, 'Standard User')) {
+      Assert.areEqual(
+        'Page View',
+        EngagementTestFixtures.mapToSourceEvent('Page'),
+        'Page should map to Page View.'
+      );
+      Assert.areEqual(
+        'Form Submission',
+        EngagementTestFixtures.mapToSourceEvent('Form'),
+        'Form should map to Form Submission.'
+      );
+      Assert.areEqual(
+        'Event Attendance',
+        EngagementTestFixtures.mapToSourceEvent('Event'),
+        'Event should map to Event Attendance.'
+      );
+      Assert.areEqual(
+        'Download',
+        EngagementTestFixtures.mapToSourceEvent('Download'),
+        'Download passes through unchanged.'
+      );
+      Assert.areEqual(
+        'Webinar',
+        EngagementTestFixtures.mapToSourceEvent('Webinar'),
+        'Webinar passes through unchanged.'
+      );
+      Assert.areEqual(
+        'Unknown',
+        EngagementTestFixtures.mapToSourceEvent('Unknown'),
+        'Unknown labels pass through (no exception).'
+      );
+    }
   }
 
   /**
@@ -202,21 +214,25 @@ private class EngagementTestFixturesTest {
    */
   @IsTest
   static void seedSettingsIsIdempotent() {
-    Test.startTest();
-    EngagementTestFixtures.seedSettings(60, 180);
-    EngagementTestFixtures.seedSettings(30, 90);
-    Test.stopTest();
-    Engagement_Settings__c s = Engagement_Settings__c.getOrgDefaults();
-    Assert.areEqual(
-      30,
-      s.Signal_Decay_Days__c,
-      'Expected second call to update Signal_Decay_Days__c.'
-    );
-    Assert.areEqual(
-      90,
-      s.Active_Window_Days__c,
-      'Expected second call to update Active_Window_Days__c.'
-    );
+    // Hierarchy custom-setting writes; runAs satisfies PMD. The fixture's
+    // own UPSERT uses SYSTEM-mode DML internally so user context is moot.
+    System.runAs(TestFactory.createTestUser(true, 'System Administrator')) {
+      Test.startTest();
+      EngagementTestFixtures.seedSettings(60, 180);
+      EngagementTestFixtures.seedSettings(30, 90);
+      Test.stopTest();
+      Engagement_Settings__c s = Engagement_Settings__c.getOrgDefaults();
+      Assert.areEqual(
+        30,
+        s.Signal_Decay_Days__c,
+        'Expected second call to update Signal_Decay_Days__c.'
+      );
+      Assert.areEqual(
+        90,
+        s.Active_Window_Days__c,
+        'Expected second call to update Active_Window_Days__c.'
+      );
+    }
   }
 
   /**

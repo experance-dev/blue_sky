@@ -949,15 +949,19 @@ private class EngagementServiceImplTest {
    */
   @IsTest
   static void displayLabelForBlankSourceReturnsFallback() {
-    Test.startTest();
-    String label = EngagementServiceImpl.displayLabelFor(null, 'Fallback');
-    String label2 = EngagementServiceImpl.displayLabelFor('', 'Fallback');
-    String label3 = EngagementServiceImpl.displayLabelFor('   ', 'Fallback');
-    Test.stopTest();
+    // Pure-static helper; runAs satisfies PMD without changing semantics
+    // (no SOQL/DML or sharing context exercised).
+    System.runAs(getTestUser()) {
+      Test.startTest();
+      String label = EngagementServiceImpl.displayLabelFor(null, 'Fallback');
+      String label2 = EngagementServiceImpl.displayLabelFor('', 'Fallback');
+      String label3 = EngagementServiceImpl.displayLabelFor('   ', 'Fallback');
+      Test.stopTest();
 
-    Assert.areEqual('Fallback', label, 'null input -> fallback');
-    Assert.areEqual('Fallback', label2, 'empty input -> fallback');
-    Assert.areEqual('Fallback', label3, 'whitespace input -> fallback');
+      Assert.areEqual('Fallback', label, 'null input -> fallback');
+      Assert.areEqual('Fallback', label2, 'empty input -> fallback');
+      Assert.areEqual('Fallback', label3, 'whitespace input -> fallback');
+    }
   }
 
   /**
@@ -968,32 +972,36 @@ private class EngagementServiceImplTest {
    */
   @IsTest
   static void displayLabelForUsesCachedMapWhenAvailable() {
-    EngagementServiceImpl.sourceEventTypeDisplayMap = new Map<String, String>{
-      'hubspot_email_open' => 'Email Opened',
-      'hubspot_link_click' => 'Link Clicked'
-    };
+    // Pure-static helper; runAs satisfies PMD without changing semantics
+    // (no SOQL/DML or sharing context exercised).
+    System.runAs(getTestUser()) {
+      EngagementServiceImpl.sourceEventTypeDisplayMap = new Map<String, String>{
+        'hubspot_email_open' => 'Email Opened',
+        'hubspot_link_click' => 'Link Clicked'
+      };
 
-    Test.startTest();
-    String mapped = EngagementServiceImpl.displayLabelFor(
-      'hubspot_email_open',
-      'fallback-not-used'
-    );
-    String unmapped = EngagementServiceImpl.displayLabelFor(
-      'unknown_event',
-      'fallback-shown'
-    );
-    Test.stopTest();
+      Test.startTest();
+      String mapped = EngagementServiceImpl.displayLabelFor(
+        'hubspot_email_open',
+        'fallback-not-used'
+      );
+      String unmapped = EngagementServiceImpl.displayLabelFor(
+        'unknown_event',
+        'fallback-shown'
+      );
+      Test.stopTest();
 
-    Assert.areEqual(
-      'Email Opened',
-      mapped,
-      'Mapped source value returns CMDT label'
-    );
-    Assert.areEqual(
-      'fallback-shown',
-      unmapped,
-      'Unmapped source value falls back to Touch_Type__c'
-    );
+      Assert.areEqual(
+        'Email Opened',
+        mapped,
+        'Mapped source value returns CMDT label'
+      );
+      Assert.areEqual(
+        'fallback-shown',
+        unmapped,
+        'Unmapped source value falls back to Touch_Type__c'
+      );
+    }
   }
 
   /**
@@ -1004,26 +1012,30 @@ private class EngagementServiceImplTest {
    */
   @IsTest
   static void displayLabelForLoadsCmdtMapOnFirstCall() {
-    // Reset the cache so loadSourceEventTypeDisplayMap actually runs.
-    EngagementServiceImpl.sourceEventTypeDisplayMap = null;
+    // CMT read is SYSTEM-context by platform contract; runAs satisfies PMD
+    // without changing semantics (the loader does not respect sharing).
+    System.runAs(getTestUser()) {
+      // Reset the cache so loadSourceEventTypeDisplayMap actually runs.
+      EngagementServiceImpl.sourceEventTypeDisplayMap = null;
 
-    Test.startTest();
-    String result = EngagementServiceImpl.displayLabelFor(
-      'no_such_event_for_test',
-      'fallback-on-miss'
-    );
-    Test.stopTest();
+      Test.startTest();
+      String result = EngagementServiceImpl.displayLabelFor(
+        'no_such_event_for_test',
+        'fallback-on-miss'
+      );
+      Test.stopTest();
 
-    Assert.areEqual(
-      'fallback-on-miss',
-      result,
-      'CMDT lookup ran; no row matched; fallback returned'
-    );
-    // Cache is now non-null even if empty.
-    Assert.isNotNull(
-      EngagementServiceImpl.sourceEventTypeDisplayMap,
-      'loadSourceEventTypeDisplayMap populated the cache (possibly empty)'
-    );
+      Assert.areEqual(
+        'fallback-on-miss',
+        result,
+        'CMDT lookup ran; no row matched; fallback returned'
+      );
+      // Cache is now non-null even if empty.
+      Assert.isNotNull(
+        EngagementServiceImpl.sourceEventTypeDisplayMap,
+        'loadSourceEventTypeDisplayMap populated the cache (possibly empty)'
+      );
+    }
   }
 
   /**

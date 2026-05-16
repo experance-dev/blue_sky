@@ -32,10 +32,15 @@ public without sharing class RecordCleanupBatchTest {
   /**
    * @description Seeds 10 Accounts: half "old" (CreatedDate before threshold)
    *              and half "new" (after threshold). Test methods inject the
-   *              rule list via `MockRecordCleanupContext`.
+   *              rule list via `MockRecordCleanupContext`. Also provisions a
+   *              Sysadmin-profile test user so each test method can satisfy
+   *              the PMD runAs rule without changing semantics — the batch
+   *              runs in SYSTEM context regardless of the launching user.
    */
   @TestSetup
   static void seedAccounts() {
+    TestFactory.createTestUser(true, 'System Administrator');
+
     List<Account> accounts = new List<Account>();
     for (Integer i = 0; i < OLD_RECORD_COUNT; i++) {
       accounts.add(new Account(Name = 'OldKeep_' + i));
@@ -58,38 +63,49 @@ public without sharing class RecordCleanupBatchTest {
   }
 
   /**
+   * @description Shared test-user resolver for the runAs wrapper.
+   */
+  private static User getTestUser() {
+    return TestFactory.getTestUser('System Administrator');
+  }
+
+  /**
    * @description Happy path: a rule that targets Account / CreatedDate /
    *              THRESHOLD_DAYS deletes the five old records and leaves the
    *              five new ones.
    */
   @IsTest
   static void testBatchDeletesOldRecords() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'AccountAge',
-        'Account by age',
-        'Account',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        null,
-        null,
-        null,
-        null,
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'AccountAge',
+          'Account by age',
+          'Account',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          null,
+          null,
+          null,
+          null,
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      NEW_RECORD_COUNT,
-      remaining,
-      'Only the new accounts should survive — old ones beyond threshold deleted.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        NEW_RECORD_COUNT,
+        remaining,
+        'Only the new accounts should survive — old ones beyond threshold deleted.'
+      );
+    }
   }
 
   /**
@@ -99,32 +115,36 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testPredicateCanKeepEverything() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'AccountAgeKeepAll',
-        'Account by age, keep all',
-        'Account',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        'TestKeepEverythingPredicate',
-        null,
-        null,
-        null,
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'AccountAgeKeepAll',
+          'Account by age, keep all',
+          'Account',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          'TestKeepEverythingPredicate',
+          null,
+          null,
+          null,
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      OLD_RECORD_COUNT + NEW_RECORD_COUNT,
-      remaining,
-      'No accounts should be deleted because the predicate keeps everything.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        OLD_RECORD_COUNT + NEW_RECORD_COUNT,
+        remaining,
+        'No accounts should be deleted because the predicate keeps everything.'
+      );
+    }
   }
 
   /**
@@ -134,32 +154,36 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testPredicateDeleteEverythingMatchesHappyPath() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'AccountAgeDeleteAll',
-        'Account by age, delete all',
-        'Account',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        'TestDeleteEverythingPredicate',
-        null,
-        null,
-        null,
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'AccountAgeDeleteAll',
+          'Account by age, delete all',
+          'Account',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          'TestDeleteEverythingPredicate',
+          null,
+          null,
+          null,
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      NEW_RECORD_COUNT,
-      remaining,
-      'Same as happy path — predicate said delete and age filter already applied.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        NEW_RECORD_COUNT,
+        remaining,
+        'Same as happy path — predicate said delete and age filter already applied.'
+      );
+    }
   }
 
   /**
@@ -169,32 +193,36 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testRegexFilterNarrowsCandidates() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'AccountAgeRegex',
-        'Account by age, regex narrow',
-        'Account',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        null,
-        null,
-        'Name',
-        '^OldKeep_[0-2]$',
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'AccountAgeRegex',
+          'Account by age, regex narrow',
+          'Account',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          null,
+          null,
+          'Name',
+          '^OldKeep_[0-2]$',
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      OLD_RECORD_COUNT + NEW_RECORD_COUNT - 3,
-      remaining,
-      'Three matching old records should be deleted, leaving seven.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        OLD_RECORD_COUNT + NEW_RECORD_COUNT - 3,
+        remaining,
+        'Three matching old records should be deleted, leaving seven.'
+      );
+    }
   }
 
   /**
@@ -206,32 +234,36 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testSoqlWhereClauseNarrowsCandidates() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'AccountAgeWhere',
-        'Account by age, where narrow',
-        'Account',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        null,
-        'Name LIKE \'OldKeep_%\'',
-        null,
-        null,
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'AccountAgeWhere',
+          'Account by age, where narrow',
+          'Account',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          null,
+          'Name LIKE \'OldKeep_%\'',
+          null,
+          null,
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      NEW_RECORD_COUNT,
-      remaining,
-      'Only the OldKeep_ records should be deleted; new ones survive.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        NEW_RECORD_COUNT,
+        remaining,
+        'Only the OldKeep_ records should be deleted; new ones survive.'
+      );
+    }
   }
 
   /**
@@ -241,32 +273,36 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testInvalidSObjectNameIsHandled() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'BadRule',
-        'Bad rule',
-        'Not_A_Real_Object__c',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        null,
-        null,
-        null,
-        null,
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'BadRule',
+          'Bad rule',
+          'Not_A_Real_Object__c',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          null,
+          null,
+          null,
+          null,
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      OLD_RECORD_COUNT + NEW_RECORD_COUNT,
-      remaining,
-      'No accounts should be deleted when the rule targets a bad SObject name.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        OLD_RECORD_COUNT + NEW_RECORD_COUNT,
+        remaining,
+        'No accounts should be deleted when the rule targets a bad SObject name.'
+      );
+    }
   }
 
   /**
@@ -275,32 +311,36 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testMissingPredicateClassSkipsRule() {
-    List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
-      new RecordCleanupRule(
-        'AccountMissingPredicate',
-        'Account, missing predicate class',
-        'Account',
-        'CreatedDate',
-        THRESHOLD_DAYS,
-        'No_Such_Predicate_Class_Anywhere',
-        null,
-        null,
-        null,
-        'Delete'
-      )
-    };
-    MockRecordCleanupContext mockContext = new MockRecordCleanupContext(rules);
+    System.runAs(getTestUser()) {
+      List<RecordCleanupRule> rules = new List<RecordCleanupRule>{
+        new RecordCleanupRule(
+          'AccountMissingPredicate',
+          'Account, missing predicate class',
+          'Account',
+          'CreatedDate',
+          THRESHOLD_DAYS,
+          'No_Such_Predicate_Class_Anywhere',
+          null,
+          null,
+          null,
+          'Delete'
+        )
+      };
+      MockRecordCleanupContext mockContext = new MockRecordCleanupContext(
+        rules
+      );
 
-    Test.startTest();
-    Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
-    Test.stopTest();
+      Test.startTest();
+      Database.executeBatch(new RecordCleanupBatch(mockContext), 200);
+      Test.stopTest();
 
-    Integer remaining = [SELECT COUNT() FROM Account];
-    Assert.areEqual(
-      OLD_RECORD_COUNT + NEW_RECORD_COUNT,
-      remaining,
-      'When predicate class is unknown the batch conservatively keeps all candidates.'
-    );
+      Integer remaining = [SELECT COUNT() FROM Account];
+      Assert.areEqual(
+        OLD_RECORD_COUNT + NEW_RECORD_COUNT,
+        remaining,
+        'When predicate class is unknown the batch conservatively keeps all candidates.'
+      );
+    }
   }
 
   /**
@@ -309,8 +349,10 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testDefaultConstructor() {
-    RecordCleanupBatch batch = new RecordCleanupBatch();
-    Assert.isNotNull(batch, 'Default constructor should return an instance.');
+    System.runAs(getTestUser()) {
+      RecordCleanupBatch batch = new RecordCleanupBatch();
+      Assert.isNotNull(batch, 'Default constructor should return an instance.');
+    }
   }
 
   /**
@@ -318,14 +360,28 @@ public without sharing class RecordCleanupBatchTest {
    */
   @IsTest
   static void testSchedulerExecutes() {
-    Test.startTest();
-    String cron = '0 0 0 1 1 ? 2099';
-    System.schedule(
-      'RecordCleanupSchedulerTest',
-      cron,
-      new RecordCleanupScheduler()
-    );
-    Test.stopTest();
-    // No assertion needed — successful schedule is the assertion.
+    System.runAs(getTestUser()) {
+      Test.startTest();
+      String cron = '0 0 0 1 1 ? 2099';
+      Id jobId = System.schedule(
+        'RecordCleanupSchedulerTest',
+        cron,
+        new RecordCleanupScheduler()
+      );
+      Test.stopTest();
+
+      // CronTrigger row confirms the schedule landed and resolves the
+      // expression we passed.
+      CronTrigger job = [
+        SELECT Id, CronExpression
+        FROM CronTrigger
+        WHERE Id = :jobId
+      ];
+      Assert.areEqual(
+        cron,
+        job.CronExpression,
+        'Scheduled job should retain the supplied cron expression.'
+      );
+    }
   }
 }
