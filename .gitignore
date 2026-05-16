@@ -24,6 +24,9 @@ yarn-error.log*
 # Dependency directories
 node_modules/
 
+# Code Analyzer reports (regenerable; per docs/standards/sf-best-practices.md §12.2)
+reports/
+
 # ApexPMD cache
 .pmdCache
 
