@@ -29,7 +29,7 @@
  * @group Engagement Attribution
  * @author David Wood
  * @since May 2026
- * @last 2026-05-16 — PR #6 sweep: §2.4 isAccessible() guard on collectTouchIdsForLeads; §3.0 stack-trace removed from rethrow messages, txn correlator added; before-delete trigger-context gate enforces the GDPR cascade boundary.
+ * @last 2026-05-16 — PR #6 sweep: §2.4 isAccessible() guards on Contact-path cascade (collectTouchIdsForContacts, deleteSignalsForContacts, deleteDismissalsForContacts) mirroring the Lead-path canonical; §3.0 stack-trace removed from rethrow messages, txn correlator added; before-delete trigger-context gate enforces the GDPR cascade boundary.
  */
 public with sharing class EngagementErasureService {
   private static final String CLASS_NAME = 'EngagementErasureService';
@@ -190,6 +190,19 @@ public with sharing class EngagementErasureService {
   // ─── Private — Contact cascade helpers ────────────────────────────────────
 
   private static Set<Id> collectTouchIdsForContacts(Set<Id> contactIds) {
+    // Mirrors the Lead-path guard at collectTouchIdsForLeads. A Contact can be
+    // deleted by any user in the org — including users with no MI permset and
+    // therefore no FLS on Engagement_Touch__c.Contact__c. Under WITH USER_MODE
+    // such a user's SOQL raises QueryException ("No such column") because
+    // USER_MODE hides FLS-blocked fields from the schema. No-op when the
+    // deleting user can't see the field — the cascade must never block Contact
+    // delete for non-MI personas.
+    if (
+      !Schema.sObjectType.Engagement_Touch__c.fields.Contact__c.isAccessible()
+    ) {
+      return new Set<Id>();
+    }
+
     List<Engagement_Touch__c> touches = [
       SELECT Id
       FROM Engagement_Touch__c
@@ -204,6 +217,16 @@ public with sharing class EngagementErasureService {
     Set<Id> touchIds,
     ErasureSummary summary
   ) {
+    // Signal-side mirror of the Touch-side guard above. If the deleting user
+    // can't see Opportunity_Engagement_Signal__c.Contact__c, the SOQL's first
+    // disjunct would raise QueryException under WITH USER_MODE. No-op silently
+    // — non-MI personas have no cascade work in their user-mode view.
+    if (
+      !Schema.sObjectType.Opportunity_Engagement_Signal__c.fields.Contact__c.isAccessible()
+    ) {
+      return;
+    }
+
     List<Opportunity_Engagement_Signal__c> signals = [
       SELECT Id
       FROM Opportunity_Engagement_Signal__c
@@ -222,6 +245,15 @@ public with sharing class EngagementErasureService {
     Set<Id> contactIds,
     ErasureSummary summary
   ) {
+    // Dismissal-side mirror of the Touch-side guard above. If the deleting
+    // user can't see Engagement_Dismissal__c.Contact__c under WITH USER_MODE,
+    // no-op — the cascade must never block Contact delete for non-MI personas.
+    if (
+      !Schema.sObjectType.Engagement_Dismissal__c.fields.Contact__c.isAccessible()
+    ) {
+      return;
+    }
+
     List<Engagement_Dismissal__c> dismissals = [
       SELECT Id
       FROM Engagement_Dismissal__c
