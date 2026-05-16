@@ -56,6 +56,7 @@ public without sharing class KeepIfContactIsOnOpenOpportunityTeamTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfContactIsOnOpenOpportunityTeam predicate = new KeepIfContactIsOnOpenOpportunityTeam();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isTrue(
         predicate.shouldKeep(touch),
         'Contact on open OCR should keep the touch.'
@@ -83,6 +84,7 @@ public without sharing class KeepIfContactIsOnOpenOpportunityTeamTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfContactIsOnOpenOpportunityTeam predicate = new KeepIfContactIsOnOpenOpportunityTeam();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isFalse(
         predicate.shouldKeep(touch),
         'Contact with no OCRs should release the touch.'
@@ -135,6 +137,7 @@ public without sharing class KeepIfContactIsOnOpenOpportunityTeamTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfContactIsOnOpenOpportunityTeam predicate = new KeepIfContactIsOnOpenOpportunityTeam();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isFalse(
         predicate.shouldKeep(touch),
         'Contact only on closed OCRs should release the touch.'
@@ -171,6 +174,7 @@ public without sharing class KeepIfContactIsOnOpenOpportunityTeamTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfContactIsOnOpenOpportunityTeam predicate = new KeepIfContactIsOnOpenOpportunityTeam();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isTrue(
         predicate.shouldKeep(touch),
         'Touch with no Contact should be conservatively kept.'

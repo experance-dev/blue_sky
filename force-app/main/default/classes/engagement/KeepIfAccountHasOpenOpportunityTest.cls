@@ -51,6 +51,7 @@ public without sharing class KeepIfAccountHasOpenOpportunityTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Boolean shouldKeep = predicate.shouldKeep(touch);
 
       Assert.isTrue(
@@ -101,6 +102,7 @@ public without sharing class KeepIfAccountHasOpenOpportunityTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Boolean shouldKeep = predicate.shouldKeep(touch);
 
       Assert.isFalse(
@@ -136,6 +138,7 @@ public without sharing class KeepIfAccountHasOpenOpportunityTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isTrue(
         predicate.shouldKeep(touch),
         'Expected predicate to honor the direct Account__c reference and keep the touch.'
@@ -161,6 +164,7 @@ public without sharing class KeepIfAccountHasOpenOpportunityTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isTrue(
         predicate.shouldKeep(touch),
         'Touch with a Contact lacking an Account should be conservatively kept.'
@@ -197,6 +201,7 @@ public without sharing class KeepIfAccountHasOpenOpportunityTest {
       Database.insert(touch, AccessLevel.SYSTEM_MODE);
 
       KeepIfAccountHasOpenOpportunity predicate = new KeepIfAccountHasOpenOpportunity();
+      predicate.primeBulkCache(new List<SObject>{ touch });
       Assert.isTrue(
         predicate.shouldKeep(touch),
         'Touch with no Contact and no Account should be conservatively kept.'

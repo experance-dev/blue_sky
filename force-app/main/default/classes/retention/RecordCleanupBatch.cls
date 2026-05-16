@@ -30,7 +30,14 @@
  * @group Cleanup
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6 framework extension: applyPredicate invokes IBulkPrimablePredicate.primeBulkCache(candidates) once per chunk before the per-record loop — predicates that need bulk pre-fetch opt in by additionally implementing the sub-interface. Eliminates SOQL-in-loop governor risk for KeepIf-style traversal predicates.
  */
+@SuppressWarnings('PMD.CyclomaticComplexity')
+// §12.1 narrow waiver — class-total CC=48 is the post-Item-3 framework
+// extension cost. The alternative is folding newPredicateOrNull /
+// applyPredicate / buildCandidateQuery / collectCandidatesForRule back into a
+// single mega-method, which trades scanner-clean for unreadable. Pending
+// Magnus sign-off; flagged in PR #6 follow-up comment.
 public without sharing class RecordCleanupBatch implements Database.Batchable<SObject>, Database.Stateful {
   /** @description Custom exception for errors raised inside this batch. */
   public class RecordCleanupBatchException extends UtilitiesModuleException {
@@ -154,14 +161,23 @@ public without sharing class RecordCleanupBatch implements Database.Batchable<SO
 
   /**
    * @description Builds and executes the SOQL for one rule, then post-filters
-   *              by optional regex and optional predicate.
+   *              by optional regex and optional predicate. Instantiates the
+   *              predicate up front so a bulk-primable predicate can extend
+   *              the SOQL projection with the fields it needs to satisfy
+   *              `shouldKeep` from the loaded records (avoids per-record
+   *              re-querying).
    *
    * @param rule The rule to evaluate.
    * @return     The records this rule allows the batch to delete.
    */
   @TestVisible
   private List<SObject> collectCandidatesForRule(RecordCleanupRule rule) {
-    String query = buildCandidateQuery(rule);
+    IRecordRetentionPredicate predicate = newPredicateOrNull(rule);
+    List<String> extraFields = predicate instanceof IBulkPrimablePredicate
+      ? ((IBulkPrimablePredicate) predicate).requiredFields()
+      : null;
+
+    String query = buildCandidateQuery(rule, extraFields);
     Date cutoffDate = Date.today().addDays(-rule.ageThresholdDays); //NOPMD — bind below
 
     List<SObject> rawCandidates = Database.queryWithBinds( //NOPMD
@@ -171,28 +187,73 @@ public without sharing class RecordCleanupBatch implements Database.Batchable<SO
     );
 
     List<SObject> afterRegex = applyRegexFilter(rule, rawCandidates);
-    List<SObject> afterPredicate = applyPredicate(rule, afterRegex);
+    List<SObject> afterPredicate = applyPredicate(rule, predicate, afterRegex);
 
     return afterPredicate;
   }
 
   /**
+   * @description Instantiates the rule's predicate via reflection. Returns
+   *              `null` (no predicate gate) when the rule has none configured
+   *              OR when instantiation fails — the latter increments the
+   *              error counter, logs, and lets the rule fall through with no
+   *              predicate, which produces the conservative "skip this rule's
+   *              candidates" behaviour at `applyPredicate`.
+   *
+   * @param rule The rule whose predicate to instantiate.
+   * @return     The predicate instance, or `null` when none configured /
+   *             instantiation failed.
+   */
+  @TestVisible
+  private IRecordRetentionPredicate newPredicateOrNull(RecordCleanupRule rule) {
+    if (!rule.hasPredicate()) {
+      return null;
+    }
+    try {
+      Type predicateType = Type.forName(rule.predicateApexClass);
+      if (predicateType == null) {
+        throw new RecordCleanupBatchException(
+          'Predicate class not found: ' + rule.predicateApexClass
+        );
+      }
+      return (IRecordRetentionPredicate) predicateType.newInstance();
+    } catch (Exception ex) {
+      Logger.logException(ex, 'RecordCleanupBatch', 'newPredicateOrNull');
+      incrementError(rule.developerName);
+      return null;
+    }
+  }
+
+  /**
    * @description Composes the dynamic SOQL for a rule. Always selects `Id`
    *              and the configured age field; appends an optional caller-
-   *              supplied `SOQL_Where_Clause__c`.
+   *              supplied `SOQL_Where_Clause__c`; appends any extra fields
+   *              the predicate declared via `IBulkPrimablePredicate.requiredFields()`.
    *
    *              Bind variable `:cutoffDate` is provided by the caller.
    *
-   * @param rule The rule whose SObject + age field + WHERE fragment we use.
-   * @return     The composed SOQL string.
+   * @param rule        The rule whose SObject + age field + WHERE fragment we use.
+   * @param extraFields Additional field API names to project (e.g. those the
+   *                    bulk-primable predicate needs for in-memory resolution).
+   * @return            The composed SOQL string.
    */
   @TestVisible
-  private String buildCandidateQuery(RecordCleanupRule rule) {
+  private String buildCandidateQuery(
+    RecordCleanupRule rule,
+    List<String> extraFields
+  ) {
     String fieldList = 'Id, ' + rule.ageFieldApiName;
     if (rule.hasRegexFilter()) {
       // Regex post-filter needs the field in the projection.
       if (!fieldList.containsIgnoreCase(rule.fieldRegexMatch)) {
         fieldList += ', ' + rule.fieldRegexMatch;
+      }
+    }
+    if (extraFields != null) {
+      for (String field : extraFields) {
+        if (String.isNotBlank(field) && !fieldList.containsIgnoreCase(field)) {
+          fieldList += ', ' + field;
+        }
       }
     }
 
@@ -246,38 +307,55 @@ public without sharing class RecordCleanupBatch implements Database.Batchable<SO
 
   /**
    * @description Applies the optional `IRecordRetentionPredicate` to remove
-   *              records the business rule says to keep. Failure to
-   *              instantiate the predicate class (typo in CMDT, class
-   *              deleted) logs the error and conservatively returns an empty
-   *              list — better to skip the rule than mistakenly delete.
+   *              records the business rule says to keep. When the predicate
+   *              also implements `IBulkPrimablePredicate`, `primeBulkCache`
+   *              is invoked once on the chunk before the per-record loop so
+   *              implementations can issue one bulk SOQL up front and resolve
+   *              `shouldKeep` from in-memory caches. When the rule configured
+   *              a predicate but instantiation failed upstream
+   *              (`predicate == null` while `rule.hasPredicate()` is true),
+   *              the conservative path is to skip this rule's candidates
+   *              rather than risk deleting records the predicate would have
+   *              kept.
    *
    * @param rule       The rule providing the predicate class name.
+   * @param predicate  The instantiated predicate, or `null` when none /
+   *                   instantiation failed.
    * @param candidates The post-SOQL, post-regex candidate list.
    * @return           Records the predicate says are OK to delete.
    */
   @TestVisible
   private List<SObject> applyPredicate(
     RecordCleanupRule rule,
+    IRecordRetentionPredicate predicate,
     List<SObject> candidates
   ) {
-    if (!rule.hasPredicate() || candidates.isEmpty()) {
+    if (candidates.isEmpty()) {
       return candidates;
     }
-
-    IRecordRetentionPredicate predicate;
-    try {
-      Type predicateType = Type.forName(rule.predicateApexClass);
-      if (predicateType == null) {
-        throw new RecordCleanupBatchException(
-          'Predicate class not found: ' + rule.predicateApexClass
-        );
-      }
-      predicate = (IRecordRetentionPredicate) predicateType.newInstance();
-    } catch (Exception ex) {
-      Logger.logException(ex, 'RecordCleanupBatch', 'applyPredicate');
-      incrementError(rule.developerName);
+    if (!rule.hasPredicate()) {
+      return candidates;
+    }
+    if (predicate == null) {
+      // Instantiation failed upstream — error already logged + counted.
       // Conservative: skip this rule's candidates rather than risk deletion.
       return new List<SObject>();
+    }
+
+    // Optional bulk-cache priming. Predicates that satisfy `shouldKeep` via
+    // SOQL traversal (e.g. KeepIfAccountHasOpenOpportunity) issue one bulk
+    // SOQL per chunk here, then resolve per-record with in-memory lookups —
+    // avoids the 100-query governor on 200-record chunks.
+    if (predicate instanceof IBulkPrimablePredicate) {
+      try {
+        ((IBulkPrimablePredicate) predicate).primeBulkCache(candidates);
+      } catch (Exception ex) {
+        Logger.logException(ex, 'RecordCleanupBatch', 'applyPredicate');
+        incrementError(rule.developerName);
+        // Priming failed — conservative path is to skip this rule's chunk
+        // rather than fall back to per-record SOQL that risks governor blow-up.
+        return new List<SObject>();
+      }
     }
 
     List<SObject> allowed = new List<SObject>();

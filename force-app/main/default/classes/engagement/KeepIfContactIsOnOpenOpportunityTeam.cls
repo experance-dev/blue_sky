@@ -14,13 +14,77 @@
  *              **Defensive defaults.** When the touch has no Contact, the
  *              predicate returns `true` (keep).
  *
+ *              **Bulk-aware.** Implements `IBulkPrimablePredicate` — the
+ *              framework calls `primeBulkCache(chunk)` once per
+ *              `RecordCleanupBatch` execute chunk before the per-record
+ *              `shouldKeep` loop. Priming collects every Contact id in the
+ *              chunk and asks `OpportunityContactRole` once, in bulk, which
+ *              of those contacts is on any open deal. Per-record `shouldKeep`
+ *              is then a pure `Set.contains` — zero SOQL inside the loop.
+ *
  * @group Engagement
  * @author David Wood
  * @since May 2026
+ * @last 2026-05-16 — PR #6: SOQL-in-loop eliminated. Lifecycle hook (`primeBulkCache`) builds a chunk-scoped Set of contacts with open-deal OCR presence; `shouldKeep` is now pure in-memory lookup. One SOQL per chunk instead of one SOQL per record.
  */
-public with sharing class KeepIfContactIsOnOpenOpportunityTeam implements IRecordRetentionPredicate {
+public with sharing class KeepIfContactIsOnOpenOpportunityTeam implements IRecordRetentionPredicate, IBulkPrimablePredicate {
+  // Chunk-scoped cache — rebuilt by primeBulkCache on every chunk.
+  // Contact ids that appear on at least one open Opportunity's OCR.
+  @TestVisible
+  private Set<Id> contactsOnOpenDealTeam = new Set<Id>();
+
   /**
-   * @description Decides whether to keep this engagement touch.
+   * @description Declares the projection fields the framework must include
+   *              on every loaded `Engagement_Touch__c` so `primeBulkCache`
+   *              can collect contact ids without a per-record re-query.
+   *
+   * @return Field API names: `Contact__c`.
+   */
+  public List<String> requiredFields() {
+    return new List<String>{ 'Contact__c' };
+  }
+
+  /**
+   * @description Bulk-prefetches the OCR presence Set for every Contact in
+   *              this chunk. One SOQL covers the whole chunk.
+   *
+   * @param chunk The candidate `Engagement_Touch__c` records about to be
+   *              evaluated by `shouldKeep`.
+   */
+  public void primeBulkCache(List<SObject> chunk) {
+    // Reset previous chunk's state. Predicate instances are reused across
+    // chunks within a batch run.
+    contactsOnOpenDealTeam = new Set<Id>();
+
+    if (chunk == null || chunk.isEmpty()) {
+      return;
+    }
+
+    Set<Id> contactIds = new Set<Id>();
+    for (SObject record : chunk) {
+      Engagement_Touch__c touch = (Engagement_Touch__c) record;
+      if (touch.Contact__c != null) {
+        contactIds.add(touch.Contact__c);
+      }
+    }
+    if (contactIds.isEmpty()) {
+      return;
+    }
+
+    for (OpportunityContactRole ocr : [
+      SELECT ContactId
+      FROM OpportunityContactRole
+      WHERE ContactId IN :contactIds AND Opportunity.IsClosed = FALSE
+      WITH USER_MODE
+    ]) {
+      contactsOnOpenDealTeam.add(ocr.ContactId);
+    }
+  }
+
+  /**
+   * @description Decides whether to keep this engagement touch. Pure
+   *              in-memory lookup against the chunk cache built by
+   *              `primeBulkCache`.
    *
    * @param record Expected to be an `Engagement_Touch__c`.
    * @return       `true` to keep, `false` to allow deletion.
@@ -33,25 +97,6 @@ public with sharing class KeepIfContactIsOnOpenOpportunityTeam implements IRecor
     if (touch.Contact__c == null) {
       return true; // No contact anchor — keep.
     }
-    return contactIsOnAnyOpenOpportunityContactRole(touch.Contact__c);
-  }
-
-  /**
-   * @description Checks whether the contact is an `OpportunityContactRole` on
-   *              at least one open Opportunity.
-   *
-   * @param contactId The contact to check.
-   * @return          `true` when the contact appears on any open OCR.
-   */
-  @TestVisible
-  private Boolean contactIsOnAnyOpenOpportunityContactRole(Id contactId) {
-    Integer roleCount = [
-      SELECT COUNT()
-      FROM OpportunityContactRole
-      WHERE ContactId = :contactId AND Opportunity.IsClosed = FALSE
-      WITH USER_MODE
-      LIMIT 1
-    ];
-    return roleCount > 0;
+    return contactsOnOpenDealTeam.contains(touch.Contact__c);
   }
 }
