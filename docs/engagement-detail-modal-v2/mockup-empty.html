@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>B5 — Empty state</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@salesforce-ux/design-system@2.27.1/assets/styles/salesforce-lightning-design-system.css"
+    />
+    <style>
+      body {
+        background: #f3f3f3;
+        padding: 24px;
+        font-family: "Salesforce Sans", Arial, sans-serif;
+        margin: 0;
+      }
+      .mock-frame {
+        width: 100%;
+        max-width: 1320px;
+        min-width: 720px;
+        background: #fff;
+        border: 1px solid #d8dde6;
+        border-radius: 4px;
+        margin: 0 auto 28px;
+      }
+      .mock-label {
+        font-size: 12px;
+        color: #706e6b;
+        padding: 8px 16px 0;
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+      .empty-illust {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 60px 24px;
+        color: #54698d;
+      }
+      .empty-illust svg {
+        max-width: 280px;
+        height: auto;
+        opacity: 0.9;
+      }
+      .empty-illust h3 {
+        margin: 24px 0 8px;
+        font-size: 18px;
+        color: #16325c;
+      }
+      .empty-illust p {
+        margin: 4px 0;
+        font-size: 14px;
+        max-width: 480px;
+        text-align: center;
+        color: #54698d;
+      }
+      .empty-illust .actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mock-label">
+      <strong>B5 — Empty state.</strong> Modal opens but the account has zero
+      engaged contacts (no marketing-influence touches in the window). Open
+      question for Iris: should the modal even open in this case, or should the
+      right-rail panel suppress it?
+    </div>
+
+    <div class="mock-frame">
+      <header class="slds-modal__header">
+        <h2 class="slds-modal__title">
+          Engagement Detail — Acme Health Network
+        </h2>
+        <p class="slds-text-body_small slds-var-m-top_xx-small">
+          0 engaged · 0 touches · Apr 14 → May 14
+        </p>
+      </header>
+
+      <div class="empty-illust">
+        <!-- SLDS-style line-art illustration: empty inbox / no engagement -->
+        <svg
+          viewBox="0 0 280 200"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <defs>
+            <linearGradient id="g1" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stop-color="#dde3ee" />
+              <stop offset="100%" stop-color="#c6d0e0" />
+            </linearGradient>
+          </defs>
+          <!-- ground line -->
+          <line
+            x1="40"
+            y1="170"
+            x2="240"
+            y2="170"
+            stroke="#a8b7c7"
+            stroke-width="2"
+          />
+          <!-- empty inbox / tray -->
+          <rect
+            x="80"
+            y="100"
+            width="120"
+            height="60"
+            rx="6"
+            fill="url(#g1)"
+            stroke="#54698d"
+            stroke-width="2"
+          />
+          <line
+            x1="80"
+            y1="120"
+            x2="200"
+            y2="120"
+            stroke="#54698d"
+            stroke-width="2"
+          />
+          <!-- tray ribs -->
+          <line
+            x1="90"
+            y1="135"
+            x2="190"
+            y2="135"
+            stroke="#a8b7c7"
+            stroke-width="1"
+          />
+          <line
+            x1="90"
+            y1="148"
+            x2="190"
+            y2="148"
+            stroke="#a8b7c7"
+            stroke-width="1"
+          />
+          <!-- floating dust dots -->
+          <circle cx="120" cy="70" r="3" fill="#a8b7c7" />
+          <circle cx="150" cy="55" r="2.5" fill="#a8b7c7" />
+          <circle cx="170" cy="78" r="2" fill="#a8b7c7" />
+          <!-- magnifying glass -->
+          <circle
+            cx="220"
+            cy="60"
+            r="22"
+            fill="none"
+            stroke="#0070d2"
+            stroke-width="3"
+          />
+          <line
+            x1="237"
+            y1="77"
+            x2="252"
+            y2="92"
+            stroke="#0070d2"
+            stroke-width="3"
+            stroke-linecap="round"
+          />
+          <!-- search lens shine -->
+          <line
+            x1="210"
+            y1="48"
+            x2="218"
+            y2="56"
+            stroke="#0070d2"
+            stroke-width="2"
+            stroke-linecap="round"
+            opacity="0.5"
+          />
+        </svg>
+
+        <h3>No marketing-influence touches yet</h3>
+        <p>
+          No contacts on this account have engaged with a marketing campaign in
+          the last <strong>6 weeks</strong>.
+        </p>
+        <p>
+          Once a contact opens an email, attends a webinar, or interacts with a
+          marketing asset, their activity will appear here automatically.
+        </p>
+
+        <div class="actions">
+          <button class="slds-button slds-button_brand">
+            Configure a campaign
+          </button>
+          <button class="slds-button slds-button_neutral">Change scope</button>
+          <button class="slds-button slds-button_neutral">
+            Extend window to 1 year
+          </button>
+        </div>
+      </div>
+
+      <footer class="slds-modal__footer">
+        <button class="slds-button slds-button_neutral">Close</button>
+      </footer>
+    </div>
+  </body>
+</html>
