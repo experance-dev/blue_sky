@@ -1,0 +1,99 @@
+# blue_sky CODEOWNERS — Zelis Engagement Attribution work
+#
+# ============================================================================
+# What this file is — APPROVAL GATE, not review-team enforcement
+# ============================================================================
+# CODEOWNERS encodes the identity gate: who can satisfy `Require review from
+# Code Owners` on a branch-protection rule. It is NOT how the 3-of-3 review-
+# team gate (Sage / Iris / Magnus) gets pinned — that's the Repository
+# Ruleset's `required_reviewers` clause (see docs/operations/pr-gate-protocol.md
+# §6.4 + §7.3).
+#
+# Two independent gates, both must pass on every PR:
+#   1. CODEOWNERS  → 1 approval from a path-owning identity (this file)
+#   2. Review team → 3 approvals from Tier B Apps (Sage, Iris, Magnus) via
+#                    Rulesets required_reviewers pinning their single-member
+#                    teams (reviewer-sage / reviewer-iris / reviewer-magnus)
+#
+# ============================================================================
+# Why CODEOWNERS uses team slugs (not App slugs) on path-specific lines
+# ============================================================================
+# GitHub's CODEOWNERS syntax accepts users, teams, and email addresses ONLY.
+# App slugs (e.g. `bluesky-sage[bot]`) are NOT valid CODEOWNERS entries:
+#   https://docs.github.com/articles/about-code-owners
+#
+# Every agent App is wrapped in a single-member org Team. Naming pattern:
+#   Tier A (orchestrators) → @experance-dev/orchestrator-<slug>
+#   Tier B (reviewers)     → @experance-dev/reviewer-<slug>
+#   Tier C (workers)       → @experance-dev/worker-<slug>
+#
+# This file references team slugs for path-scoped co-ownership. When the App
+# posts a review via installation token, the bot user is recognized as a
+# member of the team, which satisfies the CODEOWNERS rule for that path.
+#
+# ============================================================================
+# Codeowner identities — humans first, then teams for substantive co-ownership
+# ============================================================================
+#   David Wood    — primary approver       → @david-wood
+#   Atlas         — codeowner peer, preferred fallback when David is offline
+#                                          → @atlas         [TODO: confirm handle]
+#
+# When David is around, his approval is preferred; Atlas's is the fallback.
+# Every Atlas approval is logged in docs/operations/atlas-standin-approvals.log
+# with full context — Atlas is a real codeowner, not a workaround.
+#
+# Path-scoped co-owners pull additional sign-off from the agent whose lane
+# the change crosses. Example: schema changes need Helix's worker team plus
+# David. The review-team gate still applies on top of all paths.
+
+# ----------------------------------------------------------------------------
+# Default — every change codeowner-approved by David or Atlas
+# ----------------------------------------------------------------------------
+* @david-wood @atlas
+
+# ----------------------------------------------------------------------------
+# Standards canon — Magnus reviewer App co-owns with David
+# ----------------------------------------------------------------------------
+/docs/standards/ @experance-dev/reviewer-magnus @david-wood
+
+# ----------------------------------------------------------------------------
+# Test canon — Pippa + Verity worker Apps co-own with David
+# (Both teams required — test-canon changes need both perspectives)
+# ----------------------------------------------------------------------------
+/docs/testing/ @experance-dev/worker-pippa @experance-dev/worker-verity @david-wood
+
+# ----------------------------------------------------------------------------
+# Security-sensitive metadata — Sage reviewer App co-owns with David
+# (permsets, profiles, sharing rules, custom permissions, auth surfaces, UI
+# surfaces that gate visibility — Connected Apps, Named/External Credentials,
+# Remote Site Settings, CSP Trusted Sites, Apps, FlexiPages)
+# ----------------------------------------------------------------------------
+/force-app/**/permissionsets/      @experance-dev/reviewer-sage @david-wood
+/force-app/**/profiles/            @experance-dev/reviewer-sage @david-wood
+/force-app/**/sharingRules/        @experance-dev/reviewer-sage @david-wood
+/force-app/**/customPermissions/   @experance-dev/reviewer-sage @david-wood
+/force-app/**/connectedApps/       @experance-dev/reviewer-sage @david-wood
+/force-app/**/namedCredentials/    @experance-dev/reviewer-sage @david-wood
+/force-app/**/externalCredentials/ @experance-dev/reviewer-sage @david-wood
+/force-app/**/remoteSiteSettings/  @experance-dev/reviewer-sage @david-wood
+/force-app/**/cspTrustedSites/     @experance-dev/reviewer-sage @david-wood
+/force-app/**/applications/        @experance-dev/reviewer-sage @david-wood
+/force-app/**/flexipages/          @experance-dev/reviewer-sage @david-wood
+
+# ----------------------------------------------------------------------------
+# Schema veto — Helix worker App + Sage reviewer App co-own with David
+# (Custom objects, fields, record types — schema changes ripple everywhere;
+# Sage co-owns because schema shape drives FLS / sharing / OWD posture)
+# ----------------------------------------------------------------------------
+/force-app/**/objects/ @experance-dev/worker-helix @experance-dev/reviewer-sage @david-wood
+
+# ----------------------------------------------------------------------------
+# CI / workflows — Dash worker App co-owns with David
+# ----------------------------------------------------------------------------
+/.github/workflows/ @experance-dev/worker-dash @david-wood
+/.github/CODEOWNERS @david-wood @atlas
+
+# ----------------------------------------------------------------------------
+# Operations runbooks — Dash worker App co-owns with David
+# ----------------------------------------------------------------------------
+/docs/operations/ @experance-dev/worker-dash @david-wood
