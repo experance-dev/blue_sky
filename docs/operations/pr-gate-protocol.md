@@ -123,6 +123,16 @@ where David would have. See
 Atlas commits the log row in the same PR he approves (or a follow-up PR if the
 log write fails the protection rule). David greps the log periodically.
 
+> **Deferred — append-only CI enforcement.** A workflow that fails any PR
+> which modifies prior lines of [`atlas-standin-approvals.log`](atlas-standin-approvals.log)
+> (i.e. enforces append-only) was scoped in Sage's PR #12 review and
+> **deferred** as non-blocking. Sage's trigger condition for un-deferring:
+> the first 10 logged Atlas approvals, **or** one calendar month from the
+> first logged approval, whichever comes first. At that point Dash adds a
+> workflow that diffs the file's history and rejects any PR whose diff
+> deletes or rewrites pre-existing rows. Until then, the discipline is
+> honor-system + David's periodic grep.
+
 ---
 
 ## 3. Branch model
@@ -142,12 +152,14 @@ Feature branches off `develop`; story branches off feature. Promotion path:
 
 ## 4. Override paths
 
-### 4.1 Emergency direct push (David / Dash / Atlas)
+### 4.1 Emergency direct push (David / Dash / Atlas on `develop` and `UAT`; David only on `main`)
 
 Branch-protection rule lists David, Dash, and Atlas in the "Restrict who can
-push to matching branches" allowlist for emergency direct-push to `develop` /
-`UAT` / `main`. **Use is rare and audited.** Document every direct push in a
-follow-up PR that backfills tests / standards review.
+push to matching branches" allowlist for emergency direct-push to `develop`
+and `UAT`. The `main` allowlist narrows to **David only** — see the §6.3
+payload's `restrictions.users: ["david-wood"]`. **Use is rare and audited.**
+Document every direct push in a follow-up PR that backfills tests / standards
+review.
 
 ### 4.2 Status-check waiver
 
@@ -303,7 +315,7 @@ gh api -X PUT repos/experance-dev/blue_sky/branches/main/protection \
 {
   "required_status_checks": {
     "strict": true,
-    "contexts": ["code-analyzer", "apex-test-run"]
+    "contexts": ["code-analyzer", "apex-test-run", "gate-atlas-main-block"]
   },
   "enforce_admins": true,
   "required_pull_request_reviews": {
@@ -327,6 +339,14 @@ JSON
 `enforce_admins: true` blocks even repo admins from bypassing the rule on
 `main`. Push allowlist narrowed to David — Dash/Atlas push to feature/UAT
 only; `main` is David's explicit lane.
+
+The `gate-atlas-main-block` required status check is `main`-only — it
+references the [`.github/workflows/gate-atlas-main-block.yml`](../../.github/workflows/gate-atlas-main-block.yml)
+workflow, which fails any PR where `bluesky-atlas[bot]` (or the `@atlas`
+human handle, when confirmed) posts `event: APPROVE` against a PR whose
+`base.ref == 'main'`. The §6.1 / §6.2 `develop` and `UAT` payloads
+deliberately omit this context so Atlas's codeowner approval continues to
+satisfy those gates per §2.1.
 
 ### 6.4 Review-team gate via Repository Ruleset — Apps pinned via single-member Teams
 

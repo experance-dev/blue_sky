@@ -1,0 +1,70 @@
+# Gate — block Atlas codeowner approvals on PRs targeting `main`
+#
+# Protocol §1.2 + §2.2 + §3 + §6.3: David is the sole codeowner approver on
+# `main`. CODEOWNERS lists both David and Atlas as codeowners (so either
+# satisfies `require_code_owner_reviews` on `develop` / `UAT`), and the
+# `main`-only restriction is a protocol rule + push-allowlist narrowing — not
+# something the CODEOWNERS file can encode by branch. This workflow closes the
+# gap by failing any PR where `bluesky-atlas[bot]` (or the human `@atlas`
+# handle, once confirmed) posts `event: APPROVE` against a PR whose
+# `base.ref == 'main'`.
+#
+# Mark as a required status check on `main` only — the Ruleset payload at
+# §6.4 of [`docs/operations/pr-gate-protocol.md`](../../docs/operations/pr-gate-protocol.md)
+# lists `gate-atlas-main-block` in `required_status_checks.contexts` for the
+# `main` ref include, leaving `develop` and `UAT` unaffected.
+#
+# Failure mode: hard fail with annotated message pointing at the protocol
+# section. The PR cannot merge to `main` until the offending Atlas approval
+# is dismissed and replaced by David's.
+
+name: gate-atlas-main-block
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  block-atlas-on-main:
+    # Only evaluate on PRs targeting main.
+    if: github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Block Atlas codeowner approval on main
+        env:
+          REVIEWER_LOGIN: ${{ github.event.review.user.login }}
+          REVIEW_STATE: ${{ github.event.review.state }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          # Identities that count as "Atlas" for this gate.
+          # - bluesky-atlas[bot] — the Tier A orchestrator App
+          # - atlas              — placeholder for the human handle, if/when used
+          #                        (TODO: confirm canonical handle; see
+          #                        docs/operations/pr-gate-protocol.md §5.3)
+          atlas_identities=(
+            "bluesky-atlas[bot]"
+            "bluesky-atlas"
+            "atlas"
+          )
+
+          is_atlas=false
+          for id in "${atlas_identities[@]}"; do
+            if [[ "$REVIEWER_LOGIN" == "$id" ]]; then
+              is_atlas=true
+              break
+            fi
+          done
+
+          if [[ "$is_atlas" == "true" && "$REVIEW_STATE" == "approved" ]]; then
+            echo "::error title=Atlas codeowner approval blocked on main::Reviewer '$REVIEWER_LOGIN' posted event:APPROVE on PR #${PR_NUMBER} targeting '${BASE_REF}'. Protocol §6.3 reserves main-branch codeowner approval for @david-wood only. Dismiss this approval and route to David. See docs/operations/pr-gate-protocol.md §1.2 and §2.2."
+            exit 1
+          fi
+
+          echo "No Atlas approval on main detected (reviewer='$REVIEWER_LOGIN', state='$REVIEW_STATE', base='$BASE_REF'). Gate passes."

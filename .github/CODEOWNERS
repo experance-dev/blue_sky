@@ -64,18 +64,28 @@
 
 # ----------------------------------------------------------------------------
 # Security-sensitive metadata — Sage reviewer App co-owns with David
-# (permsets, profiles, sharing rules, custom permissions)
+# (permsets, profiles, sharing rules, custom permissions, auth surfaces, UI
+# surfaces that gate visibility — Connected Apps, Named/External Credentials,
+# Remote Site Settings, CSP Trusted Sites, Apps, FlexiPages)
 # ----------------------------------------------------------------------------
-/force-app/**/permissionsets/    @experance-dev/reviewer-sage @david-wood
-/force-app/**/profiles/          @experance-dev/reviewer-sage @david-wood
-/force-app/**/sharingRules/      @experance-dev/reviewer-sage @david-wood
-/force-app/**/customPermissions/ @experance-dev/reviewer-sage @david-wood
+/force-app/**/permissionsets/      @experance-dev/reviewer-sage @david-wood
+/force-app/**/profiles/            @experance-dev/reviewer-sage @david-wood
+/force-app/**/sharingRules/        @experance-dev/reviewer-sage @david-wood
+/force-app/**/customPermissions/   @experance-dev/reviewer-sage @david-wood
+/force-app/**/connectedApps/       @experance-dev/reviewer-sage @david-wood
+/force-app/**/namedCredentials/    @experance-dev/reviewer-sage @david-wood
+/force-app/**/externalCredentials/ @experance-dev/reviewer-sage @david-wood
+/force-app/**/remoteSiteSettings/  @experance-dev/reviewer-sage @david-wood
+/force-app/**/cspTrustedSites/     @experance-dev/reviewer-sage @david-wood
+/force-app/**/applications/        @experance-dev/reviewer-sage @david-wood
+/force-app/**/flexipages/          @experance-dev/reviewer-sage @david-wood
 
 # ----------------------------------------------------------------------------
-# Schema veto — Helix worker App co-owns with David
-# (Custom objects, fields, record types — schema changes ripple everywhere)
+# Schema veto — Helix worker App + Sage reviewer App co-own with David
+# (Custom objects, fields, record types — schema changes ripple everywhere;
+# Sage co-owns because schema shape drives FLS / sharing / OWD posture)
 # ----------------------------------------------------------------------------
-/force-app/**/objects/ @experance-dev/worker-helix @david-wood
+/force-app/**/objects/ @experance-dev/worker-helix @experance-dev/reviewer-sage @david-wood
 
 # ----------------------------------------------------------------------------
 # CI / workflows — Dash worker App co-owns with David
