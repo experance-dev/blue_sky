@@ -17,6 +17,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "chore/**"
       - develop
       - UAT
       - main

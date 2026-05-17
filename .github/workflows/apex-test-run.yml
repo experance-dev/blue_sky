@@ -21,6 +21,7 @@ on:
   push:
     branches:
       - "feature/**"
+      - "chore/**"
       - develop
       - UAT
       - main
@@ -66,6 +67,45 @@ jobs:
 
       - name: Print CLI version (audit trail)
         run: sf --version
+
+      - name: Preflight — verify required GitHub Actions secrets are set
+        # Fails LOUD when David hasn't yet provisioned the three repo secrets
+        # the JWT auth flow needs. A missing secret evaluates to empty string
+        # in GitHub Actions, which would otherwise crash several steps later
+        # with opaque errors ("process exit 1"). This step turns that into a
+        # single human-readable error message naming every missing secret +
+        # the exact `gh secret set` command to provision it.
+        env:
+          SF_CONSUMER_KEY: ${{ secrets.SF_CONSUMER_KEY }}
+          SF_JWT_KEY: ${{ secrets.SF_JWT_KEY }}
+          SF_DEVHUB_USERNAME: ${{ secrets.SF_DEVHUB_USERNAME }}
+        run: |
+          set -eo pipefail
+          MISSING=""
+          [ -z "${SF_CONSUMER_KEY}" ]   && MISSING="${MISSING} SF_CONSUMER_KEY"
+          [ -z "${SF_JWT_KEY}" ]        && MISSING="${MISSING} SF_JWT_KEY"
+          [ -z "${SF_DEVHUB_USERNAME}" ] && MISSING="${MISSING} SF_DEVHUB_USERNAME"
+
+          if [ -n "${MISSING}" ]; then
+            echo "::error title=CI secrets missing::Required GitHub Actions secrets are not set:${MISSING}"
+            echo ""
+            echo "This workflow auths a Dev Hub via JWT bearer flow, then creates"
+            echo "a per-PR scratch org for the test run. All three secrets are required:"
+            echo ""
+            echo "  SF_CONSUMER_KEY     — Connected App consumer key (CI JWT app)"
+            echo "  SF_JWT_KEY          — PEM private key matching the app's cert"
+            echo "  SF_DEVHUB_USERNAME  — Dev Hub user authorized for the app"
+            echo ""
+            echo "Provision via gh CLI (repo root):"
+            echo "  gh secret set SF_CONSUMER_KEY    --body \"<consumer-key>\""
+            echo "  gh secret set SF_JWT_KEY         < path/to/server.key"
+            echo "  gh secret set SF_DEVHUB_USERNAME --body \"<devhub-username>\""
+            echo ""
+            echo "Or via repo Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+
+          echo "All three CI secrets present — proceeding to JWT auth."
 
       - name: Write JWT private key to disk
         # File-mode 600; cleaned up at job end via runner ephemerality.
