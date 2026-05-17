@@ -6,11 +6,12 @@
  *              to a method on this class.
  *
  * @group Opportunity
- *
- * Change Log:
- * | Date       | Ticket   | Author     | Description                                                                       |
- * |------------|----------|------------|-----------------------------------------------------------------------------------|
- * | 2026-05-12 | CSI-7162 | David Wood | Wire Opportunity to Jira-push integration via Platform Events          |
+ * @author David Wood
+ * @since May 2026
+ * @last 2026-05-12 — CSI-7162: wire Opportunity to Jira-push integration via
+ *                    Platform Events. v1 ships filter-free (publishes for every
+ *                    Opportunity); business-rule filters layered on in a follow-up
+ *                    modification when business supplies them.
  */
 public with sharing class OpportunityService {
   private static final String ALREADY_CLONED = 'Already_Cloned__c';
@@ -36,6 +37,14 @@ public with sharing class OpportunityService {
    * @description After-insert entry point. Every newly-created Opportunity
    *              gets pushed - the initial sync establishes the Jira link,
    *              so no filter is applied.
+   *
+   *              v1 design choice (CSI-7162): no business-rule filter
+   *              precondition. The pipeline publishes for ALL Opportunities
+   *              by record type. David will supply the actual filter rules
+   *              from the business in a follow-up modification; this method
+   *              will be patched then to add the precondition. Keeping it
+   *              empty for now is intentional scope discipline — ship the
+   *              pipeline first, layer the rules on top.
    * @param newList Trigger.new from OpportunityTriggerHandler.afterInsert.
    */
   public static void handleJiraPushInsert(List<Opportunity> newList) {
@@ -49,6 +58,12 @@ public with sharing class OpportunityService {
    * @description After-update entry point. Filters newList down to records
    *              where at least one QUALIFYING_FIELDS field changed, then
    *              delegates the publish.
+   *
+   *              v1 design choice (CSI-7162): no business-rule filter
+   *              precondition. The pipeline publishes for any Opportunity
+   *              with a qualifying-field change. David's follow-up
+   *              modification will add the business filter precondition;
+   *              shape unknown until he gets the rules from the business.
    * @param newList Trigger.new from OpportunityTriggerHandler.afterUpdate.
    * @param oldMap  Trigger.oldMap from the same trigger.
    */

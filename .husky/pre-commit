@@ -1,1 +1,54 @@
-npm run precommit
+#!/usr/bin/env sh
+# husky v9: no bootstrap source needed (core.hooksPath = .husky/_/ handles it).
+
+# pipefail: pipeline exit codes propagate (else `| tail` masks the analyzer's
+# real status and the gate below becomes unreachable).
+# Per docs/standards/sf-best-practices.md §12.5.
+set -eo pipefail
+
+# 1) Prettier + lint-staged (husky aborts on non-zero exit; no wrapper needed).
+npx lint-staged
+
+# 2) Salesforce Code Analyzer — pre-commit gate.
+#    Blocks on Critical (sev1) + High (sev2) + Medium (sev3) — severity-threshold 3.
+#    Low (sev4) passes pre-commit (caught at CI; pre-commit prioritizes speed).
+#    Info (sev5) passes always (logged only).
+#    Apex only at this stage (.cls / .trigger); LWC/JS handled in CI.
+#    Matches docs/standards/sf-best-practices.md §12.1 severity table.
+
+# Build a repeatable `--target <file>` argv list ($@) from staged Apex.
+# `sf code-analyzer run --target` is repeatable (-t <path>...), NOT comma-joined.
+# Per docs/standards/sf-best-practices.md §12.5.
+set --
+while IFS= read -r f; do
+  [ -n "$f" ] && set -- "$@" --target "$f"
+done <<EOF
+$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(cls|trigger)$' || true)
+EOF
+
+if [ "$#" -gt 0 ]; then
+  echo ""
+  echo "▶ Salesforce Code Analyzer on staged Apex (Critical+High+Medium block)..."
+  mkdir -p reports
+
+  # Run analyzer; capture exit status BEFORE the display pipe.
+  set +e
+  sf code-analyzer run \
+    "$@" \
+    --severity-threshold 3 \
+    --output-file reports/scanner-precommit.json > reports/scanner-precommit-stdout.log 2>&1
+  STATUS=$?
+  set -e
+
+  # Display tail of analyzer output (informational only — never the gate signal).
+  tail -12 reports/scanner-precommit-stdout.log || true
+
+  if [ "$STATUS" -ne 0 ]; then
+    echo ""
+    echo "❌ Code Analyzer found Critical, High, or Medium severity issues."
+    echo "   Per Zelis deployment gate, fix all findings before committing."
+    echo "   Report: reports/scanner-precommit.json"
+    echo "   Emergency bypass: git commit --no-verify (document why in commit msg)"
+    exit "$STATUS"
+  fi
+fi

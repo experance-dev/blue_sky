@@ -10,11 +10,12 @@
  *              Id + ':' + ChangeType. Tests assert on the full shape.
  *
  * @group Opportunity
- *
- * Change Log:
- * | Date       | Ticket   | Author      | Description                                                          |
- * |------------|----------|-------------|----------------------------------------------------------------------|
- * | 2026-05-12 | CSI-7162 | David Wood  | Tests for Opportunity Jira-push routing: bulk, field coverage, idempotency, perm-denial |
+ * @see OpportunityService
+ * @author David Wood
+ * @since May 2026
+ * @last 2026-05-12 — CSI-7162: tests for Opportunity Jira-push routing — bulk,
+ *                    per-qualifying-field coverage, re-fire idempotency,
+ *                    USER_MODE perm-denial, recursion-guard key shape (H4).
  */
 @IsTest
 private class OpportunityServiceTest {
@@ -539,14 +540,31 @@ private class OpportunityServiceTest {
 
   /**
    * @description processEnrollmentRequests issues a SOQL and enqueues a
-   *              job when matching Opportunities exist. With no matching
-   *              rows in test scope, the job still enqueues with an
-   *              empty input map. We just need the method to complete
-   *              without throwing - that covers the QueryBuilder /
+   *              GetEnrollmentStatus job. The Queueable fires an HTTP callout
+   *              to the enrollment service when it runs; under Test.stopTest()
+   *              it executes synchronously, so a mock must be registered or
+   *              the platform throws "Methods defined as TestMethod do not
+   *              support Web service callouts." We just need the method to
+   *              complete without throwing - covers the QueryBuilder /
    *              OpportunitySelector / GetEnrollmentStatus wiring.
+   *
+   *              Sister principle to feedback-no-real-emails-from-tests: no
+   *              real outbound from tests, callout or otherwise. Captured as
+   *              a 200/OK with an empty JSON body because the Queueable
+   *              tolerates empty inputs gracefully.
    */
   @IsTest
   static void testProcessEnrollmentRequestsCompletesWithNoMatchingRecords() {
+    Test.setMock(
+      HttpCalloutMock.class,
+      new HttpCalloutMockFactory(
+        200,
+        'OK',
+        '{}',
+        new Map<String, String>{ 'Content-Type' => 'application/json' }
+      )
+    );
+
     Test.startTest();
     try {
       OpportunityService.processEnrollmentRequests();
