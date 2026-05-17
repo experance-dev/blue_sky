@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<LightningComponentBundle xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>66.0</apiVersion>
+    <description
+  >LightningModal for creating or editing a Touch_Routing_Rule__mdt row. Opened by c-engagement-rule-coverage.</description>
+    <isExposed>false</isExposed>
+    <masterLabel>Touch Routing Rule Modal</masterLabel>
+</LightningComponentBundle>

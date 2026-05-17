@@ -4,13 +4,13 @@ Operations + triage procedures for the Jira-push pipeline. For the architecture,
 
 ## At-a-glance
 
-| Q | A |
-| --- | --- |
-| What fires a push? | Opportunity insert; Opportunity update where any field in [`JIRA_QUALIFYING_FIELDS`](../../force-app/main/default/classes/OpportunityService.cls) changed. |
-| What's pushed to Jira? | The record Id only. Jira pulls field values back from Salesforce via JCFS mapping. |
-| Where do failures land? | [`API_Exception_Log__c`](../../force-app/main/default/objects/API_Exception_Log__c/API_Exception_Log__c.object-meta.xml). |
-| Kill switch? | `Jira_Push_Object__mdt.Active__c = false` per SObject. Gated on **both** publish and consume sides (Boomer's M1 fix) — flipping it stops events at the bus entry, not just at JCFS dispatch. See [Disable / re-enable](#disable--re-enable-the-push). |
-| Retry on failure? | **None.** Manual replay only — see [Replay a dropped push](#replay-a-dropped-push). |
+| Q                       | A                                                                                                                                                                                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What fires a push?      | Opportunity insert; Opportunity update where any field in [`JIRA_QUALIFYING_FIELDS`](../../force-app/main/default/classes/OpportunityService.cls) changed.                                                                                            |
+| What's pushed to Jira?  | The record Id only. Jira pulls field values back from Salesforce via JCFS mapping.                                                                                                                                                                    |
+| Where do failures land? | [`API_Exception_Log__c`](../../force-app/main/default/objects/API_Exception_Log__c/API_Exception_Log__c.object-meta.xml).                                                                                                                             |
+| Kill switch?            | `Jira_Push_Object__mdt.Active__c = false` per SObject. Gated on **both** publish and consume sides (Boomer's M1 fix) — flipping it stops events at the bus entry, not just at JCFS dispatch. See [Disable / re-enable](#disable--re-enable-the-push). |
+| Retry on failure?       | **None.** Manual replay only — see [Replay a dropped push](#replay-a-dropped-push).                                                                                                                                                                   |
 
 ## How to verify a push fired
 
@@ -41,7 +41,7 @@ What "success" looks like:
 3. `API_Exception_Log__c` count is unchanged.
 4. Jira side: the corresponding Jira issue's Salesforce-mapped fields reflect the new stage within a minute or two (Appfire JCFS sync cadence depends on the JCFS configuration in Jira).
 
-If the `Publishing ...` log line shows but `API_Exception_Log__c` grew by one or more rows: a downstream step failed. Run the [Inspect API_Exception_Log__c](#inspect-api_exception_log__c) query below.
+If the `Publishing ...` log line shows but `API_Exception_Log__c` grew by one or more rows: a downstream step failed. Run the [Inspect API_Exception_Log\_\_c](#inspect-api_exception_log__c) query below.
 
 ## Inspect `API_Exception_Log__c`
 
@@ -65,27 +65,27 @@ ORDER BY CreatedDate DESC
 
 Typical `Operation__c` values for CSI-7162:
 
-| Operation | Meaning | Most likely cause |
-| --- | --- | --- |
-| `Jira_Push_Request__e.process` | Malformed `Source_Id__c` on the platform event | Bad publisher code (shouldn't happen from `JiraPushService`). `Exception_Type__c` will now be `JiraPushDispatcher.JiraPushDispatcherException` — Boomer's M3 fix routes the typed exception through the logger. |
-| `pushOne` | Unknown SObject API name | A `Jira_Push_Object__mdt` row references an SObject that no longer exists |
-| `pushOne (list construction)` | `Type.forName('List<' + sobjectName + '>')` failed for the whole batch | Malformed CMDT `SObject_API_Name__c`. Aborts that SObject's batch. |
-| `pushOne (newSObject)` | One Id's key prefix didn't match the SObject type | Cross-wired CMDT or hand-crafted bad data. Now scoped per-Id (Boomer's M2 fix): one bad Id no longer kills the whole batch — 199 good Ids still ship, the one bad Id gets its own log row. |
-| `JCFS.API.pushUpdatesToJira` | Whole-batch JCFS exception | Jira down, JCFS auth expired, payload rejected for the whole batch — read `Message__c` + `Stack_Trace__c` |
-| `JCFS.API.pushUpdatesToJira (per-record)` | JCFS rejected a single record | New as of Boomer's H3 fix. `Source_Record_Id__c` identifies which record; `Message__c` carries the per-record `errorMessage` from `JcfsPushResult`. |
-| `EventBus.publish(Jira_Push_Request__e)` | PE publish failure | Rare. Org-level platform-event limits, schema mismatch |
-| `logApiException` (in `Class__c` = `Logger`) | `API_Exception_Log__c` insert itself failed | Should be zero — the row is now persisted under `AccessLevel.SYSTEM_MODE` per [ADR-0002](../architecture/decisions/0002-logger-system-mode-for-api-exceptions.md). If you see this, check for required-field misconfiguration or validation rules on `API_Exception_Log__c`. |
+| Operation                                    | Meaning                                                                | Most likely cause                                                                                                                                                                                                                                                            |
+| -------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Jira_Push_Request__e.process`               | Malformed `Source_Id__c` on the platform event                         | Bad publisher code (shouldn't happen from `JiraPushService`). `Exception_Type__c` will now be `JiraPushDispatcher.JiraPushDispatcherException` — Boomer's M3 fix routes the typed exception through the logger.                                                              |
+| `pushOne`                                    | Unknown SObject API name                                               | A `Jira_Push_Object__mdt` row references an SObject that no longer exists                                                                                                                                                                                                    |
+| `pushOne (list construction)`                | `Type.forName('List<' + sobjectName + '>')` failed for the whole batch | Malformed CMDT `SObject_API_Name__c`. Aborts that SObject's batch.                                                                                                                                                                                                           |
+| `pushOne (newSObject)`                       | One Id's key prefix didn't match the SObject type                      | Cross-wired CMDT or hand-crafted bad data. Now scoped per-Id (Boomer's M2 fix): one bad Id no longer kills the whole batch — 199 good Ids still ship, the one bad Id gets its own log row.                                                                                   |
+| `JCFS.API.pushUpdatesToJira`                 | Whole-batch JCFS exception                                             | Jira down, JCFS auth expired, payload rejected for the whole batch — read `Message__c` + `Stack_Trace__c`                                                                                                                                                                    |
+| `JCFS.API.pushUpdatesToJira (per-record)`    | JCFS rejected a single record                                          | New as of Boomer's H3 fix. `Source_Record_Id__c` identifies which record; `Message__c` carries the per-record `errorMessage` from `JcfsPushResult`.                                                                                                                          |
+| `EventBus.publish(Jira_Push_Request__e)`     | PE publish failure                                                     | Rare. Org-level platform-event limits, schema mismatch                                                                                                                                                                                                                       |
+| `logApiException` (in `Class__c` = `Logger`) | `API_Exception_Log__c` insert itself failed                            | Should be zero — the row is now persisted under `AccessLevel.SYSTEM_MODE` per [ADR-0002](../architecture/decisions/0002-logger-system-mode-for-api-exceptions.md). If you see this, check for required-field misconfiguration or validation rules on `API_Exception_Log__c`. |
 
 ### Per-record `JcfsPushResult` shape
 
 When you see rows tagged `Operation__c = 'JCFS.API.pushUpdatesToJira (per-record)'`, the `Message__c` carries the per-record diagnostic. The DTO underneath is [`JiraPushDispatcher.JcfsPushResult`](../../force-app/main/default/classes/JiraPushDispatcher.cls):
 
-| DTO field | Where it lands in `API_Exception_Log__c` |
-| --- | --- |
-| `recordId` | `Source_Record_Id__c` |
-| `success = false` | (implied — only failures get a row) |
-| `errorMessage` | `Message__c` (prefixed `'JCFS rejected record: '`) |
-| `jiraIssueKey` | (success-only — appears in the `Logger.info` debug line, not in `API_Exception_Log__c`) |
+| DTO field         | Where it lands in `API_Exception_Log__c`                                                |
+| ----------------- | --------------------------------------------------------------------------------------- |
+| `recordId`        | `Source_Record_Id__c`                                                                   |
+| `success = false` | (implied — only failures get a row)                                                     |
+| `errorMessage`    | `Message__c` (prefixed `'JCFS rejected record: '`)                                      |
+| `jiraIssueKey`    | (success-only — appears in the `Logger.info` debug line, not in `API_Exception_Log__c`) |
 
 For the success path, look at the org's debug log filtered to `JiraPushDispatcher.pushOne`:
 
@@ -194,17 +194,17 @@ Stay under the per-transaction PE publish limit (currently 150,000 per hour at t
 
 Required components in the target org:
 
-| Component | Path | Notes |
-| --- | --- | --- |
-| Platform event | [`Jira_Push_Request__e`](../../force-app/main/default/objects/Jira_Push_Request__e/Jira_Push_Request__e.object-meta.xml) | `HighVolume`, `PublishAfterCommit`. Five custom fields (`Source_Object__c`, `Source_Id__c`, `Change_Type__c`, `Event_Timestamp__c`, `Transaction_Id__c`). |
-| PE trigger | [`JiraPushRequestTrigger`](../../force-app/main/default/triggers/JiraPushRequestTrigger.trigger) | One-liner. |
-| Custom object | [`API_Exception_Log__c`](../../force-app/main/default/objects/API_Exception_Log__c/API_Exception_Log__c.object-meta.xml) | Private sharing, auto-number `AEL-{00000}`. Insert runs `AccessLevel.SYSTEM_MODE` — see [ADR-0002](../architecture/decisions/0002-logger-system-mode-for-api-exceptions.md). |
-| Custom metadata type | [`Jira_Push_Object__mdt`](../../force-app/main/default/objects/Jira_Push_Object__mdt/Jira_Push_Object__mdt.object-meta.xml) | Four fields: `SObject_API_Name__c`, `Active__c`, `Jira_Project_Id__c`, `Jira_Issue_Type__c`. |
-| CMDT records | [`Jira_Push_Object.Opportunity.md-meta.xml`](../../force-app/main/default/customMetadata/Jira_Push_Object.Opportunity.md-meta.xml), [`Jira_Push_Object.Case.md-meta.xml`](../../force-app/main/default/customMetadata/Jira_Push_Object.Case.md-meta.xml) | Ship with `Active__c = true`, `Jira_Project_Id__c = 'CSI'`, `Jira_Issue_Type__c = 'Story'`. |
-| Apex classes | `JcfsApiAdapter`, `JiraPushDispatcher`, `JiraPushRequestHandler`, `JiraPushService`, `OpportunityService`, `OpportunityTriggerHandler` (+ test classes inc. `JiraPushTestFixtures`) | See [`docs/development/classes/`](../development/classes/). |
-| Triggers | `OpportunityTrigger`, `JiraPushRequestTrigger` | Both `after insert`-shape triggers. |
-| Appfire JCFS managed package | (managed) | **Required for production push to reach Jira.** Absent at runtime → `JcfsApiAdapter` emits one `Logger.error('JCFS managed package is not installed...')` per transaction and returns failure `JcfsPushResult`s so every record gets an `API_Exception_Log__c` row. Absent at deploy time → dispatcher's `NoOpJcfsApi` does the same. |
-| Named credential / connected app | (managed by Appfire JCFS) | Salesforce side does not maintain a Named Credential for Jira — the JCFS package owns the auth. Confirm with the Jira admin that the JCFS connector is healthy before go-live. |
+| Component                        | Path                                                                                                                                                                                                                                                     | Notes                                                                                                                                                                                                                                                                                                                                 |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Platform event                   | [`Jira_Push_Request__e`](../../force-app/main/default/objects/Jira_Push_Request__e/Jira_Push_Request__e.object-meta.xml)                                                                                                                                 | `HighVolume`, `PublishAfterCommit`. Five custom fields (`Source_Object__c`, `Source_Id__c`, `Change_Type__c`, `Event_Timestamp__c`, `Transaction_Id__c`).                                                                                                                                                                             |
+| PE trigger                       | [`JiraPushRequestTrigger`](../../force-app/main/default/triggers/JiraPushRequestTrigger.trigger)                                                                                                                                                         | One-liner.                                                                                                                                                                                                                                                                                                                            |
+| Custom object                    | [`API_Exception_Log__c`](../../force-app/main/default/objects/API_Exception_Log__c/API_Exception_Log__c.object-meta.xml)                                                                                                                                 | Private sharing, auto-number `AEL-{00000}`. Insert runs `AccessLevel.SYSTEM_MODE` — see [ADR-0002](../architecture/decisions/0002-logger-system-mode-for-api-exceptions.md).                                                                                                                                                          |
+| Custom metadata type             | [`Jira_Push_Object__mdt`](../../force-app/main/default/objects/Jira_Push_Object__mdt/Jira_Push_Object__mdt.object-meta.xml)                                                                                                                              | Four fields: `SObject_API_Name__c`, `Active__c`, `Jira_Project_Id__c`, `Jira_Issue_Type__c`.                                                                                                                                                                                                                                          |
+| CMDT records                     | [`Jira_Push_Object.Opportunity.md-meta.xml`](../../force-app/main/default/customMetadata/Jira_Push_Object.Opportunity.md-meta.xml), [`Jira_Push_Object.Case.md-meta.xml`](../../force-app/main/default/customMetadata/Jira_Push_Object.Case.md-meta.xml) | Ship with `Active__c = true`, `Jira_Project_Id__c = 'CSI'`, `Jira_Issue_Type__c = 'Story'`.                                                                                                                                                                                                                                           |
+| Apex classes                     | `JcfsApiAdapter`, `JiraPushDispatcher`, `JiraPushRequestHandler`, `JiraPushService`, `OpportunityService`, `OpportunityTriggerHandler` (+ test classes inc. `JiraPushTestFixtures`)                                                                      | See [`docs/development/classes/`](../development/classes/).                                                                                                                                                                                                                                                                           |
+| Triggers                         | `OpportunityTrigger`, `JiraPushRequestTrigger`                                                                                                                                                                                                           | Both `after insert`-shape triggers.                                                                                                                                                                                                                                                                                                   |
+| Appfire JCFS managed package     | (managed)                                                                                                                                                                                                                                                | **Required for production push to reach Jira.** Absent at runtime → `JcfsApiAdapter` emits one `Logger.error('JCFS managed package is not installed...')` per transaction and returns failure `JcfsPushResult`s so every record gets an `API_Exception_Log__c` row. Absent at deploy time → dispatcher's `NoOpJcfsApi` does the same. |
+| Named credential / connected app | (managed by Appfire JCFS)                                                                                                                                                                                                                                | Salesforce side does not maintain a Named Credential for Jira — the JCFS package owns the auth. Confirm with the Jira admin that the JCFS connector is healthy before go-live.                                                                                                                                                        |
 
 Manifest: [`manifest/package.xml`](../../manifest/package.xml). The CSI-7162 commit `5b2ae52` (_"add Salesforce package.xml deploy manifest"_) is the source of record.
 

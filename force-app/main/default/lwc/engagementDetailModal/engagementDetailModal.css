@@ -1,0 +1,231 @@
+/* engagementDetailModal — large modal, full engagement history */
+
+.engagement-list {
+  border-top: 1px solid #e5e5e5;
+}
+
+.engagement-list__item {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.engagement-row {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.engagement-row:hover,
+.engagement-row:focus {
+  background-color: #fafaf9;
+  outline: none;
+}
+
+.engagement-row[aria-expanded="true"] {
+  background-color: #f3f9fd;
+}
+
+.engagement-row__detail ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.asset-row {
+  border-bottom: 1px dashed #e5e5e5;
+}
+
+.asset-row:last-child {
+  border-bottom: none;
+}
+
+.asset-row__count {
+  background-color: #fef5e8;
+  color: #b25700;
+  font-weight: 600;
+}
+
+.add-to-team-btn {
+  --slds-c-button-color-background: #fff;
+}
+
+.slds-shrink-none {
+  flex: 0 0 auto;
+}
+
+.slds-grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ─── Stats strip ─────────────────────────────────────────────────────── */
+
+.stats-strip {
+  margin-bottom: 1rem;
+}
+
+.stat-tile {
+  background: #ffffff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  text-align: center;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.stat-tile:hover {
+  border-color: #2e75b6;
+  box-shadow: 0 1px 4px rgba(46, 117, 182, 0.15);
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #706e6b;
+  margin: 0 0 0.25rem 0;
+  font-weight: 600;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #16325c;
+  margin: 0 0 0.25rem 0;
+}
+
+.stat-value_text {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  color: #2e75b6;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+.stat-value_gap {
+  color: #c23934;
+}
+
+.stat-sub {
+  font-size: 0.75rem;
+  color: #706e6b;
+  margin: 0;
+}
+
+/* ─── Buying-motion timeline (vertical right rail) ────────────────────── */
+
+.detail-body {
+  align-items: stretch;
+}
+
+.timeline-container {
+  padding-left: 0.75rem;
+  border-left: 1px solid #e5e5e5;
+  height: 100%;
+  min-height: 320px;
+}
+
+.timeline-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #706e6b;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+}
+
+.timeline-axis {
+  position: relative;
+  height: 520px;
+  /* Vertical line down the middle-left of the right rail */
+  background: linear-gradient(
+      to right,
+      transparent 0,
+      transparent 47px,
+      #c9c9c9 47px,
+      #c9c9c9 48px,
+      transparent 48px
+    )
+    0 0 / 100% 100% no-repeat;
+}
+
+.timeline-container_focused .timeline-axis {
+  background-color: rgba(46, 117, 182, 0.04);
+}
+
+.timeline-scale-label {
+  position: absolute;
+  left: 0;
+  width: 42px;
+  text-align: right;
+  font-size: 0.6875rem;
+  color: #706e6b;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.timeline-tick {
+  position: absolute;
+  left: 44px;
+  width: 8px;
+  height: 1px;
+  background: #706e6b;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.timeline-tick_break {
+  width: 14px;
+  height: 2px;
+  background: #2e75b6;
+}
+
+.timeline-scale-label_break {
+  color: #2e75b6;
+  font-weight: 600;
+}
+
+.timeline-square {
+  position: absolute;
+  left: 56px;
+  width: 10px;
+  height: 10px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.timeline-square:hover {
+  transform: translateY(-50%) scale(1.5);
+  z-index: 2;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ─── Dismiss button (visible on row hover/focus) ────────────────────── */
+
+.dismiss-row-button {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.engagement-row:hover .dismiss-row-button,
+.engagement-row:focus-within .dismiss-row-button {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── Contact / record hotlinks ──────────────────────────────────────── */
+
+.contact-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+  color: #2e75b6;
+}

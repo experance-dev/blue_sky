@@ -10,12 +10,16 @@
 private without sharing class PricebookUtilTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUser();
+    TestFactory.createTestUserFromPermissionSet(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    );
   }
 
   @IsTest
   static void testGetStandardPricebookIdSytemContext() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    )) {
       // Setup: inject null to reset cached value
       PricebookUtil.testStandardPricebookId = null;
 

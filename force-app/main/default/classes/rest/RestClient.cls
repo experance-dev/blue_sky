@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Intelligent abstraction for making REST callouts to external
  *              endpoints via Named Credentials. Designated virtual so that
@@ -21,7 +26,8 @@ public with sharing virtual class RestClient {
   /**
    * @description Custom exception for all RestClient callout failures.
    */
-  public class RestClientException extends UtilitiesModuleException {}
+  public class RestClientException extends UtilitiesModuleException {
+  }
 
   /**
    * This property determines whether a trailing slash should be added to the

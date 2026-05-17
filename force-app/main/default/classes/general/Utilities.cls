@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description This class provides a set of utility methods for various common tasks in Apex.
  * @license Licensed under Creative Commons Attribution 4.0 International. Use, distribute, and modify this code as you see fit.

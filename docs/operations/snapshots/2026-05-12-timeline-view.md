@@ -1,0 +1,649 @@
+- generic:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - link [ref=e795] [cursor=pointer]:
+        - /url: javascript:void(0);
+        - text: Skip to Navigation
+      - link [ref=e796] [cursor=pointer]:
+        - /url: javascript:void(0);
+        - text: Skip to Main Content
+      - generic [ref=e10]:
+        - generic [ref=e14]:
+          - button [ref=e797] [cursor=pointer]:
+            - img [ref=e22]
+            - generic [ref=e25]: Menu
+          - generic [ref=e30]:
+            - img [ref=e34]
+            - generic [ref=e37]: Scratch Org
+        - button [ref=e798] [cursor=pointer]:
+          - img [ref=e48]
+          - generic [ref=e51]: Show menu
+      - generic [ref=e52]:
+        - button [ref=e799]:
+          - img [ref=e60]
+          - text: Search...
+        - navigation [ref=e800]:
+          - list [ref=e65]:
+            - listitem [ref=e66]:
+              - group [ref=e67]:
+                - button [ref=e801] [cursor=pointer]:
+                  - img [ref=e74]
+                - button [ref=e802] [cursor=pointer]:
+                  - img [ref=e83]
+            - listitem [ref=e86]:
+              - button [ref=e803] [cursor=pointer]:
+                - img [ref=e97]
+            - listitem [ref=e100]:
+              - button [ref=e804] [cursor=pointer]:
+                - img [ref=e107]
+            - listitem [ref=e110]:
+              - button [ref=e805] [cursor=pointer]:
+                - img [ref=e118]
+            - listitem [ref=e121]:
+              - button [ref=e806] [cursor=pointer]:
+                - img [ref=e132]
+            - listitem [ref=e135]:
+              - button [ref=e807] [cursor=pointer]:
+                - img [ref=e144]
+            - listitem [ref=e148]:
+              - button [ref=e808] [cursor=pointer]
+    - generic [ref=e156]:
+      - generic [ref=e159]:
+        - generic [ref=e161]:
+          - navigation [ref=e809]:
+            - button [ref=e810] [cursor=pointer]:
+              - generic [ref=e175]: App Launcher
+          - heading [level=1] [ref=e811]:
+            - generic [ref=e812]: Sales
+        - navigation [ref=e813]:
+          - list [ref=e181]:
+            - listitem [ref=e182]:
+              - link [ref=e814] [cursor=pointer]:
+                - /url: /lightning/page/home
+                - generic [ref=e184]: Home
+            - listitem [ref=e185]:
+              - link [ref=e815] [cursor=pointer]:
+                - /url: /lightning/page/chatter
+                - generic [ref=e187]: Chatter
+            - listitem [ref=e188] [cursor=pointer]:
+              - link [ref=e816]:
+                - /url: /lightning/o/Opportunity/home
+                - generic [ref=e190]: Opportunities
+              - button [ref=e817]:
+                - img [ref=e198]
+                - generic [ref=e201]: Opportunities List
+            - listitem [ref=e202]:
+              - link [ref=e818] [cursor=pointer]:
+                - /url: /lightning/o/Lead/home
+                - generic [ref=e204]: Leads
+              - button [ref=e819] [cursor=pointer]:
+                - img [ref=e212]
+                - generic [ref=e215]: Leads List
+            - listitem [ref=e216]:
+              - link [ref=e820] [cursor=pointer]:
+                - /url: /lightning/o/Task/home
+                - generic [ref=e218]: Tasks
+              - button [ref=e821] [cursor=pointer]:
+                - img [ref=e226]
+                - generic [ref=e229]: Tasks List
+            - listitem [ref=e230]:
+              - link [ref=e822] [cursor=pointer]:
+                - /url: /lightning/o/ContentDocument/home
+                - generic [ref=e232]: Files
+              - button [ref=e823] [cursor=pointer]:
+                - img [ref=e240]
+                - generic [ref=e243]: Files List
+            - listitem [ref=e244]:
+              - link [ref=e824] [cursor=pointer]:
+                - /url: /lightning/o/Account/home
+                - generic [ref=e246]: Accounts
+              - button [ref=e825] [cursor=pointer]:
+                - img [ref=e254]
+                - generic [ref=e257]: Accounts List
+            - listitem [ref=e258]:
+              - link [ref=e826] [cursor=pointer]:
+                - /url: /lightning/o/Contact/home
+                - generic [ref=e260]: Contacts
+              - button [ref=e827] [cursor=pointer]:
+                - img [ref=e268]
+                - generic [ref=e271]: Contacts List
+            - listitem [ref=e272]:
+              - link [ref=e828] [cursor=pointer]:
+                - /url: /lightning/o/Campaign/home
+                - generic [ref=e274]: Campaigns
+              - button [ref=e829] [cursor=pointer]:
+                - img [ref=e282]
+                - generic [ref=e285]: Campaigns List
+            - listitem [ref=e286]:
+              - button [ref=e830] [cursor=pointer]:
+                - generic [ref=e289]: More
+                - img [ref=e293]
+                - generic [ref=e296]: Show more navigation items
+            - listitem [ref=e297]:
+              - button [ref=e831] [cursor=pointer]:
+                - img [ref=e301]
+                - generic [ref=e304]: Edit nav items
+      - main [ref=e306]:
+        - generic [ref=e322]:
+          - generic [ref=e331]:
+            - generic [ref=e332]:
+              - heading [level=1] [ref=e832]:
+                - generic [ref=e341]: Opportunity
+                - generic [ref=e342]: Network Pricing Implementation
+              - button [ref=e833] [cursor=pointer]:
+                - generic [ref=e348]:
+                  - img [ref=e352]
+                  - text: Follow
+              - generic [ref=e357]:
+                - button [ref=e835] [cursor=pointer]: Edit
+                - button [ref=e837] [cursor=pointer]: New Case
+                - button [ref=e839] [cursor=pointer]: New Note
+                - button [ref=e840] [cursor=pointer]:
+                  - img [ref=e379]
+                  - generic [ref=e382]: Show more actions
+            - generic [ref=e383]:
+              - generic [ref=e385]:
+                - paragraph [ref=e386]: Account Name
+                - paragraph [ref=e387]:
+                  - generic [ref=e392]:
+                    - link [ref=e841] [cursor=pointer]:
+                      - /url: /lightning/r/Account/001DP00002A1c6jYAB/view
+                      - generic [ref=e397]: United Healthcare
+                    - button [ref=e842] [cursor=pointer]:
+                      - img [ref=e401]
+                      - generic [ref=e404]: Open United Healthcare Preview
+              - generic [ref=e406]:
+                - paragraph [ref=e407]: Close Date
+                - paragraph [ref=e408]:
+                  - generic [ref=e409]: 6/25/2026
+              - generic [ref=e411]:
+                - paragraph [ref=e412]: Amount
+                - paragraph [ref=e413]:
+                  - generic [ref=e414]: $850,000.00
+              - generic [ref=e416]:
+                - paragraph [ref=e417]: Opportunity Owner
+                - paragraph [ref=e418]:
+                  - generic [ref=e421]:
+                    - generic [ref=e428]:
+                      - link [ref=e843] [cursor=pointer]:
+                        - /url: /lightning/r/User/005DP000009Y8EYYA0/view
+                        - generic [ref=e433]: User User
+                      - button [ref=e844] [cursor=pointer]:
+                        - img [ref=e437]
+                        - generic [ref=e440]: Open User User Preview
+                    - button [ref=e845] [cursor=pointer]:
+                      - img [ref=e444]
+                      - generic [ref=e447]: Change Owner
+          - article [ref=e456]:
+            - generic [ref=e457]:
+              - heading [level=2] [ref=e846]: Path
+              - generic [ref=e461]:
+                - listbox [ref=e847]:
+                  - option [ref=e848] [cursor=pointer]:
+                    - generic [ref=e468]: Prospecting
+                  - option [ref=e849] [cursor=pointer]:
+                    - generic [ref=e470]: Qualification
+                  - option [ref=e850] [cursor=pointer]:
+                    - generic [ref=e472]: Needs Analysis
+                  - option [ref=e851] [cursor=pointer]:
+                    - generic [ref=e474]: Value Proposition
+                  - option [ref=e852] [cursor=pointer]:
+                    - generic [ref=e476]: Id. Decision Makers
+                  - option [ref=e853] [cursor=pointer]:
+                    - generic [ref=e478]: Perception Analysis
+                  - option [ref=e854] [cursor=pointer]:
+                    - generic [ref=e480]: Proposal/Price Quote
+                  - option [ref=e855] [cursor=pointer]:
+                    - generic [ref=e482]: Negotiation/Review
+                  - option [ref=e856] [cursor=pointer]:
+                    - generic [ref=e484]: Closed
+                - generic [ref=e485]:
+                  - button [disabled]:
+                    - generic:
+                      - generic:
+                        - generic:
+                          - img
+                    - generic: Mark Stage as Complete
+          - generic [ref=e486]:
+            - generic [ref=e492]:
+              - heading [level=2] [ref=e857]: Tabs
+              - generic [ref=e495]:
+                - heading [level=2] [ref=e859]: Tabs
+                - tablist [ref=e860]:
+                  - tab [selected] [ref=e861] [cursor=pointer]: Activity
+                  - tab [ref=e862] [cursor=pointer]: Details
+                  - tab [ref=e863] [cursor=pointer]: Chatter
+                - tabpanel [ref=e864]:
+                  - generic [ref=e510]:
+                    - heading [level=2] [ref=e865]: Activity Publisher
+                    - generic [ref=e512]:
+                      - group [ref=e513]:
+                        - generic [ref=e515]:
+                          - button [ref=e866] [cursor=pointer]:
+                            - generic [ref=e518]
+                            - generic [ref=e524]: Log a Call
+                          - button [ref=e867] [cursor=pointer]:
+                            - img [ref=e528]
+                            - generic [ref=e531]: More Log a Call Actions
+                      - group [ref=e532]:
+                        - generic [ref=e534]:
+                          - button [ref=e868] [cursor=pointer]:
+                            - generic [ref=e537]
+                            - generic [ref=e543]: New Task
+                          - generic [ref=e544]:
+                            - button [disabled]
+                      - group [ref=e545]:
+                        - generic [ref=e547]:
+                          - button [ref=e869] [cursor=pointer]:
+                            - generic [ref=e550]
+                            - generic [ref=e556]: New Event
+                          - button [ref=e870] [cursor=pointer]:
+                            - img [ref=e560]
+                            - generic [ref=e563]: More New Event Actions
+                      - group [ref=e564]:
+                        - generic [ref=e566]:
+                          - button [ref=e871] [cursor=pointer]:
+                            - generic [ref=e569]
+                            - generic [ref=e575]: Email
+                          - button [ref=e872] [cursor=pointer]:
+                            - img [ref=e579]
+                            - generic [ref=e582]: More Email Actions
+                    - heading [level=2] [ref=e873]: Activity Timeline
+                    - generic [ref=e585]:
+                      - link [ref=e874] [cursor=pointer]:
+                        - /url: javascript:void(0);
+                        - text: Skip to the bottom of the activity timeline
+                      - generic [ref=e588]:
+                        - generic [ref=e590]: "Filters: All time • All activities • All types"
+                        - button [ref=e875] [cursor=pointer]:
+                          - img [ref=e593]
+                          - generic [ref=e596]: Timeline Settings
+                      - generic [ref=e599]:
+                        - button [ref=e876] [cursor=pointer]: Refresh
+                        - text: •
+                        - button [ref=e877] [cursor=pointer]: Expand All
+                        - text: •
+                        - button [ref=e878] [cursor=pointer]: View All
+                      - generic [ref=e604]:
+                        - heading [level=3] [ref=e879]:
+                          - button [expanded] [ref=e880] [cursor=pointer]:
+                            - img [ref=e608]
+                            - text: Upcoming & Overdue
+                        - generic [ref=e614]: No activities to show. Get started by sending an email, scheduling a task, and more.
+                      - status [ref=e615]:
+                        - generic [ref=e617]:
+                          - img [ref=e621]
+                          - generic [ref=e624]: information
+                        - paragraph [ref=e626]: To change what's shown, try changing your filters.
+                      - button [ref=e881] [cursor=pointer]: Show All Activities
+                      - link [ref=e882] [cursor=pointer]:
+                        - /url: javascript:void(0);
+                        - text: Skip to the top of the activity timeline
+            - generic [ref=e632]:
+              - article [ref=e636]:
+                - generic [ref=e638]:
+                  - generic [ref=e642]:
+                    - img [ref=e644]
+                    - generic [ref=e648]: Engagement
+                  - generic [ref=e649]:
+                    - heading [level=2] [ref=e884]:
+                      - generic [ref=e651]: Engagement Intelligence
+                    - paragraph [ref=e652]: 4 engaged
+                  - button [ref=e885] [cursor=pointer]: View all
+                - generic [ref=e655]: Deal Team — 3 on OCR
+                - generic [ref=e656]:
+                  - img [ref=e886]:
+                    - generic [ref=e887]: SJ
+                  - generic [ref=e659]:
+                    - generic [ref=e660]:
+                      - link [ref=e888] [cursor=pointer]:
+                        - /url: /lightning/r/Contact/003DP00001afQ9GYAU/view
+                        - strong [ref=e662]: Sarah Johnson
+                      - text: · Chief Financial Officer
+                    - generic [ref=e663]: 6 touches · Invalid date
+                    - list [ref=e664]:
+                      - listitem [ref=e665]: Network Management
+                  - generic [ref=e666]:
+                    - generic [ref=e889]: ✓ on team
+                    - generic:
+                      - button:
+                        - generic:
+                          - img
+                        - generic: Dismiss
+                - generic [ref=e668]:
+                  - img [ref=e890]:
+                    - generic [ref=e891]: MC
+                  - generic [ref=e671]:
+                    - generic [ref=e672]:
+                      - link [ref=e892] [cursor=pointer]:
+                        - /url: /lightning/r/Contact/003DP00001afQ9HYAU/view
+                        - strong [ref=e674]: Mike Chen
+                      - text: · VP Engineering
+                    - generic [ref=e675]: 4 touches · Invalid date
+                    - list [ref=e676]:
+                      - listitem [ref=e677]: Network Management
+                  - generic [ref=e678]:
+                    - generic [ref=e893]: ✓ on team
+                    - generic:
+                      - button:
+                        - generic:
+                          - img
+                        - generic: Dismiss
+                - generic [ref=e680]:
+                  - img [ref=e894]:
+                    - generic [ref=e895]: TD
+                  - generic [ref=e683]:
+                    - generic [ref=e684]:
+                      - link [ref=e896] [cursor=pointer]:
+                        - /url: /lightning/r/Contact/003DP00001afQ9JYAU/view
+                        - strong [ref=e686]: Tom Davis
+                      - text: · Chief Revenue Officer
+                    - generic [ref=e687]: 2 touches · Invalid date
+                    - list [ref=e688]:
+                      - listitem [ref=e689]: Network Management
+                  - generic [ref=e690]:
+                    - generic [ref=e897]: ✓ on team
+                    - generic:
+                      - button:
+                        - generic:
+                          - img
+                        - generic: Dismiss
+                - generic [ref=e692]: Engaged — not on Deal Team · 1
+                - generic [ref=e693]:
+                  - img [ref=e898]:
+                    - generic [ref=e899]: LP
+                  - generic [ref=e696]:
+                    - generic [ref=e697]:
+                      - link [ref=e900] [cursor=pointer]:
+                        - /url: /lightning/r/Contact/003DP00001afQ9IYAU/view
+                        - strong [ref=e699]: Lisa Patel
+                      - text: · Director, Network Strategy
+                    - generic [ref=e700]: 2 touches · Invalid date
+                    - list [ref=e701]:
+                      - listitem [ref=e702]: Network Management
+                  - generic [ref=e703]:
+                    - button [ref=e901] [cursor=pointer]: + Add
+                    - generic:
+                      - button:
+                        - generic:
+                          - img
+                        - generic: Dismiss
+              - generic [ref=e708]:
+                - heading [level=2] [ref=e902]: Tabs
+                - generic [ref=e711]:
+                  - heading [level=2] [ref=e904]: Tabs
+                  - tablist [ref=e905]:
+                    - tab [selected] [ref=e906] [cursor=pointer]: Related
+                  - tabpanel [ref=e907]:
+                    - generic [ref=e723]:
+                      - article [ref=e729]:
+                        - generic [ref=e730]:
+                          - img [ref=e732]
+                          - heading [level=2] [ref=e908]: Products
+                      - article [ref=e740]:
+                        - generic [ref=e741]:
+                          - img [ref=e743]
+                          - heading [level=2] [ref=e909]: Notes & Attachments
+                      - article [ref=e751]:
+                        - generic [ref=e752]:
+                          - img [ref=e754]
+                          - heading [level=2] [ref=e910]: Contact Roles
+                      - article [ref=e762]:
+                        - generic [ref=e763]:
+                          - img [ref=e765]
+                          - heading [level=2] [ref=e911]: Partners
+                      - article [ref=e773]:
+                        - generic [ref=e774]:
+                          - img [ref=e776]
+                          - heading [level=2] [ref=e912]: Stage History
+    - list [ref=e782]:
+      - listitem [ref=e783]:
+        - button [ref=e913] [cursor=pointer]:
+          - img [ref=e790]
+          - generic [ref=e793]: To Do List
+  - generic:
+    - generic:
+      - dialog [ref=e1094]:
+        - generic [ref=e916]:
+          - button [ref=e1095] [cursor=pointer]:
+            - img [ref=e920]
+            - generic [ref=e923]: Cancel and close
+          - generic [ref=e925]:
+            - heading [level=1] [ref=e1096]: Engagement Intelligence
+            - generic [ref=e931]:
+              - generic [ref=e932]:
+                - generic [ref=e934]:
+                  - paragraph [ref=e935]: Total Engaged
+                  - paragraph [ref=e936]: "4"
+                  - paragraph [ref=e937]: people
+                - generic [ref=e939]:
+                  - paragraph [ref=e940]: Total Touches
+                  - paragraph [ref=e941]: "14"
+                  - paragraph [ref=e942]: in the last 6 weeks
+                - generic [ref=e944]:
+                  - paragraph [ref=e945]: Top Topic
+                  - paragraph [ref=e946]: Network Management
+                  - paragraph [ref=e947]: 14 touches
+                - generic [ref=e949]:
+                  - paragraph [ref=e950]: Buying-Committee Gap
+                  - paragraph [ref=e951]: "1"
+                  - paragraph [ref=e952]: engaged but not on Deal Team
+              - paragraph [ref=e953]:
+                - link [ref=e1097] [cursor=pointer]:
+                  - /url: /lightning/r/Opportunity/006DP00000Oh8rIYAR/view
+                  - text: Open →
+              - generic [ref=e955]:
+                - generic [ref=e956]:
+                  - generic [ref=e957]:
+                    - radiogroup [ref=e1098]:
+                      - generic [ref=e960]: Group by
+                      - generic [ref=e962]:
+                        - generic [ref=e963]:
+                          - radio [ref=e1099]
+                          - generic [ref=e965]: Group by Person
+                        - generic [ref=e966]:
+                          - radio [ref=e1100]
+                          - generic [ref=e968]: Group by Campaign
+                    - paragraph [ref=e969]: 4 people
+                  - list [ref=e970]:
+                    - listitem [ref=e971]:
+                      - button [ref=e1101] [cursor=pointer]:
+                        - generic [ref=e973]:
+                          - img [ref=e977]
+                          - generic [ref=e980]:
+                            - link [ref=e1102]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9GYAU/view
+                            - paragraph [ref=e983]: Chief Financial Officer
+                        - generic [ref=e984]:
+                          - generic [ref=e985]: ✓ on team
+                          - generic [ref=e986]: ACR
+                          - generic [ref=e987]: 6 touches
+                          - button [ref=e1103]:
+                            - img [ref=e991]
+                            - generic [ref=e994]: Dismiss
+                    - listitem [ref=e995]:
+                      - button [ref=e1104] [cursor=pointer]:
+                        - generic [ref=e997]:
+                          - img [ref=e1001]
+                          - generic [ref=e1004]:
+                            - link [ref=e1105]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9HYAU/view
+                            - paragraph [ref=e1007]: VP Engineering
+                        - generic [ref=e1008]:
+                          - generic [ref=e1009]: ✓ on team
+                          - generic [ref=e1010]: ACR
+                          - generic [ref=e1011]: 4 touches
+                          - button [ref=e1106]:
+                            - img [ref=e1015]
+                            - generic [ref=e1018]: Dismiss
+                    - listitem [ref=e1019]:
+                      - button [ref=e1107] [cursor=pointer]:
+                        - generic [ref=e1021]:
+                          - img [ref=e1025]
+                          - generic [ref=e1028]:
+                            - link [ref=e1108]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9IYAU/view
+                            - paragraph [ref=e1031]: Director, Network Strategy
+                        - generic [ref=e1032]:
+                          - generic [ref=e1033]: ACR
+                          - generic [ref=e1034]: 2 touches
+                          - button [ref=e1109]:
+                            - img [ref=e1038]
+                            - generic [ref=e1041]: Add to Deal Team
+                          - button [ref=e1110]:
+                            - img [ref=e1045]
+                            - generic [ref=e1048]: Dismiss
+                    - listitem [ref=e1049]:
+                      - button [ref=e1111] [cursor=pointer]:
+                        - generic [ref=e1051]:
+                          - img [ref=e1055]
+                          - generic [ref=e1058]:
+                            - link [ref=e1112]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9JYAU/view
+                            - paragraph [ref=e1061]: Chief Revenue Officer
+                        - generic [ref=e1062]:
+                          - generic [ref=e1063]: ✓ on team
+                          - generic [ref=e1064]: ACR
+                          - generic [ref=e1065]: 2 touches
+                          - button [ref=e1113]:
+                            - img [ref=e1069]
+                            - generic [ref=e1072]: Dismiss
+                - img [ref=e1114]:
+                  - paragraph [ref=e1075]: Buying motion (all)
+                  - generic [ref=e1076]:
+                    - generic: Today
+                    - generic: 2w
+                    - generic: 4w
+                    - generic: 6w
+                    - generic: 3m
+                    - generic: 6m
+                    - generic: 1y+
+            - button [ref=e1127] [cursor=pointer]: Close
+      - dialog "Engagement Intelligence" [ref=e1129]:
+        - generic [ref=e1130]:
+          - button "Cancel and close" [ref=e1132] [cursor=pointer]:
+            - img [ref=e1134]
+            - generic [ref=e1137]: Cancel and close
+          - generic [ref=e1139]:
+            - heading "Engagement Intelligence" [active] [level=1] [ref=e1142]
+            - generic [ref=e1145]:
+              - generic [ref=e1146]:
+                - generic [ref=e1148]:
+                  - paragraph [ref=e1149]: Total Engaged
+                  - paragraph [ref=e1150]: "4"
+                  - paragraph [ref=e1151]: people
+                - generic [ref=e1153]:
+                  - paragraph [ref=e1154]: Total Touches
+                  - paragraph [ref=e1155]: "14"
+                  - paragraph [ref=e1156]: in the last 6 weeks
+                - generic [ref=e1158]:
+                  - paragraph [ref=e1159]: Top Topic
+                  - paragraph [ref=e1160]: Network Management
+                  - paragraph [ref=e1161]: 14 touches
+                - generic [ref=e1163]:
+                  - paragraph [ref=e1164]: Buying-Committee Gap
+                  - paragraph [ref=e1165]: "1"
+                  - paragraph [ref=e1166]: engaged but not on Deal Team
+              - paragraph [ref=e1167]:
+                - link "Open →" [ref=e1168] [cursor=pointer]:
+                  - /url: /lightning/r/Opportunity/006DP00000Oh8rIYAR/view
+              - generic [ref=e1169]:
+                - generic [ref=e1170]:
+                  - generic [ref=e1171]:
+                    - radiogroup "Group by" [ref=e1173]:
+                      - generic [ref=e1174]: Group by
+                      - generic [ref=e1176]:
+                        - generic [ref=e1177]:
+                          - radio "Group by Person" [checked] [ref=e1178]
+                          - generic [ref=e1179]: Group by Person
+                        - generic [ref=e1180]:
+                          - radio "Group by Campaign" [ref=e1181]
+                          - generic [ref=e1182]: Group by Campaign
+                      - status
+                    - paragraph [ref=e1183]: 4 people
+                  - list [ref=e1184]:
+                    - listitem [ref=e1185]:
+                      - button "Sarah Johnson Chief Financial Officer ✓ on team ACR 6 touches Dismiss" [ref=e1186] [cursor=pointer]:
+                        - generic [ref=e1187]:
+                          - img [ref=e1191]
+                          - generic [ref=e1194]:
+                            - link "Sarah Johnson" [ref=e1195]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9GYAU/view
+                            - paragraph [ref=e1197]: Chief Financial Officer
+                        - generic [ref=e1198]:
+                          - generic [ref=e1199]: ✓ on team
+                          - generic [ref=e1200]: ACR
+                          - generic [ref=e1201]: 6 touches
+                          - button "Dismiss" [ref=e1203]:
+                            - img [ref=e1205]
+                            - generic [ref=e1208]: Dismiss
+                    - listitem [ref=e1209]:
+                      - button "Mike Chen VP Engineering ✓ on team ACR 4 touches Dismiss" [ref=e1210] [cursor=pointer]:
+                        - generic [ref=e1211]:
+                          - img [ref=e1215]
+                          - generic [ref=e1218]:
+                            - link "Mike Chen" [ref=e1219]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9HYAU/view
+                            - paragraph [ref=e1221]: VP Engineering
+                        - generic [ref=e1222]:
+                          - generic [ref=e1223]: ✓ on team
+                          - generic [ref=e1224]: ACR
+                          - generic [ref=e1225]: 4 touches
+                          - button "Dismiss" [ref=e1227]:
+                            - img [ref=e1229]
+                            - generic [ref=e1232]: Dismiss
+                    - listitem [ref=e1233]:
+                      - button "Lisa Patel Director, Network Strategy ACR 2 touches Add to Deal Team Dismiss" [ref=e1234] [cursor=pointer]:
+                        - generic [ref=e1235]:
+                          - img [ref=e1239]
+                          - generic [ref=e1242]:
+                            - link "Lisa Patel" [ref=e1243]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9IYAU/view
+                            - paragraph [ref=e1245]: Director, Network Strategy
+                        - generic [ref=e1246]:
+                          - generic [ref=e1247]: ACR
+                          - generic [ref=e1248]: 2 touches
+                          - button "Add to Deal Team" [ref=e1250]:
+                            - img [ref=e1252]
+                            - generic [ref=e1255]: Add to Deal Team
+                          - button "Dismiss" [ref=e1257]:
+                            - img [ref=e1259]
+                            - generic [ref=e1262]: Dismiss
+                    - listitem [ref=e1263]:
+                      - button "Tom Davis Chief Revenue Officer ✓ on team ACR 2 touches Dismiss" [ref=e1264] [cursor=pointer]:
+                        - generic [ref=e1265]:
+                          - img [ref=e1269]
+                          - generic [ref=e1272]:
+                            - link "Tom Davis" [ref=e1273]:
+                              - /url: /lightning/r/Contact/003DP00001afQ9JYAU/view
+                            - paragraph [ref=e1275]: Chief Revenue Officer
+                        - generic [ref=e1276]:
+                          - generic [ref=e1277]: ✓ on team
+                          - generic [ref=e1278]: ACR
+                          - generic [ref=e1279]: 2 touches
+                          - button "Dismiss" [ref=e1281]:
+                            - img [ref=e1283]
+                            - generic [ref=e1286]: Dismiss
+                - img "Six-week buying-motion timeline" [ref=e1288]:
+                  - paragraph [ref=e1289]: Buying motion (all)
+                  - generic [ref=e1290]:
+                    - generic: Today
+                    - generic: 2w
+                    - generic: 4w
+                    - generic: 6w
+                    - generic: 3m
+                    - generic: 6m
+                    - generic: 1y+
+                    - generic "Sarah Johnson · Smoke-Test Whitepaper · Other" [ref=e1291] [cursor=pointer]
+                    - generic "Sarah Johnson · Network Pricing ROI Calculator (revisit) · Other" [ref=e1292] [cursor=pointer]
+                    - generic "Sarah Johnson · Network Pricing Whitepaper · Other" [ref=e1293] [cursor=pointer]
+                    - generic "Mike Chen · Schedule Technical Deep-Dive · Other" [ref=e1294] [cursor=pointer]
+                    - generic "Lisa Patel · Consultant RFP Submission · Other" [ref=e1295] [cursor=pointer]
+                    - 'generic "Tom Davis · Customer Case Study: Aetna · Other" [ref=e1296] [cursor=pointer]'
+                    - generic "Sarah Johnson · Network Pricing ROI Calculator · Other" [ref=e1297] [cursor=pointer]
+                    - generic "Mike Chen · Integration Architecture Whitepaper · Other" [ref=e1298] [cursor=pointer]
+                    - generic "Tom Davis · ROI of Modern Network Management · Other" [ref=e1299] [cursor=pointer]
+                    - generic "Mike Chen · Request Technical Demo · Other" [ref=e1300] [cursor=pointer]
+                    - generic "Lisa Patel · Network Consultant Toolkit · Other" [ref=e1301] [cursor=pointer]
+                    - generic "Mike Chen · Network Pricing API Documentation · Other" [ref=e1302] [cursor=pointer]
+            - button "Close" [ref=e1307] [cursor=pointer]

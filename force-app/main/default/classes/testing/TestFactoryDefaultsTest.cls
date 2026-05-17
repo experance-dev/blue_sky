@@ -92,11 +92,11 @@ private class TestFactoryDefaultsTest {
     } catch (Exception e) {
       Assert.fail(
         'AccountDefaults drift detected: insert failed under current org ' +
-        'schema. Update TestFactoryDefaults.AccountDefaults.getFieldDefaults() ' +
-        'to match. Underlying error: ' +
-        e.getTypeName() +
-        ' — ' +
-        e.getMessage()
+          'schema. Update TestFactoryDefaults.AccountDefaults.getFieldDefaults() ' +
+          'to match. Underlying error: ' +
+          e.getTypeName() +
+          ' — ' +
+          e.getMessage()
       );
     }
     Test.stopTest();
@@ -121,11 +121,11 @@ private class TestFactoryDefaultsTest {
     } catch (Exception e) {
       Assert.fail(
         'ContactDefaults drift detected: insert failed under current org ' +
-        'schema. Update TestFactoryDefaults.ContactDefaults.getFieldDefaults() ' +
-        'to match. Underlying error: ' +
-        e.getTypeName() +
-        ' — ' +
-        e.getMessage()
+          'schema. Update TestFactoryDefaults.ContactDefaults.getFieldDefaults() ' +
+          'to match. Underlying error: ' +
+          e.getTypeName() +
+          ' — ' +
+          e.getMessage()
       );
     }
     Test.stopTest();
@@ -155,12 +155,12 @@ private class TestFactoryDefaultsTest {
     } catch (Exception e) {
       Assert.fail(
         'ContactWithAccountDefaults drift detected: insert failed under ' +
-        'current org schema. Update ' +
-        'TestFactoryDefaults.ContactWithAccountDefaults.getFieldDefaults() ' +
-        'to match. Underlying error: ' +
-        e.getTypeName() +
-        ' — ' +
-        e.getMessage()
+          'current org schema. Update ' +
+          'TestFactoryDefaults.ContactWithAccountDefaults.getFieldDefaults() ' +
+          'to match. Underlying error: ' +
+          e.getTypeName() +
+          ' — ' +
+          e.getMessage()
       );
     }
     Test.stopTest();
@@ -197,12 +197,12 @@ private class TestFactoryDefaultsTest {
     } catch (Exception e) {
       Assert.fail(
         'OpportunityDefaults drift detected: insert failed under current org ' +
-        'schema. Update ' +
-        'TestFactoryDefaults.OpportunityDefaults.getFieldDefaults() to ' +
-        'match. Underlying error: ' +
-        e.getTypeName() +
-        ' — ' +
-        e.getMessage()
+          'schema. Update ' +
+          'TestFactoryDefaults.OpportunityDefaults.getFieldDefaults() to ' +
+          'match. Underlying error: ' +
+          e.getTypeName() +
+          ' — ' +
+          e.getMessage()
       );
     }
     Test.stopTest();
@@ -267,11 +267,11 @@ private class TestFactoryDefaultsTest {
     } catch (Exception e) {
       Assert.fail(
         'UserDefaults drift detected: insert failed under current org ' +
-        'schema. Update TestFactoryDefaults.UserDefaults.getFieldDefaults() ' +
-        'to match. Underlying error: ' +
-        e.getTypeName() +
-        ' — ' +
-        e.getMessage()
+          'schema. Update TestFactoryDefaults.UserDefaults.getFieldDefaults() ' +
+          'to match. Underlying error: ' +
+          e.getTypeName() +
+          ' — ' +
+          e.getMessage()
       );
     }
     Test.stopTest();

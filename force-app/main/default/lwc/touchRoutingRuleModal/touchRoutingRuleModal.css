@@ -1,0 +1,8 @@
+/*
+ * Scoped styles for c-touch-routing-rule-modal.
+ *
+ * No layout overrides — all spacing comes from SLDS utility classes in the
+ * template. The form is wide enough that the SLDS form-stacked density is
+ * the right default; this file exists so future tweaks have a home without
+ * touching the template.
+ */

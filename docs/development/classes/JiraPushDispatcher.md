@@ -10,7 +10,7 @@
 
 ```apex
 public interface IJcfsApi {
-    List<JcfsPushResult> pushUpdates(List<SObject> records);
+  List<JcfsPushResult> pushUpdates(List<SObject> records);
 }
 ```
 
@@ -20,20 +20,20 @@ The seam that isolates the JCFS managed-package call. As of Boomer's H3 fix (see
 
 ```apex
 public class JcfsPushResult {
-    public Id recordId;
-    public Boolean success;
-    public String errorMessage;
-    public String jiraIssueKey;
+  public Id recordId;
+  public Boolean success;
+  public String errorMessage;
+  public String jiraIssueKey;
 }
 ```
 
 Per-record result envelope returned by `IJcfsApi.pushUpdates`:
 
-| Field | Populated when | Notes |
-| --- | --- | --- |
-| `recordId` | Always | The Salesforce record Id JCFS attempted to push. |
-| `success` | Always | `true` on success, `false` on per-record rejection or no-op fallback. |
-| `errorMessage` | Failures only | Routed into `Logger.logApiException` → `API_Exception_Log__c.Message__c`. |
+| Field          | Populated when         | Notes                                                                                                              |
+| -------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `recordId`     | Always                 | The Salesforce record Id JCFS attempted to push.                                                                   |
+| `success`      | Always                 | `true` on success, `false` on per-record rejection or no-op fallback.                                              |
+| `errorMessage` | Failures only          | Routed into `Logger.logApiException` → `API_Exception_Log__c.Message__c`.                                          |
 | `jiraIssueKey` | Optional, success path | The created/updated Jira issue key (e.g. `CSI-1234`) when JCFS supplies it. Appears in the success debug log line. |
 
 Construct via the no-arg or four-arg constructor.
@@ -77,18 +77,19 @@ Canonical seam intended to swap `jcfs` for a fresh `NoOpJcfsApi` stub from a sin
 
 ### Static fields
 
-| Field | Type | Notes |
-| --- | --- | --- |
-| `adapterClassName` | `String` (`@TestVisible`) | Defaults to `'JcfsApiAdapter'`. Set by tests to point at a stub class. |
-| `jcfs` | `IJcfsApi` (`@TestVisible`) | Resolved at class-load time. Tests overwrite directly to stub via [`JiraPushTestFixtures.silenceFramework`](../../../force-app/main/default/classes/JiraPushTestFixtures.cls). |
+| Field              | Type                        | Notes                                                                                                                                                                          |
+| ------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `adapterClassName` | `String` (`@TestVisible`)   | Defaults to `'JcfsApiAdapter'`. Set by tests to point at a stub class.                                                                                                         |
+| `jcfs`             | `IJcfsApi` (`@TestVisible`) | Resolved at class-load time. Tests overwrite directly to stub via [`JiraPushTestFixtures.silenceFramework`](../../../force-app/main/default/classes/JiraPushTestFixtures.cls). |
 
 ### `JiraPushDispatcherException` _(public inner)_
 
 ```apex
-public class JiraPushDispatcherException extends UtilitiesModuleException {}
+public class JiraPushDispatcherException extends UtilitiesModuleException {
+}
 ```
 
-Now actually thrown (Atlas M3 / Boomer's M3 fix) — and now extends [`UtilitiesModuleException`](../../../force-app/main/default/classes/UtilitiesModuleException.cls) instead of `Exception` so module-level catch handlers can recognize it. **Throw site:** [`process(...)`](../../../force-app/main/default/classes/JiraPushDispatcher.cls) when an event's `Source_Id__c` can't be cast to `Id`. The throw is immediately followed by a catch inside the same method that hands the exception (with its real `Exception_Type__c` and stack trace) to `Logger.logApiException(...)` — so the malformed-Source_Id__c failure path now writes a typed `API_Exception_Log__c` row rather than a generic string-message row.
+Now actually thrown (Atlas M3 / Boomer's M3 fix) — and now extends [`UtilitiesModuleException`](../../../force-app/main/default/classes/UtilitiesModuleException.cls) instead of `Exception` so module-level catch handlers can recognize it. **Throw site:** [`process(...)`](../../../force-app/main/default/classes/JiraPushDispatcher.cls) when an event's `Source_Id__c` can't be cast to `Id`. The throw is immediately followed by a catch inside the same method that hands the exception (with its real `Exception_Type__c` and stack trace) to `Logger.logApiException(...)` — so the malformed-Source_Id**c failure path now writes a typed `API_Exception_Log**c` row rather than a generic string-message row.
 
 ## Side effects
 

@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Centralized logging utility for Salesforce applications.
  *              Provides a simple interface to log messages with varying levels of severity.
@@ -335,8 +340,7 @@ public inherited sharing class Logger {
     while (m.find()) {
       out += input.substring(last, m.start());
       String local = m.group(1);
-      String masked = (local.length() > 3 ? local.substring(0, 3) : '') +
-        '***';
+      String masked = (local.length() > 3 ? local.substring(0, 3) : '') + '***';
       out += masked + '@' + m.group(2);
       last = m.end();
     }

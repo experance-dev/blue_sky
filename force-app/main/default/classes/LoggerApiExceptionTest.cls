@@ -85,7 +85,14 @@ private class LoggerApiExceptionTest {
   @IsTest
   static void testLogApiExceptionWithNullExceptionDoesNotThrow() {
     Test.startTest();
-    Logger.logApiException('JCFS', 'op', 'Opportunity', null, null, (Exception) null);
+    Logger.logApiException(
+      'JCFS',
+      'op',
+      'Opportunity',
+      null,
+      null,
+      (Exception) null
+    );
     Test.stopTest();
 
     Assert.areEqual(1, [SELECT COUNT() FROM API_Exception_Log__c]);

@@ -1,0 +1,1218 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mockup B5 — Campaign chips promoted, hierarchy compressed</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@salesforce-ux/design-system@2.27.1/assets/styles/salesforce-lightning-design-system.css"
+    />
+    <style>
+      body {
+        background: #f3f3f3;
+        padding: 24px;
+        font-family: "Salesforce Sans", Arial, sans-serif;
+        margin: 0;
+      }
+      .mock-frame {
+        width: 100%;
+        max-width: 1320px;
+        min-width: 720px;
+        background: #fff;
+        border: 1px solid #d8dde6;
+        border-radius: 4px;
+        margin: 0 auto 28px;
+      }
+      .mock-label {
+        font-size: 12px;
+        color: #706e6b;
+        padding: 8px 16px 0;
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+
+      [data-color="orange"] {
+        --mi-c: #f97316;
+      }
+      [data-color="sky"] {
+        --mi-c: #0ea5e9;
+      }
+      [data-color="violet"] {
+        --mi-c: #a855f7;
+      }
+      [data-color="pink"] {
+        --mi-c: #ec4899;
+      }
+      [data-color="emerald"] {
+        --mi-c: #10b981;
+      }
+      [data-color="amber"] {
+        --mi-c: #eab308;
+      }
+      [data-color="cyan"] {
+        --mi-c: #06b6d4;
+      }
+      [data-color="rose"] {
+        --mi-c: #f43f5e;
+      }
+      [data-color="teal"] {
+        --mi-c: #0d9488;
+      }
+      [data-color="indigo"] {
+        --mi-c: #6366f1;
+      }
+
+      [data-camp="webinar"] {
+        --camp-c: #2563eb;
+      }
+      [data-camp="pricing"] {
+        --camp-c: #f59e0b;
+      }
+      [data-camp="whitepaper"] {
+        --camp-c: #14b8a6;
+      }
+      [data-camp="workflow"] {
+        --camp-c: #9333ea;
+      }
+      [data-camp="denials"] {
+        --camp-c: #dc2626;
+      }
+      [data-camp="aiimaging"] {
+        --camp-c: #0891b2;
+      }
+
+      /* === COMPRESSED HIERARCHY: single-line banner only when active === */
+      .hierarchy-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 16px;
+        background: #f1f5fe;
+        border-bottom: 1px solid #c0d5fe;
+        font-size: 12px;
+        color: #1a3a7e;
+      }
+      .hierarchy-bar .chev {
+        color: #1a3a7e;
+        cursor: pointer;
+      }
+      .hierarchy-bar .acct-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid #c0d5fe;
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .hierarchy-bar .acct-chip.primary {
+        background: #1a3a7e;
+        color: #fff;
+      }
+      .hierarchy-bar .scope-link {
+        cursor: pointer;
+        text-decoration: underline;
+        margin-left: auto;
+      }
+      /* Header scope inline */
+      .scope-inline {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background: #1a3a7e;
+        color: #fff;
+        font-size: 11px;
+        cursor: pointer;
+        vertical-align: middle;
+      }
+      .scope-inline.muted {
+        background: #f3f3f3;
+        color: #54698d;
+      }
+
+      /* === CAMPAIGN STRIP — the new prominent element === */
+      .camp-strip {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 8px;
+        padding: 12px 16px;
+        background: #fafafa;
+        border-bottom: 1px solid #f3f3f3;
+      }
+      .camp-card {
+        background: #fff;
+        border: 1px solid #dddbda;
+        border-radius: 6px;
+        padding: 0;
+        overflow: hidden;
+        cursor: pointer;
+        transition:
+          box-shadow 120ms,
+          transform 120ms;
+        position: relative;
+      }
+      .camp-card:hover {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        transform: translateY(-1px);
+      }
+      .camp-card .bar {
+        height: 6px;
+        background: var(--camp-c);
+      }
+      .camp-card .body {
+        padding: 8px 10px;
+      }
+      .camp-card .name {
+        font-size: 12px;
+        font-weight: 600;
+        color: #16325c;
+        line-height: 1.2;
+      }
+      .camp-card .row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-top: 4px;
+      }
+      .camp-card .count {
+        font-size: 22px;
+        font-weight: 700;
+        color: var(--camp-c);
+        line-height: 1;
+      }
+      .camp-card .delta {
+        font-size: 11px;
+        color: #2e844a;
+        font-weight: 600;
+      }
+      .camp-card .delta.neg {
+        color: #ba0517;
+      }
+      .camp-card .last {
+        font-size: 10px;
+        color: #706e6b;
+        margin-top: 3px;
+      }
+      .camp-card.active {
+        border-color: var(--camp-c);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--camp-c) 22%, white);
+      }
+      .camp-card.active .name {
+        color: var(--camp-c);
+      }
+      .camp-card .im-badge {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: #f59e0b;
+        color: #fff;
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 8px;
+        font-weight: 700;
+      }
+      .camp-card.all-card {
+        background: linear-gradient(180deg, #16325c, #1a3a7e);
+        color: #fff;
+      }
+      .camp-card.all-card .name {
+        color: #fff;
+      }
+      .camp-card.all-card .count {
+        color: #fff;
+      }
+      .camp-card.all-card .last {
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .camp-card.all-card .bar {
+        background: rgba(255, 255, 255, 0.3);
+      }
+      @media (max-width: 1200px) {
+        .camp-strip {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 720px) {
+        .camp-strip {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      /* === GANTT === (sticky lane labels, shared horizontal scroll) */
+      .gantt-scroll-x {
+        overflow-x: auto;
+        overflow-y: visible;
+        border: 1px solid #f3f3f3;
+        border-radius: 4px;
+      }
+      .gantt-rows {
+        min-width: 1280px;
+      }
+      .gantt-row {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 46px;
+      }
+      .lane-label {
+        padding: 5px 10px;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px dashed #f3f3f3;
+        position: sticky;
+        left: 0;
+        background: #fff;
+        z-index: 3;
+        box-shadow: 2px 0 3px -2px rgba(0, 0, 0, 0.1);
+      }
+      .selected-lane .lane-label {
+        background: #fdf2f8;
+      }
+      .lane-label .sw {
+        width: 4px;
+        height: 34px;
+        background: var(--mi-c);
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+      .lane-label .info {
+        flex: 1;
+        min-width: 0;
+        line-height: 1.25;
+      }
+      .lane-label .name {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .lane-label .title-role {
+        font-size: 11px;
+        color: #706e6b;
+      }
+      .lane-label .acct {
+        font-size: 10px;
+        color: #1a3a7e;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .add-team-btn {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid #0070d2;
+        color: #0070d2;
+        background: #fff;
+        font-size: 14px;
+        line-height: 1;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .lane-body {
+        position: relative;
+        height: 46px;
+        border-bottom: 1px dashed #f3f3f3;
+        min-width: 0;
+      }
+      .gantt-time-label {
+        padding: 0;
+        position: sticky;
+        left: 0;
+        background: #fff;
+        z-index: 4;
+        border-bottom: 1px solid #dddbda;
+      }
+      .gantt-time {
+        position: relative;
+        height: 28px;
+        border-bottom: 1px solid #dddbda;
+        font-size: 11px;
+        color: #706e6b;
+      }
+      .gantt-time span {
+        position: absolute;
+        transform: translateX(-50%);
+        top: 6px;
+        font-weight: 600;
+      }
+
+      .lifeline {
+        position: absolute;
+        top: 21px;
+        height: 4px;
+        background: var(--mi-c);
+        opacity: 0.65;
+        border-radius: 2px;
+      }
+      .dot {
+        position: absolute;
+        border-radius: 50%;
+        background: var(--camp-c);
+        transform: translate(-50%, -50%);
+        z-index: 2;
+        cursor: pointer;
+      }
+      .dot.big {
+        top: 23px;
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(0, 0, 0, 0.22);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+      }
+      .dot.small {
+        top: 23px;
+        width: 7px;
+        height: 7px;
+        border: 1px solid rgba(0, 0, 0, 0.3);
+        opacity: 0.85;
+      }
+      .dot.im {
+        top: 23px;
+        width: 20px;
+        height: 20px;
+        background: var(--camp-c);
+        border: 2px solid #fff;
+        box-shadow:
+          0 0 0 3px var(--camp-c),
+          0 2px 6px rgba(0, 0, 0, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .gridline {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        background: rgba(0, 0, 0, 0.06);
+        pointer-events: none;
+      }
+      .gridline.major {
+        background: rgba(0, 0, 0, 0.14);
+      }
+      .filter-pricing .dot:not([data-camp="pricing"]) {
+        opacity: 0.1;
+      }
+
+      .scale-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #706e6b;
+      }
+
+      /* Bottom 4 tiles */
+      .bottom-tiles {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr 1fr 1fr;
+        gap: 12px;
+        padding: 0 16px 14px;
+      }
+      @media (max-width: 1180px) {
+        .bottom-tiles {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 760px) {
+        .bottom-tiles {
+          grid-template-columns: 1fr;
+        }
+      }
+      .bottom-tiles .slds-card {
+        margin: 0;
+      }
+
+      a.slds-text-link,
+      .clickable {
+        cursor: pointer;
+      }
+      a.slds-text-link:hover {
+        text-decoration: underline;
+      }
+      .role-chip {
+        display: inline-block;
+        padding: 1px 8px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.04);
+        color: var(--mi-c);
+        font-size: 11px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mock-label">
+      <strong
+        >Mockup B5 — Campaign cards promoted to headline; hierarchy compressed
+        to inline scope chip + 1-line banner only when active.</strong
+      >
+    </div>
+
+    <div class="mock-frame">
+      <!-- HEADER with inline scope -->
+      <header class="slds-modal__header">
+        <h2
+          class="slds-modal__title"
+          style="
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            flex-wrap: wrap;
+          "
+        >
+          Engagement Detail — Acme Health Network
+          <span class="scope-inline clickable" title="Click to change scope"
+            >Whole hierarchy ▾</span
+          >
+        </h2>
+        <p class="slds-text-body_small slds-var-m-top_xx-small">
+          12 engaged across 4 accounts · 124 touches · Apr 14 → May 14 ·
+          <strong>3 ★ Interesting Moments</strong> ·
+          <a class="slds-text-link">5 not on Deal Team</a>
+        </p>
+      </header>
+
+      <!-- HIERARCHY BANNER — single line, only when hierarchy active -->
+      <div class="hierarchy-bar">
+        <span><strong>4 accounts:</strong></span>
+        <span class="acct-chip primary">Acme Health Network</span>
+        <span class="acct-chip">Imaging — Boston</span>
+        <span class="acct-chip">Radiology Group</span>
+        <span class="acct-chip">Outpatient Partners</span>
+        <span class="slds-text-color_weak">· 1 hidden by sharing</span>
+        <a class="scope-link">change scope</a>
+      </div>
+
+      <!-- CAMPAIGN STRIP — the new prominent element (big readable cards) -->
+      <div class="camp-strip filter-pricing">
+        <!-- "All" card — like an "All / Clear" state -->
+        <div class="camp-card all-card">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">All campaigns</div>
+            <div class="row">
+              <span class="count">124</span
+              ><span class="delta">+18 last wk</span>
+            </div>
+            <div class="last">7 active campaigns</div>
+          </div>
+        </div>
+
+        <!-- Q4 Pricing (currently active filter) -->
+        <div class="camp-card active" data-camp="pricing">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">Q4 Pricing Update</div>
+            <div class="row">
+              <span class="count">28</span><span class="delta">+12 wk</span>
+            </div>
+            <div class="last">Last touch · today</div>
+          </div>
+          <span class="im-badge">★ 1</span>
+        </div>
+
+        <div class="camp-card" data-camp="aiimaging">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">AI Imaging Webinar</div>
+            <div class="row">
+              <span class="count">32</span><span class="delta">+6 wk</span>
+            </div>
+            <div class="last">Last touch · today</div>
+          </div>
+          <span class="im-badge">★ 1</span>
+        </div>
+
+        <div class="camp-card" data-camp="webinar">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">Spring Webinar Series</div>
+            <div class="row">
+              <span class="count">22</span><span class="delta">+2 wk</span>
+            </div>
+            <div class="last">Last · 4h ago</div>
+          </div>
+        </div>
+
+        <div class="camp-card" data-camp="denials">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">Denials Whitepaper</div>
+            <div class="row">
+              <span class="count">18</span><span class="delta neg">-3 wk</span>
+            </div>
+            <div class="last">Last · 1d ago</div>
+          </div>
+          <span class="im-badge">★ 1</span>
+        </div>
+
+        <div class="camp-card" data-camp="workflow">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">Workflow Demo</div>
+            <div class="row">
+              <span class="count">14</span><span class="delta">+1 wk</span>
+            </div>
+            <div class="last">Last · 5d ago</div>
+          </div>
+        </div>
+
+        <div class="camp-card" data-camp="whitepaper">
+          <div class="bar"></div>
+          <div class="body">
+            <div class="name">AI Imaging Whitepaper</div>
+            <div class="row">
+              <span class="count">10</span><span class="delta">+1 wk</span>
+            </div>
+            <div class="last">Last · 1w ago</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GANTT (filtered to Q4 Pricing in this state) -->
+      <div class="slds-var-p-horizontal_medium" style="padding-top: 12px">
+        <div
+          class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+          style="flex-wrap: wrap; gap: 8px"
+        >
+          <h3 class="slds-text-title_caps">
+            Touches by contact · filtered to
+            <strong style="color: #f59e0b">Q4 Pricing</strong> ·
+            <a class="slds-text-link">clear</a>
+          </h3>
+          <div class="scale-controls">
+            <span>Scale:</span>
+            <div class="slds-button-group" role="group">
+              <button class="slds-button slds-button_neutral">6w</button>
+              <button class="slds-button slds-button_neutral">3mo</button>
+              <button class="slds-button slds-button_brand">6mo</button>
+              <button class="slds-button slds-button_neutral">1yr</button>
+              <button class="slds-button slds-button_neutral">+ Future</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="gantt-scroll-x filter-pricing">
+          <div class="gantt-rows">
+            <div class="gantt-row">
+              <div class="lane-label gantt-time-label" aria-hidden="true"></div>
+              <div class="gantt-time">
+                <div class="gridline major" style="left: 0%"></div>
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="gridline major" style="left: 100%"></div>
+                <span style="left: 0%; transform: translateX(2%)">6mo</span>
+                <span style="left: 16%">4mo</span>
+                <span style="left: 33%">2mo</span>
+                <span style="left: 50%">6w ┊</span>
+                <span style="left: 75%">2w</span>
+                <span style="left: 88%">1w</span>
+                <span style="left: 100%; transform: translateX(-100%)"
+                  >Today</span
+                >
+              </div>
+            </div>
+
+            <div class="gantt-row" data-color="sky">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Health Network</div>
+                  <a class="name slds-text-link">Sarah Chen</a>
+                  <div class="title-role">
+                    VP Clinical Ops ·
+                    <span class="role-chip">Decision Maker ✎</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="lifeline" style="left: 64%; width: 36%"></div>
+                <div
+                  class="dot small"
+                  data-camp="webinar"
+                  style="left: 65%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="webinar"
+                  style="left: 72%"
+                ></div>
+                <div
+                  class="dot small"
+                  data-camp="pricing"
+                  style="left: 82%"
+                ></div>
+                <div class="dot im" data-camp="aiimaging" style="left: 92%">
+                  ★
+                </div>
+                <div
+                  class="dot big"
+                  data-camp="webinar"
+                  style="left: 100%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gantt-row" data-color="orange">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Health Network</div>
+                  <a class="name slds-text-link">Mike Reilly</a>
+                  <div class="title-role">
+                    Director, IT · <span class="role-chip">Influencer ✎</span>
+                  </div>
+                </div>
+                <button class="add-team-btn">+</button>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="lifeline" style="left: 75%; width: 25%"></div>
+                <div
+                  class="dot big"
+                  data-camp="aiimaging"
+                  style="left: 76%"
+                ></div>
+                <div
+                  class="dot small"
+                  data-camp="aiimaging"
+                  style="left: 82%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="aiimaging"
+                  style="left: 88%"
+                ></div>
+                <div class="dot im" data-camp="pricing" style="left: 95%">
+                  ★
+                </div>
+                <div
+                  class="dot big"
+                  data-camp="aiimaging"
+                  style="left: 100%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gantt-row selected-lane" data-color="pink">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Health Network</div>
+                  <a class="name slds-text-link"
+                    ><strong>Riya Khan ★</strong></a
+                  >
+                  <div class="title-role">
+                    Mgr, Revenue Cycle ·
+                    <span class="role-chip">Influencer ✎</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div
+                  class="lifeline"
+                  style="
+                    left: 80%;
+                    width: 19%;
+                    opacity: 1;
+                    height: 6px;
+                    top: 20px;
+                  "
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="denials"
+                  style="left: 81%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="denials"
+                  style="left: 86%"
+                ></div>
+                <div class="dot im" data-camp="denials" style="left: 90%">
+                  ★
+                </div>
+                <div
+                  class="dot big"
+                  data-camp="denials"
+                  style="left: 95%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="denials"
+                  style="left: 99%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gantt-row" data-color="violet">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Health Network</div>
+                  <a class="name slds-text-link">Jordan Vega</a>
+                  <div class="title-role">
+                    CFO · <span class="role-chip">Economic Buyer ✎</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="lifeline" style="left: 85%; width: 15%"></div>
+                <div
+                  class="dot big"
+                  data-camp="pricing"
+                  style="left: 86%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="pricing"
+                  style="left: 92%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="pricing"
+                  style="left: 100%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gantt-row" data-color="emerald">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Health Network</div>
+                  <a class="name slds-text-link">Lin Park</a>
+                  <div class="title-role">
+                    Mgr, Procurement ·
+                    <span class="role-chip">Influencer ✎</span>
+                  </div>
+                </div>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="lifeline" style="left: 67%; width: 30%"></div>
+                <div
+                  class="dot small"
+                  data-camp="webinar"
+                  style="left: 68%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="pricing"
+                  style="left: 78%"
+                ></div>
+                <div
+                  class="dot small"
+                  data-camp="pricing"
+                  style="left: 87%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="pricing"
+                  style="left: 97%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gantt-row" data-color="teal">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Imaging — Boston</div>
+                  <a class="name slds-text-link">Carla Chen</a>
+                  <div class="title-role">
+                    Radiology Director ·
+                    <span class="role-chip">Influencer ✎</span>
+                  </div>
+                </div>
+                <button class="add-team-btn">+</button>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="lifeline" style="left: 60%; width: 35%"></div>
+                <div
+                  class="dot big"
+                  data-camp="aiimaging"
+                  style="left: 61%"
+                ></div>
+                <div
+                  class="dot small"
+                  data-camp="aiimaging"
+                  style="left: 70%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="aiimaging"
+                  style="left: 85%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="aiimaging"
+                  style="left: 95%"
+                ></div>
+              </div>
+            </div>
+
+            <div class="gantt-row" data-color="indigo">
+              <div class="lane-label">
+                <span class="sw"></span>
+                <div class="info">
+                  <div class="acct">Acme Radiology Group</div>
+                  <a class="name slds-text-link">Hank Reilly</a>
+                  <div class="title-role">
+                    VP Operations ·
+                    <span class="role-chip">Decision Maker ✎</span>
+                  </div>
+                </div>
+                <button class="add-team-btn">+</button>
+              </div>
+              <div class="lane-body">
+                <div class="gridline major" style="left: 50%"></div>
+                <div class="gridline" style="left: 75%"></div>
+                <div class="gridline" style="left: 88%"></div>
+                <div class="lifeline" style="left: 70%; width: 24%"></div>
+                <div
+                  class="dot big"
+                  data-camp="workflow"
+                  style="left: 71%"
+                ></div>
+                <div
+                  class="dot big"
+                  data-camp="workflow"
+                  style="left: 80%"
+                ></div>
+                <div
+                  class="dot small"
+                  data-camp="webinar"
+                  style="left: 94%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p
+          class="slds-text-body_small slds-text-color_weak slds-var-m-top_x-small"
+          style="background: #fafafa; padding: 6px 10px; border-radius: 4px"
+        >
+          <strong>Sticky-scroll:</strong> contact column stays anchored when
+          timeline scrolls horizontally · <strong>★</strong> = Interesting
+          Moment · big = opp-linked · small = non-opp
+        </p>
+      </div>
+
+      <!-- BOTTOM 4 tiles -->
+      <div class="bottom-tiles">
+        <article class="slds-card">
+          <div class="slds-card__header">
+            <header class="slds-media slds-media_center">
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-feed"
+                  ><svg class="slds-icon slds-icon_x-small" aria-hidden="true">
+                    <use
+                      xlink:href="https://www.lightningdesignsystem.com/assets/icons/standard-sprite/svg/symbols.svg#feed"
+                    ></use></svg
+                ></span>
+              </div>
+              <div class="slds-media__body">
+                <h3 class="slds-card__header-title">
+                  <span class="slds-text-heading_small">Riya — Activity</span>
+                </h3>
+              </div>
+            </header>
+          </div>
+          <div
+            class="slds-card__body slds-var-p-around_xx-small slds-text-body_small"
+            style="max-height: 180px; overflow: auto"
+          >
+            <ul class="slds-timeline">
+              <li>
+                <div
+                  class="slds-timeline__item_expandable slds-timeline__item_email"
+                >
+                  <div class="slds-media slds-timeline__media_email">
+                    <div class="slds-media__figure">
+                      <div
+                        class="slds-icon_container slds-icon_container_circle slds-icon-standard-email"
+                      >
+                        <svg
+                          class="slds-icon slds-icon_x-small"
+                          aria-hidden="true"
+                        >
+                          <use
+                            xlink:href="https://www.lightningdesignsystem.com/assets/icons/standard-sprite/svg/symbols.svg#email"
+                          ></use>
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="slds-media__body">
+                      <div class="slds-grid slds-grid_align-spread">
+                        <h4 class="slds-truncate">
+                          <strong>Q4 Pricing</strong> · ×3
+                        </h4>
+                        <p class="slds-timeline__date">1d</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <li style="background: #fffbeb; border-radius: 4px; padding: 4px">
+                <div class="slds-timeline__item_expandable">
+                  <div class="slds-media">
+                    <div class="slds-media__figure">
+                      <div
+                        class="slds-icon_container slds-icon_container_circle"
+                        style="background: #f59e0b"
+                      >
+                        <span style="color: #fff; font-weight: 700">★</span>
+                      </div>
+                    </div>
+                    <div class="slds-media__body">
+                      <div class="slds-grid slds-grid_align-spread">
+                        <h4 class="slds-truncate">
+                          <strong>Demo Request</strong>
+                        </h4>
+                        <p class="slds-timeline__date">3d</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+              <li>
+                <div
+                  class="slds-timeline__item_expandable slds-timeline__item_event"
+                >
+                  <div class="slds-media slds-timeline__media_event">
+                    <div class="slds-media__figure">
+                      <div
+                        class="slds-icon_container slds-icon_container_circle slds-icon-standard-event"
+                      >
+                        <svg
+                          class="slds-icon slds-icon_x-small"
+                          aria-hidden="true"
+                        >
+                          <use
+                            xlink:href="https://www.lightningdesignsystem.com/assets/icons/standard-sprite/svg/symbols.svg#event"
+                          ></use>
+                        </svg>
+                      </div>
+                    </div>
+                    <div class="slds-media__body">
+                      <div class="slds-grid slds-grid_align-spread">
+                        <h4 class="slds-truncate">AI Imaging Webinar</h4>
+                        <p class="slds-timeline__date">8d</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="slds-card" style="border: 2px solid #f59e0b">
+          <div class="slds-card__header" style="background: #fef3c7">
+            <header class="slds-media slds-media_center">
+              <div class="slds-media__figure">
+                <span
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 24px;
+                    height: 24px;
+                    background: #f59e0b;
+                    border-radius: 50%;
+                    color: #fff;
+                    font-weight: 700;
+                  "
+                  >★</span
+                >
+              </div>
+              <div class="slds-media__body">
+                <h3 class="slds-card__header-title">
+                  <span class="slds-text-heading_small"
+                    >Interesting Moments (3)</span
+                  >
+                </h3>
+              </div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-var-p-around_small">
+            <ul class="slds-has-dividers_around-space slds-text-body_small">
+              <li class="slds-item">
+                <div><strong>Riya Khan</strong> · Demo Request</div>
+                <div class="slds-text-color_weak">Denials · 3d ago</div>
+              </li>
+              <li class="slds-item">
+                <div><strong>Mike Reilly</strong> · Pricing CTA click</div>
+                <div class="slds-text-color_weak">Q4 Pricing · 6h ago</div>
+              </li>
+              <li class="slds-item">
+                <div><strong>Sarah Chen</strong> · Exec Briefing</div>
+                <div class="slds-text-color_weak">AI Imaging · today</div>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="slds-card">
+          <div class="slds-card__header">
+            <header class="slds-media slds-media_center">
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-account"
+                  ><svg class="slds-icon slds-icon_x-small" aria-hidden="true">
+                    <use
+                      xlink:href="https://www.lightningdesignsystem.com/assets/icons/standard-sprite/svg/symbols.svg#account"
+                    ></use></svg
+                ></span>
+              </div>
+              <div class="slds-media__body">
+                <h3 class="slds-card__header-title">
+                  <span class="slds-text-heading_small"
+                    >Touches by account</span
+                  >
+                </h3>
+              </div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-var-p-around_small">
+            <ul class="slds-has-dividers_around-space slds-text-body_small">
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link">Acme Health Network</a
+                ><span><strong>72</strong></span>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link">Imaging — Boston</a
+                ><span><strong>22</strong></span>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link">Radiology Group</a
+                ><span><strong>18</strong></span>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link">Outpatient Partners</a
+                ><span><strong>12</strong></span>
+              </li>
+            </ul>
+          </div>
+        </article>
+
+        <article class="slds-card">
+          <div class="slds-card__header">
+            <header class="slds-media slds-media_center">
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-team-member"
+                  ><svg class="slds-icon slds-icon_x-small" aria-hidden="true">
+                    <use
+                      xlink:href="https://www.lightningdesignsystem.com/assets/icons/standard-sprite/svg/symbols.svg#team_member"
+                    ></use></svg
+                ></span>
+              </div>
+              <div class="slds-media__body">
+                <h3 class="slds-card__header-title">
+                  <span class="slds-text-heading_small"
+                    >Deal Team gaps (5)</span
+                  >
+                </h3>
+              </div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-var-p-around_small">
+            <ul class="slds-has-dividers_around-space slds-text-body_small">
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link"><strong>Mike Reilly</strong></a
+                ><button class="add-team-btn">+</button>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link"><strong>Sam Patel</strong></a
+                ><button class="add-team-btn">+</button>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link"><strong>Carla Chen</strong></a
+                ><button class="add-team-btn">+</button>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link"><strong>Hank Reilly</strong></a
+                ><button class="add-team-btn">+</button>
+              </li>
+              <li class="slds-item slds-grid slds-grid_align-spread">
+                <a class="slds-text-link"><strong>Tomas Ruiz</strong></a
+                ><button class="add-team-btn">+</button>
+              </li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <footer class="slds-modal__footer">
+        <button class="slds-button slds-button_neutral">Close</button>
+      </footer>
+    </div>
+
+    <!-- ANNOTATION -->
+    <div
+      class="mock-frame"
+      style="background: #fffbeb; border-color: #f4b400; padding: 12px 18px"
+    >
+      <p class="slds-text-body_small slds-var-m-bottom_x-small">
+        <strong>Changes from B4:</strong>
+      </p>
+      <ul class="slds-list_dotted slds-text-body_small">
+        <li>
+          <strong>Campaign cards promoted</strong> to a 7-card strip directly
+          below the header. Each card: campaign color bar, name, big count,
+          week-over-week delta (green/red), last-touch micro-stat, ★ badge when
+          the campaign contains an Interesting Moment.
+        </li>
+        <li>
+          <strong>Click any card → filter the Gantt</strong> (currently Q4
+          Pricing active — non-Pricing dots dimmed below).
+        </li>
+        <li>
+          <strong>"All campaigns" card</strong> on the far left in dark blue
+          acts as the clear-filter / overview state.
+        </li>
+        <li>
+          <strong>Hierarchy toggle compressed</strong>: now an inline blue chip
+          on the modal title ("Whole hierarchy ▾"). Click → opens a popover with
+          the three scope buttons. The full banner (account chip list) is one
+          tight line below the header, only when hierarchy mode is active —
+          collapses entirely in "This account" mode.
+        </li>
+        <li>
+          <strong>Bottom tile lineup updated</strong>: Activity / Interesting
+          Moments / <em>Touches by account (new)</em> / Deal Team gaps. The Top
+          Campaigns card is removed — that data is now upstairs in the prominent
+          strip.
+        </li>
+      </ul>
+    </div>
+  </body>
+</html>

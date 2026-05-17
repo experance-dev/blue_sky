@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>Jira_Push_View_Errors</name>
+    </customPermissions>
+    <!--
+      PSG composition (Zelis admins): add this atom to the following Persona PSGs:
+        - Persona - System User Jira Integration
+      Should NOT be assigned to: end users, sales personas, MI feature admins —
+      Jira Push is a separate operational ladder.
+      Standalone OK for: sysadmins, integration engineers, DevOps operators
+      responsible for the Jira sync framework and its error queue.
+      CMDT edits are performed through Setup screens; read at metadata-type level
+      is sufficient on Log_Setting__mdt and Jira_Push_Object__mdt.
+    -->
+    <description
+  >Admin atom for Jira Push. Grants Jira_Push_View_Errors custom perm, full CRUD + viewAll/modifyAll on API_Exception_Log__c (cleanup), and read on Log_Setting__mdt and Jira_Push_Object__mdt. Assign STANDALONE for sysadmins; see source comment.</description>
+    <!-- API_Exception_Log__c.API_Name__c and Severity__c omitted: both are -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD + modifyAll implicitly grants the admin full access to those fields. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Do_Not_Delete__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Exception_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Operation__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Source_Object__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Source_Record_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Stack_Trace__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>API_Exception_Log__c.Transaction_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Jira_Push_Object__mdt.Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Jira_Push_Object__mdt.Jira_Issue_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Jira_Push_Object__mdt.Jira_Project_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Jira_Push_Object__mdt.SObject_API_Name__c omitted: field-level required; -->
+    <!-- deploy rejects FLS on required CMDT fields. Object-level read covers it. -->
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Log_Setting__mdt.Print_Debug_Logs__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Additional Permissions - Jira Push Admin</label>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>API_Exception_Log__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+</PermissionSet>

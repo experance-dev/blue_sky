@@ -65,7 +65,7 @@ The shared implementation. Six-step flow:
 
 ```apex
 public interface IEventPublisher {
-    List<Database.SaveResult> publish(List<SObject> events);
+  List<Database.SaveResult> publish(List<SObject> events);
 }
 ```
 

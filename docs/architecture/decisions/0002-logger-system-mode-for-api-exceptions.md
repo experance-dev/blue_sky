@@ -60,20 +60,20 @@ The override is **scoped to this one method**. Every other DML in [`Logger`](../
 
 ## Alternatives considered
 
-| Option | Why rejected |
-| --- | --- |
-| `DMLManager.insertAsUser` + a `Jira_Push_Integration` permset | Permset assignment for the running user is the wrong abstraction — the running user is whoever triggered the failure, not a service identity. We'd need a permset on every user in the org, including future hires. Operational debt without payoff. |
-| `DMLManager.insertAsSystem` | Does not actually run in system mode (still `AccessLevel.USER_MODE` underneath). Would silently re-introduce the original bug. |
-| `Queueable` wrapper running in system context | Async write means errors are reported in a different transaction from the one that failed, breaking the `Transaction_Id__c` correlation. Adds a flush-and-pray failure mode where the queueable itself could fail. Higher complexity for no diagnostic gain. |
-| Platform Event (publish-and-forget log row) | Inverts the dependency stack — the logger would depend on the PE infrastructure that itself uses the logger. Bootstrap problem. |
+| Option                                                        | Why rejected                                                                                                                                                                                                                                                 |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DMLManager.insertAsUser` + a `Jira_Push_Integration` permset | Permset assignment for the running user is the wrong abstraction — the running user is whoever triggered the failure, not a service identity. We'd need a permset on every user in the org, including future hires. Operational debt without payoff.         |
+| `DMLManager.insertAsSystem`                                   | Does not actually run in system mode (still `AccessLevel.USER_MODE` underneath). Would silently re-introduce the original bug.                                                                                                                               |
+| `Queueable` wrapper running in system context                 | Async write means errors are reported in a different transaction from the one that failed, breaking the `Transaction_Id__c` correlation. Adds a flush-and-pray failure mode where the queueable itself could fail. Higher complexity for no diagnostic gain. |
+| Platform Event (publish-and-forget log row)                   | Inverts the dependency stack — the logger would depend on the PE infrastructure that itself uses the logger. Bootstrap problem.                                                                                                                              |
 
 ## Reviewers
 
-| Role | Reviewer | Decision |
-| --- | --- | --- |
-| TA (architecture) | Atlas | Approved — original B1 finding; this is the resolution. |
-| Security | Sage | Approved — `API_Exception_Log__c` is diagnostic, `Private` sharing limits exposure, no business data on the table. |
-| Test | Pippa | Approved — [`LoggerApiExceptionTest`](../../../force-app/main/default/classes/LoggerApiExceptionTest.cls) asserts row insert succeeds even when caller has no FLS on `Stack_Trace__c`, locking in the property. |
+| Role              | Reviewer | Decision                                                                                                                                                                                                        |
+| ----------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TA (architecture) | Atlas    | Approved — original B1 finding; this is the resolution.                                                                                                                                                         |
+| Security          | Sage     | Approved — `API_Exception_Log__c` is diagnostic, `Private` sharing limits exposure, no business data on the table.                                                                                              |
+| Test              | Pippa    | Approved — [`LoggerApiExceptionTest`](../../../force-app/main/default/classes/LoggerApiExceptionTest.cls) asserts row insert succeeds even when caller has no FLS on `Stack_Trace__c`, locking in the property. |
 
 ## Related
 

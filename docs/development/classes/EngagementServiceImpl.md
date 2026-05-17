@@ -1,0 +1,64 @@
+# `EngagementServiceImpl`
+
+[`force-app/main/default/classes/engagement/EngagementServiceImpl.cls`](../../../force-app/main/default/classes/engagement/EngagementServiceImpl.cls)
+
+## Orientation
+
+The default implementation of [`IEngagementService`](../../../force-app/main/default/classes/engagement/IEngagementService.cls). Aggregates `Engagement_Touch__c` records by Contact, joins `OpportunityContactRole` + `AccountContactRelation` context, and returns [`EngagementDTO`](../../../force-app/main/default/classes/engagement/EngagementDTO.cls) lists for the LWC layer. Also owns the race-protected OCR insert (`addToOcrSafe`) and the per-user dismissal flow (`dismissContact`, `dismissSignal`).
+
+All SOQL goes through Selectors ([`EngagementTouchesSelector`](../../../force-app/main/default/classes/engagement/EngagementTouchesSelector.cls), [`OpportunityContactRolesSelector`](../../../force-app/main/default/classes/engagement/OpportunityContactRolesSelector.cls), [`TouchTopicSelector`](../../../force-app/main/default/classes/engagement/TouchTopicSelector.cls), [`EngagementDismissalsSelector`](../../../force-app/main/default/classes/engagement/EngagementDismissalsSelector.cls)) except for an inline AccountContactRelation lookup on each scope read — `AccountContactRelation` doesn't warrant its own selector class. All DML routes through [`DMLManager`](../../../force-app/main/default/classes/dml/DMLManager.cls) under `AccessLevel.USER_MODE`.
+
+## Public API
+
+| Method                                                                         | Params                                                             | Returns                                                                                                                               | Throws                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `getForOpportunity(Id opportunityId)`                                          | `opportunityId`                                                    | `List<EngagementDTO>` ordered by `lastTouchAt` DESC                                                                                   | — (returns empty list on null id / no Opp / no touches)                                                                                                                                                         |
+| `getForAccount(Id accountId)`                                                  | `accountId`                                                        | `List<EngagementDTO>` ordered by `lastTouchAt` DESC                                                                                   | — (returns empty list on null id / no touches)                                                                                                                                                                  |
+| `addToOcrSafe(Id contactId, Id opportunityId, String role, Boolean isPrimary)` | `contactId`, `opportunityId`, `role`, `isPrimary`                  | [`AddToOcrResult`](../../../force-app/main/default/classes/engagement/AddToOcrResult.cls) — success or `alreadyExists` race-detection | [`EngagementException`](../../../force-app/main/default/classes/engagement/EngagementException.cls) on validation failure or DML failure                                                                        |
+| `dismissSignal(Id signalId, String reason)`                                    | `signalId`, `reason`                                               | `void`                                                                                                                                | [`EngagementException`](../../../force-app/main/default/classes/engagement/EngagementException.cls) on null id. DML failure is swallowed + logged at `Logger.info` (Phase 1 stub — signal-creation is Phase 3). |
+| `dismissContact(Id contactId, Id opportunityId, Id accountId)`                 | `contactId`, exactly one of `opportunityId` / `accountId` non-null | `void`                                                                                                                                | [`EngagementException`](../../../force-app/main/default/classes/engagement/EngagementException.cls) on null `contactId` or violated scope-XOR                                                                   |
+
+### Behaviour callouts
+
+**`getForOpportunity` scope filter:** Filters touches by the Opportunity's `Touch_Topic__c` lookup — a touch on the Opp's Account whose topic doesn't match the Opp's topic does NOT surface here (it still shows in Account scope). See [`TouchTopicSelector.selectByOpportunityId`](../../../force-app/main/default/classes/engagement/TouchTopicSelector.cls) for the topic-id resolution and [`EngagementTouchesSelector.selectByOpportunityWithTopics`](../../../force-app/main/default/classes/engagement/EngagementTouchesSelector.cls) for the touch filter. This is the topic-attribution-by-design behaviour validated in [users/DEMO.md §Smoke-deploy verification](../../users/DEMO.md#smoke-deploy-verification-already-done) — Marcus Brown's Payment-Integrity touches do not appear on the Network Pricing Implementation Opportunity scope.
+
+**Dismissal semantics:** Per-user, per-scope (Opp XOR Account), per-Contact. A dismissal hides the contact until a newer touch arrives. `assembleDTOs` calls `isDismissed`: if `MAX(Occurred_At__c) <= dismissedAt`, skip the DTO; if a later touch exists, the contact reappears. Multiple dismissals collapse via `MAX(Dismissed_At__c)` on read in the selector.
+
+**Race-protected OCR insert:** Re-queries [`OpportunityContactRolesSelector.selectByOpportunityAndContact`](../../../force-app/main/default/classes/engagement/OpportunityContactRolesSelector.cls) inside the same Apex transaction before inserting. If a concurrent writer already inserted, return the existing row's metadata (`createdById`, `createdBy.Name`, `createdDate`, `role`, `isPrimary`) — the LWC swaps from `AddToDealTeamModal` to `AlreadyAddedModal`. Salesforce's standard platform behaviour silently un-flags any prior primary when `isPrimary=true`; this Service does not intervene (handoff §Open questions calls this out as a Phase 1.5 polish).
+
+**`dismissSignal` is a Phase 1 stub.** Signal-creation comes online in Phase 3 (via [`EngagementSignalRouter`](EngagementSignalRouter.md)); the dismiss-action shape is fixed now so the Phase-3 LWC can wire it without a controller-contract change.
+
+## Side effects
+
+| Path                                  | Writes                                                                                                   | Logs                                                              |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `getForOpportunity` / `getForAccount` | —                                                                                                        | — (read-only)                                                     |
+| `addToOcrSafe` success                | `OpportunityContactRole` insert via `DMLManager.insertAsUser`                                            | `Logger.error` on DML failure                                     |
+| `addToOcrSafe` race-detected          | —                                                                                                        | — (returns the existing row)                                      |
+| `dismissSignal`                       | `Opportunity_Engagement_Signal__c.Dismissed__c = true` via `Database.update(..., AccessLevel.USER_MODE)` | `Logger.info` on DML failure (swallowed)                          |
+| `dismissContact`                      | `Engagement_Dismissal__c` insert via `DMLManager.insertAsUser`                                           | `Logger.error` on DML failure (rethrown as `EngagementException`) |
+
+## Dependencies
+
+| Direction      | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Depends on     | All four engagement Selectors (`EngagementTouchesSelector`, `OpportunityContactRolesSelector`, `TouchTopicSelector`, `EngagementDismissalsSelector`), [`DMLManager`](../../../force-app/main/default/classes/dml/DMLManager.cls), [`Logger`](../../../force-app/main/default/classes/logging/Logger.cls), [`EngagementException`](../../../force-app/main/default/classes/engagement/EngagementException.cls), DTOs ([`EngagementDTO`](../../../force-app/main/default/classes/engagement/EngagementDTO.cls), [`AddToOcrResult`](../../../force-app/main/default/classes/engagement/AddToOcrResult.cls)) |
+| Depended on by | [`EngagementController`](EngagementController.md) (sole production caller); test classes inject mocks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+
+## Permission model
+
+Inherits the [`Engagement_Attribution_User`](../../../force-app/main/default/permissionsets/Engagement_Attribution_User.permissionset-meta.xml) permset's CRUD/FLS grants. `with sharing` + `WITH USER_MODE` on every Selector query + `AccessLevel.USER_MODE` on every DML — the running user's sharing context governs both reads and writes.
+
+## Known limitations
+
+- **Primary OCR collision:** `isPrimary=true` silently un-flags any prior primary (platform default). The `AddToDealTeamModal` is expected to warn the user separately; this is documented in the [handoff §Open questions](../../architecture/PHASE1-HANDOFF.md#open-questions--not-yet-decided) as Phase 1.5 polish.
+- **`AccountContactRelation` lookup is inline.** The two `getForXxx` paths run a literal `SELECT ... FROM AccountContactRelation` instead of going through a Selector. Acceptable because no other code reads ACRs through the engagement domain; revisit if a second consumer appears.
+- **In-memory sort.** `sortByLastTouchDesc` is an in-place insertion sort because Apex's `List.sort()` requires `Comparable` on the element type and DTOs are serialized to LWC as JSON. Performance is fine at expected fan-out (per-contact rows in a single scope view, typically < 50).
+
+## Related
+
+- Controller: [`EngagementController`](EngagementController.md).
+- Interface: [`IEngagementService`](../../../force-app/main/default/classes/engagement/IEngagementService.cls).
+- Tests: [`EngagementServiceImplTest`](../../../force-app/main/default/classes/engagement/EngagementServiceImplTest.cls).
+- ADR: [0001 — three-layer pattern](../../architecture/decisions/0001-three-layer-selector-service-controller.md).
+- Operational reference: [operations/apex-invocation-runbook.md §Service-layer test invocations](../../operations/apex-invocation-runbook.md).

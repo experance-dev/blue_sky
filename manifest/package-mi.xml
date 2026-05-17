@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- Custom Objects (MI) -->
+    <types>
+        <members>Engagement_Touch__c</members>
+        <members>Engagement_Dismissal__c</members>
+        <members>Engagement_Settings__c</members>
+        <members>Opportunity_Engagement_Signal__c</members>
+        <members>Touch_Topic__c</members>
+        <members>Touch_Routing_Rule__mdt</members>
+        <name>CustomObject</name>
+    </types>
+
+    <!-- Custom Fields (MI on standard + custom objects) -->
+    <types>
+        <members>Engagement_Dismissal__c.Account__c</members>
+        <members>Engagement_Dismissal__c.Contact__c</members>
+        <members>Engagement_Dismissal__c.Dismissed_At__c</members>
+        <members>Engagement_Dismissal__c.Opportunity__c</members>
+        <members>Engagement_Dismissal__c.Reason__c</members>
+        <members>Engagement_Settings__c.Active_Window_Days__c</members>
+        <members>Engagement_Settings__c.Confidence_Threshold__c</members>
+        <members>Engagement_Settings__c.Signal_Decay_Days__c</members>
+        <members>Engagement_Touch__c.Account__c</members>
+        <members>Engagement_Touch__c.Archived_At__c</members>
+        <members>Engagement_Touch__c.Asset_Name__c</members>
+        <members>Engagement_Touch__c.Asset_Url__c</members>
+        <members>Engagement_Touch__c.Campaign__c</members>
+        <members>Engagement_Touch__c.Contact__c</members>
+        <members>Engagement_Touch__c.Email_At_Touch__c</members>
+        <members>Engagement_Touch__c.External_Id__c</members>
+        <members>Engagement_Touch__c.Ingested_At__c</members>
+        <members>Engagement_Touch__c.Intent_Level__c</members>
+        <members>Engagement_Touch__c.Is_Active__c</members>
+        <members>Engagement_Touch__c.Lead__c</members>
+        <members>Engagement_Touch__c.Occurred_At__c</members>
+        <members>Engagement_Touch__c.Persona__c</members>
+        <members>Engagement_Touch__c.Processing_Message__c</members>
+        <members>Engagement_Touch__c.Processing_Status__c</members>
+        <members>Engagement_Touch__c.Resolution_Status__c</members>
+        <members>Engagement_Touch__c.Source_Event_Id__c</members>
+        <members>Engagement_Touch__c.Source_Event_Type__c</members>
+        <members>Engagement_Touch__c.Source_System__c</members>
+        <members>Engagement_Touch__c.Topic__c</members>
+        <members>Engagement_Touch__c.Touch_Subtype__c</members>
+        <members>Engagement_Touch__c.Touch_Type__c</members>
+        <members>Opportunity.Touch_Topic__c</members>
+        <members>Opportunity_Engagement_Signal__c.Confidence__c</members>
+        <members>Opportunity_Engagement_Signal__c.Contact__c</members>
+        <members>Opportunity_Engagement_Signal__c.Dismissed__c</members>
+        <members>Opportunity_Engagement_Signal__c.Dismissed_Reason__c</members>
+        <members>Opportunity_Engagement_Signal__c.Engagement_Touch__c</members>
+        <members>Opportunity_Engagement_Signal__c.Match_Path__c</members>
+        <members>Opportunity_Engagement_Signal__c.Opportunity__c</members>
+        <members>Opportunity_Engagement_Signal__c.Topic__c</members>
+        <members>Touch_Routing_Rule__mdt.Active__c</members>
+        <members>Touch_Routing_Rule__mdt.Confidence__c</members>
+        <members>Touch_Routing_Rule__mdt.Description__c</members>
+        <members>Touch_Routing_Rule__mdt.Match_Path__c</members>
+        <members>Touch_Routing_Rule__mdt.Min_Intent_Level__c</members>
+        <members>Touch_Routing_Rule__mdt.Persona_Filter__c</members>
+        <members>Touch_Routing_Rule__mdt.Priority__c</members>
+        <members>Touch_Routing_Rule__mdt.Require_Same_Account__c</members>
+        <members>Touch_Routing_Rule__mdt.Require_Topic_Match__c</members>
+        <members>Touch_Routing_Rule__mdt.Touch_Type_Filter__c</members>
+        <members>Touch_Topic__c.External_Code__c</members>
+        <members>Touch_Topic__c.Parent_Topic__c</members>
+        <members>Touch_Topic__c.Topic_Name__c</members>
+        <name>CustomField</name>
+    </types>
+
+    <!-- Custom Metadata Records (Touch_Routing_Rule__mdt) -->
+    <types>
+        <members>Touch_Routing_Rule.ACR_Same_Account_Topic_Match</members>
+        <members>Touch_Routing_Rule.Account_Match_High_Intent</members>
+        <members>Touch_Routing_Rule.Account_Topic_Default</members>
+        <members>Touch_Routing_Rule.Account_Topic_Executive</members>
+        <members>Touch_Routing_Rule.OCR_Exact_Match</members>
+        <name>CustomMetadata</name>
+    </types>
+
+    <!-- Apex Classes (MI production + tests + EngagementTestFixtures + base utility prerequisites) -->
+    <types>
+        <!-- Base utility prerequisites — not in dwood_z baseline, required for MI compile -->
+        <members>DMLHelper</members>
+        <members>DMLManager</members>
+        <members>PricebookUtil</members>
+        <members>StringBuilder</members>
+        <members>UtilPickLists</members>
+        <members>Utilities</members>
+        <members>UtilitiesHelper</members>
+        <!-- MI production + tests -->
+        <members>AddToOcrResult</members>
+        <members>ContactEngagementErasureHandler</members>
+        <members>ContactEngagementErasureHandlerTest</members>
+        <members>EngagementAdminController</members>
+        <members>EngagementAdminControllerTest</members>
+        <members>EngagementController</members>
+        <members>EngagementControllerTest</members>
+        <members>EngagementDTO</members>
+        <members>EngagementDismissalsSelector</members>
+        <members>EngagementDismissalsSelectorTest</members>
+        <members>EngagementErasureService</members>
+        <members>EngagementErasureServiceTest</members>
+        <members>EngagementException</members>
+        <members>EngagementInboundRest</members>
+        <members>EngagementInboundRestTest</members>
+        <members>EngagementMaintenanceScheduler</members>
+        <members>EngagementMaintenanceSchedulerTest</members>
+        <members>EngagementServiceImpl</members>
+        <members>EngagementServiceImplTest</members>
+        <members>EngagementSignalDecayBatch</members>
+        <members>EngagementSignalDecayBatchTest</members>
+        <members>EngagementSignalRouter</members>
+        <members>EngagementSignalRouterTest</members>
+        <members>EngagementTestFixtures</members>
+        <members>EngagementTestFixturesTest</members>
+        <members>EngagementTouchArchivalBatch</members>
+        <members>EngagementTouchArchivalBatchTest</members>
+        <members>EngagementTouchTriggerHandler</members>
+        <members>EngagementTouchTriggerHandlerTest</members>
+        <members>EngagementTouches</members>
+        <members>EngagementTouchesSelector</members>
+        <members>EngagementTouchesSelectorTest</members>
+        <members>EngagementTouchesTest</members>
+        <members>IEngagementService</members>
+        <members>IdentityResolutionService</members>
+        <members>IdentityResolutionServiceTest</members>
+        <members>LeadEngagementErasureHandler</members>
+        <members>LeadEngagementErasureHandlerTest</members>
+        <members>LeadEngagementReparentHandler</members>
+        <members>LeadEngagementReparentHandlerTest</members>
+        <members>OpportunityContactRolesSelector</members>
+        <members>OpportunityContactRolesSelectorTest</members>
+        <members>TouchRoutingRulesSelector</members>
+        <members>TouchRoutingRulesSelectorTest</members>
+        <members>TouchTopicSelector</members>
+        <members>TouchTopicSelectorTest</members>
+        <name>ApexClass</name>
+    </types>
+
+    <!-- Apex Triggers (MI) -->
+    <!-- ContactTrigger and LeadTrigger excluded: dwood_z already has Zelis-owned
+         versions that dispatch via TriggerHandlerDispatcher. Deploying the MI
+         versions would overwrite Baba's work. Cascade-erasure / Lead-reparent
+         tests are correspondingly excluded from the run; cascade wiring must
+         go through ContactTriggerHandler / LeadTriggerHandler (Zelis-owned)
+         in a follow-up integration PR. TODO: company review. -->
+    <types>
+        <members>EngagementTouchTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+
+    <!-- LWC Bundles (MI) -->
+    <types>
+        <members>addToDealTeamModal</members>
+        <members>alreadyAddedModal</members>
+        <members>engagementDetailModal</members>
+        <members>engagementErrorQueue</members>
+        <members>engagementPanel</members>
+        <members>engagementRuleCoverage</members>
+        <members>engagementTestATouch</members>
+        <name>LightningComponentBundle</name>
+    </types>
+
+    <!-- Permission Sets -->
+    <types>
+        <members>Engagement_Attribution_User</members>
+        <name>PermissionSet</name>
+    </types>
+
+    <!-- App / Tab / FlexiPages -->
+    <types>
+        <members>Engagement_Admin</members>
+        <name>CustomApplication</name>
+    </types>
+    <types>
+        <members>Engagement_Admin_Console</members>
+        <name>CustomTab</name>
+    </types>
+    <types>
+        <members>Account_Engagement_Record_Page</members>
+        <members>Engagement_Admin_Console</members>
+        <members>Opportunity_Engagement_Record_Page</members>
+        <name>FlexiPage</name>
+    </types>
+
+    <!-- TODO: Report Types + Reports — currently .forceignore'd per DEMO.md;
+         re-enable once field-path syntax is canonicalised via Setup → Reports retrieve. -->
+
+    <version>66.0</version>
+</Package>

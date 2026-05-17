@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Utility methods for working with picklist metadata via Schema.describe.
  * @group Picklists
@@ -108,8 +113,7 @@ public without sharing class UtilPickLists {
   ) {
     for (String key : picklistValues.keySet()) {
       if (
-        key.equals(searchString) ||
-        picklistValues.get(key).equals(searchString)
+        key.equals(searchString) || picklistValues.get(key).equals(searchString)
       ) {
         return key;
       }

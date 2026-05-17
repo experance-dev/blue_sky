@@ -1,0 +1,286 @@
+<template>
+  <lightning-modal-header label={modalLabel}></lightning-modal-header>
+
+  <lightning-modal-body>
+    <!-- Stats strip — four-tile roll-up over the engaged population. -->
+    <div
+      class="slds-grid slds-grid_pull-padded slds-wrap stats-strip"
+      data-test="stats-strip"
+    >
+      <div class="slds-col slds-size_1-of-4 slds-var-p-around_small">
+        <div class="slds-box slds-box_x-small slds-theme_default stat-tile">
+          <p class="stat-label">Total Engaged</p>
+          <p class="stat-value" data-test="stat-total-engaged">
+            {stats.totalEngaged}
+          </p>
+          <p class="stat-sub">people</p>
+        </div>
+      </div>
+      <div class="slds-col slds-size_1-of-4 slds-var-p-around_small">
+        <div class="slds-box slds-box_x-small slds-theme_default stat-tile">
+          <p class="stat-label">Total Touches</p>
+          <p class="stat-value" data-test="stat-total-touches">
+            {stats.totalTouches}
+          </p>
+          <p class="stat-sub">in the last 6 weeks</p>
+        </div>
+      </div>
+      <div class="slds-col slds-size_1-of-4 slds-var-p-around_small">
+        <div class="slds-box slds-box_x-small slds-theme_default stat-tile">
+          <p class="stat-label">Top Topic</p>
+          <p
+            class="stat-value stat-value_text"
+            data-test="stat-top-topic"
+            title={stats.topTopic}
+          >
+            {stats.topTopic}
+          </p>
+          <p class="stat-sub">{stats.topTopicSubLabel}</p>
+        </div>
+      </div>
+      <div class="slds-col slds-size_1-of-4 slds-var-p-around_small">
+        <div class="slds-box slds-box_x-small slds-theme_default stat-tile">
+          <p class="stat-label">Buying-Committee Gap</p>
+          <p class="stat-value" data-test="stat-not-on-deal-team">
+            {stats.notOnDealTeam}
+          </p>
+          <p class="stat-sub">engaged but not on Deal Team</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Optional record hotlink: SF Lightning hovercard auto-attaches to
+             /lightning/r/{Object}/{Id}/view URLs in the DOM. -->
+    <template if:true={recordUrl}>
+      <p class="slds-text-body_small slds-var-m-bottom_small">
+        <a
+          href={recordUrl}
+          target="_top"
+          title={recordSummaryTooltip}
+          class="contact-link"
+          data-test="record-link"
+        >
+          Open {recordName} &rarr;
+        </a>
+      </p>
+    </template>
+
+    <!-- Two-column layout: main list on the left, vertical buying-motion timeline on the right. -->
+    <div class="slds-grid slds-gutters_small detail-body">
+      <div class="slds-col slds-size_2-of-3">
+        <div
+          class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-var-m-bottom_medium"
+        >
+          <lightning-radio-group
+            name="groupBy"
+            label="Group by"
+            options={groupByOptions}
+            value={groupBy}
+            onchange={handleGroupByChange}
+            type="button"
+            variant="label-hidden"
+          >
+          </lightning-radio-group>
+          <p class="slds-text-body_small slds-text-color_weak">
+            {summaryCount} {peopleOrCampaignsLabel}
+          </p>
+        </div>
+
+        <ul class="slds-has-dividers_around-space engagement-list main-list">
+          <template for:each={displayGroups} for:item="group">
+            <li key={group.key} class="slds-item engagement-list__item">
+              <div
+                class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center slds-var-p-around_small engagement-row"
+                data-key={group.key}
+                onclick={toggleRow}
+                onkeydown={handleRowKeyDown}
+                role="button"
+                tabindex="0"
+                aria-expanded={group.isExpanded}
+              >
+                <div
+                  class="slds-grid slds-grid_vertical-align-center slds-grow"
+                >
+                  <lightning-icon
+                    icon-name={group.iconName}
+                    size="small"
+                    class="slds-var-m-right_small"
+                  >
+                  </lightning-icon>
+                  <div>
+                    <template if:true={group.contactUrl}>
+                      <a
+                        href={group.contactUrl}
+                        target="_top"
+                        title={group.summaryTooltip}
+                        class="contact-link"
+                      >
+                        <strong>{group.label}</strong>
+                      </a>
+                    </template>
+                    <template if:false={group.contactUrl}>
+                      <strong>{group.label}</strong>
+                    </template>
+                    <p class="slds-text-body_small slds-text-color_weak">
+                      {group.sublabel}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  class="slds-grid slds-grid_vertical-align-center slds-shrink-none"
+                >
+                  <template for:each={group.badges} for:item="badge">
+                    <span key={badge.label} class={badge.cls}
+                      >{badge.label}</span
+                    >
+                  </template>
+                  <span class="slds-badge slds-var-m-left_x-small"
+                    >{group.count} touches</span
+                  >
+                  <template if:true={group.showAddButton}>
+                    <lightning-button-icon
+                      icon-name="utility:add"
+                      size="small"
+                      variant="border-filled"
+                      data-contact-id={group.contactId}
+                      alternative-text="Add to Deal Team"
+                      title="Add to Deal Team"
+                      onclick={handleAddToTeam}
+                      class="slds-var-m-left_small add-to-team-btn"
+                    >
+                    </lightning-button-icon>
+                  </template>
+                  <template if:true={group.showDismissButton}>
+                    <lightning-button-icon
+                      icon-name="utility:close"
+                      size="x-small"
+                      variant="bare"
+                      data-contact-id={group.contactId}
+                      data-contact-name={group.contactName}
+                      data-test="dismiss-button"
+                      alternative-text="Dismiss"
+                      title="Dismiss (re-appears if a new touch arrives)"
+                      onclick={handleDismissRow}
+                      class="slds-var-m-left_small dismiss-row-btn"
+                    >
+                    </lightning-button-icon>
+                  </template>
+                </div>
+              </div>
+
+              <template if:true={group.isExpanded}>
+                <div
+                  class="slds-var-p-around_small slds-theme_shade engagement-row__detail"
+                >
+                  <ul>
+                    <template for:each={group.assets} for:item="asset">
+                      <li
+                        key={asset.assetKey}
+                        class="slds-var-p-vertical_x-small slds-border_bottom asset-row"
+                      >
+                        <div
+                          class="slds-grid slds-grid_align-spread slds-grid_vertical-align-center"
+                        >
+                          <div>
+                            <span class="slds-text-title_caps"
+                              >{asset.touchType}</span
+                            >
+                            <span class="slds-var-m-horizontal_xx-small"
+                              >·</span
+                            >
+                            <span>{asset.assetName}</span>
+                            <template if:true={asset.campaignName}>
+                              <span class="slds-var-m-horizontal_xx-small"
+                                >·</span
+                              >
+                              <span class="slds-text-color_weak"
+                                >{asset.campaignName}</span
+                              >
+                            </template>
+                            <template if:true={asset.personName}>
+                              <span class="slds-var-m-horizontal_xx-small"
+                                >·</span
+                              >
+                              <span class="slds-text-color_weak"
+                                >{asset.personName}</span
+                              >
+                            </template>
+                          </div>
+                          <span class="slds-badge asset-row__count"
+                            >&times;{asset.count}</span
+                          >
+                        </div>
+                        <p class="slds-text-body_small slds-text-color_weak">
+                          <lightning-formatted-date-time
+                            value={asset.firstAt}
+                          ></lightning-formatted-date-time>
+                          &nbsp;&rarr;&nbsp;
+                          <lightning-formatted-date-time
+                            value={asset.lastAt}
+                          ></lightning-formatted-date-time>
+                        </p>
+                      </li>
+                    </template>
+                  </ul>
+                </div>
+              </template>
+            </li>
+          </template>
+        </ul>
+      </div>
+
+      <!-- Right column: vertical buying-motion timeline with time scale. -->
+      <div class="slds-col slds-size_1-of-3">
+        <div
+          class={timelineContainerClass}
+          data-test="timeline-track"
+          role="img"
+          aria-label="Six-week buying-motion timeline"
+        >
+          <p class="timeline-title">{timelineTitle}</p>
+          <div class="timeline-axis">
+            <!-- Top half (0-50%): weekly granularity, last 6 weeks. -->
+            <div class="timeline-scale-label" style="top: 0%">Today</div>
+            <div class="timeline-scale-label" style="top: 16.6%">2w</div>
+            <div class="timeline-scale-label" style="top: 33.3%">4w</div>
+            <div
+              class="timeline-scale-label timeline-scale-label_break"
+              style="top: 50%"
+            >
+              6w
+            </div>
+            <!-- Bottom half (50-100%): monthly granularity, 6w to 1y. -->
+            <div class="timeline-scale-label" style="top: 66.6%">3m</div>
+            <div class="timeline-scale-label" style="top: 83.3%">6m</div>
+            <div class="timeline-scale-label" style="top: 100%">1y+</div>
+            <!-- Tick marks on the vertical line. -->
+            <div class="timeline-tick" style="top: 0%"></div>
+            <div class="timeline-tick" style="top: 16.6%"></div>
+            <div class="timeline-tick" style="top: 33.3%"></div>
+            <div
+              class="timeline-tick timeline-tick_break"
+              style="top: 50%"
+            ></div>
+            <div class="timeline-tick" style="top: 66.6%"></div>
+            <div class="timeline-tick" style="top: 83.3%"></div>
+            <div class="timeline-tick" style="top: 100%"></div>
+            <!-- Touch squares -->
+            <template for:each={timelineDots} for:item="dot">
+              <div
+                key={dot.key}
+                class={dot.cls}
+                style={dot.style}
+                title={dot.tooltip}
+                data-test="timeline-dot"
+              ></div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </lightning-modal-body>
+
+  <lightning-modal-footer>
+    <lightning-button label="Close" onclick={handleClose}></lightning-button>
+  </lightning-modal-footer>
+</template>

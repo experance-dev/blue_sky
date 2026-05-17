@@ -34,8 +34,6 @@ public with sharing class JiraPushRequestHandler extends TriggerHandler {
    *              calls the JCFS push API.
    */
   private void handleAfterInsert() {
-    JiraPushDispatcher.process(
-      (List<Jira_Push_Request__e>) Trigger.new
-    );
+    JiraPushDispatcher.process((List<Jira_Push_Request__e>) Trigger.new);
   }
 }

@@ -1,11 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Active__c</fullName>
     <defaultValue>true</defaultValue>
-    <description>@author David Wood. Kill switch. When false, render paths ignore this row and fall back to the API value.</description>
+    <description
+  >@author David Wood. Kill switch. When false, render paths ignore this row and fall back to the API value.</description>
     <externalId>false</externalId>
     <fieldManageability>SubscriberControlled</fieldManageability>
-    <inlineHelpText>Uncheck to disable this mapping without deleting the row.</inlineHelpText>
+    <inlineHelpText
+  >Uncheck to disable this mapping without deleting the row.</inlineHelpText>
     <label>Active</label>
     <type>Checkbox</type>
 </CustomField>

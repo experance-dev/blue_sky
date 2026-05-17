@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Represents a single email message that can be sent using the Salesforce Email Messaging API.
  * This class provides methods to set the email properties such as sender, recipient, subject, and body.
@@ -16,7 +21,8 @@ public with sharing class SingleEmail {
   // ─── Inner exception ────────────────────────────────────────────────────────
 
   /** Custom exception for SingleEmail errors. */
-  public class SingleEmailException extends UtilitiesModuleException {}
+  public class SingleEmailException extends UtilitiesModuleException {
+  }
 
   // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -82,7 +88,9 @@ public with sharing class SingleEmail {
       mail.setCcAddresses(ccAddresses);
       mail.setBccAddresses(bccAddresses);
       mail.setSenderDisplayName(
-        senderDisplayName != null ? senderDisplayName : DEFAULT_SENDER_DISPLAY_NAME
+        senderDisplayName != null
+          ? senderDisplayName
+          : DEFAULT_SENDER_DISPLAY_NAME
       );
       mail.setReplyTo(replyTo);
       mail.setSubject(subject);
@@ -109,10 +117,10 @@ public with sharing class SingleEmail {
     } catch (Exception e) {
       Logger.logException(e, 'SingleEmail', 'sendMail');
       throw new SingleEmailException(
-        'An error occurred while sending email: '
-          + e.getMessage()
-          + ' - '
-          + e.getStackTraceString()
+        'An error occurred while sending email: ' +
+          e.getMessage() +
+          ' - ' +
+          e.getStackTraceString()
       );
     }
   }

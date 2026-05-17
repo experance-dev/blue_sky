@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>EngagementAdminController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>Marketing_Influence_Power_User</name>
+    </customPermissions>
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>Marketing_Influence_View</name>
+    </customPermissions>
+    <!--
+      PSG composition (Zelis admins): add this atom to the following Persona PSGs:
+        - Persona - Marketing User (admin-tier)
+        - Persona - IE Marketing (admin-tier)
+      Should NOT be assigned to: end users (use View or Power User atom),
+      integration users, Jira Push admins (separate ladder).
+      Standalone OK for: marketing-ops leads, MI feature owners, sysadmins
+      who need full control of engagement-attribution config and moderation.
+    -->
+    <description
+  >Admin atom for MI. Power User + Engagement Admin Console tab + viewAll/modifyAll on the four MI objects + Engagement_Touch__c edit (ignore/retry/archive) + read on Engagement_Settings__c and Engagement_Picklist_Display__mdt. See source comment for PSGs.</description>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>AccountContactRelation.IsDirect</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>AccountContactRelation.Roles</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.Is_Consultant__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.Title</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Dismissal__c.Contact__c and Dismissed_At__c omitted: both -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD + modifyAll covers them. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Opportunity__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Picklist_Display__mdt.API_Value__c, Display_Label__c, and -->
+    <!-- Field_API_Name__c omitted: all field-level required CMDT fields; deploy -->
+    <!-- rejects FLS on required fields. Object-level read covers them. -->
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Engagement_Picklist_Display__mdt.Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Engagement_Settings__c.Active_Window_Days__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Engagement_Settings__c.Confidence_Threshold__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Engagement_Settings__c.Signal_Decay_Days__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Archived_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Asset_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Asset_Url__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Campaign__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Contact__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Email_At_Touch__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Touch__c.External_Id__c omitted: field-level required; deploy -->
+    <!-- rejects FLS on required fields. Object-level CRUD + modifyAll covers it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Ingested_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Intent_Level__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Is_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Lead__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Touch__c.Occurred_At__c omitted: field-level required; deploy -->
+    <!-- rejects FLS on required fields. Object-level CRUD + modifyAll covers it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Persona__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Processing_Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Processing_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Resolution_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_Event_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_Event_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_System__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Touch_Subtype__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Touch_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity.Touch_Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Confidence__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Contact__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Dismissed_Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Dismissed__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Engagement_Touch__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Match_Path__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Opportunity_Engagement_Signal__c.Opportunity__c omitted: M-D field is -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD covers it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>OpportunityContactRole.IsPrimary</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>OpportunityContactRole.Role</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.External_Code__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.Parent_Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.Topic_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Additional Permissions - Marketing Influence Admin</label>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>Engagement_Dismissal__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>Engagement_Touch__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <!-- Opportunity read+edit required: Opportunity_Engagement_Signal__c.Opportunity__c -->
+    <!-- is MasterDetail (parent read enforced) and Opportunity.Touch_Topic__c is -->
+    <!-- granted edit FLS on this permset; allowEdit must match. -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <!-- viewAll/modifyAll on Signal NOT granted: would require viewAll/modifyAll -->
+    <!-- on Opportunity (M-D parent) which is a Zelis-org-wide sharing escalation -->
+    <!-- outside the feature footprint. Admin moderation of Signals uses the parent -->
+    <!-- Opportunity's sharing (Admin has Opportunity read+edit) plus owner-of-record -->
+    <!-- where applicable. -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity_Engagement_Signal__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>OpportunityContactRole</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>Touch_Topic__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <tabSettings>
+        <tab>Engagement_Admin_Console</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>

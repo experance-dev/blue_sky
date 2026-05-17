@@ -1,0 +1,61 @@
+<template>
+  <lightning-modal-header label="Add to Deal Team"></lightning-modal-header>
+  <lightning-modal-body>
+    <p class="slds-var-m-bottom_small">
+      Add <strong>{contactName}</strong> as a member of the Opportunity deal
+      team.
+    </p>
+
+    <template if:true={isAccountScope}>
+      <lightning-record-picker
+        label="Opportunity"
+        placeholder="Search opportunities…"
+        object-api-name="Opportunity"
+        required
+        onchange={handleOppChange}
+        class="slds-var-m-bottom_small"
+      >
+      </lightning-record-picker>
+    </template>
+
+    <lightning-combobox
+      label="Role"
+      value={role}
+      placeholder="Select a role"
+      options={roleOptions}
+      onchange={handleRoleChange}
+      required
+    >
+    </lightning-combobox>
+
+    <lightning-input
+      type="checkbox"
+      label="Make primary contact"
+      checked={isPrimary}
+      onchange={handlePrimaryToggle}
+      class="slds-var-m-top_small"
+    >
+    </lightning-input>
+
+    <template if:true={errorMessage}>
+      <div class="slds-text-color_error slds-var-m-top_small" role="alert">
+        {errorMessage}
+      </div>
+    </template>
+  </lightning-modal-body>
+  <lightning-modal-footer>
+    <lightning-button
+      label="Cancel"
+      onclick={handleCancel}
+      class="slds-var-m-right_x-small"
+    >
+    </lightning-button>
+    <lightning-button
+      label="Add to Deal Team"
+      variant="brand"
+      onclick={handleSave}
+      disabled={isSaving}
+    >
+    </lightning-button>
+  </lightning-modal-footer>
+</template>

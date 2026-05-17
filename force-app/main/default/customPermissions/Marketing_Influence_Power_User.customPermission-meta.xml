@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomPermission xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description
+  >Gates Power-User-tier actions inside the Engagement Panel: Add to Deal Team, Dismiss, View All. View-tier users (read-only) lack this permission. Granted by Additional Permissions - Marketing Influence Power User and Admin atoms.</description>
+    <isLicensed>false</isLicensed>
+    <label>Marketing Influence — Power User</label>
+</CustomPermission>

@@ -11,13 +11,14 @@
 
 🟢 **Cleared for transport to Zelis dev org.**
 
-Boomer's deltas land the right calls on every security-relevant axis. The B1 SYSTEM_MODE design call is correct and well-documented; H1 USER_MODE on the CMDT SOQL is policy-defensible (see §H1 below — I'm signing off with one caveat for next pass); H3's per-record result envelope materially strengthens the audit trail; H4's recursion-guard widening to include ChangeType closes a correctness gap that was *also* a soft audit-completeness gap (a missed Update event is a missed audit event).
+Boomer's deltas land the right calls on every security-relevant axis. The B1 SYSTEM_MODE design call is correct and well-documented; H1 USER_MODE on the CMDT SOQL is policy-defensible (see §H1 below — I'm signing off with one caveat for next pass); H3's per-record result envelope materially strengthens the audit trail; H4's recursion-guard widening to include ChangeType closes a correctness gap that was _also_ a soft audit-completeness gap (a missed Update event is a missed audit event).
 
 No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documentation). Ship it.
 
 ## Findings reviewed (Boomer's deltas)
 
 ### B1 — `Logger.writeApiException` uses `Database.insert(..., AccessLevel.SYSTEM_MODE)`
+
 **File:** [`Logger.cls:276-300`](../../force-app/main/default/classes/logging/Logger.cls)
 **Verdict:** ✅ **Concur. Atlas-approved, Sage-approved. Documentation is exemplary.**
 
@@ -25,19 +26,20 @@ No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documenta
 
 1. **"Nothing gets swallowed" beats "respect caller FLS on the diagnostic table."** If a Standard User without FLS on `Stack_Trace__c` triggers an exception, USER_MODE silently drops the row and support has no record of the failure. SYSTEM_MODE writes it. The diagnostic table is not customer data — it's operational telemetry about the integration, owned by the platform team. Caller FLS doesn't apply.
 2. **`DMLManager` doesn't expose a true system-mode overload.** Boomer's ApexDoc names this correctly. `DMLManager.insertAsSystem` runs the underlying DML at `AccessLevel.USER_MODE`; there is no clean delegation path for "I deliberately want to bypass FLS." Direct `Database.insert(..., AccessLevel.SYSTEM_MODE)` is the only honest expression of intent.
-3. **This is the documented exception, not the precedent.** The class header at [`Logger.cls:10`](../../force-app/main/default/classes/logging/Logger.cls) calls it out: *"writeApiException uses Database.insert(..., AccessLevel.SYSTEM_MODE) by deliberate policy."* The method ApexDoc at [`Logger.cls:159-178`](../../force-app/main/default/classes/logging/Logger.cls) spells out the four-part rationale. Future reviewers reading this code will not mistake it for a `DMLManager` miss.
+3. **This is the documented exception, not the precedent.** The class header at [`Logger.cls:10`](../../force-app/main/default/classes/logging/Logger.cls) calls it out: _"writeApiException uses Database.insert(..., AccessLevel.SYSTEM_MODE) by deliberate policy."_ The method ApexDoc at [`Logger.cls:159-178`](../../force-app/main/default/classes/logging/Logger.cls) spells out the four-part rationale. Future reviewers reading this code will not mistake it for a `DMLManager` miss.
 
-**Compliance note.** No PII concern — `API_Exception_Log__c` stores `Message__c`, `Stack_Trace__c`, `Source_Record_Id__c` (Id-as-string, not data). Stack traces *could* contain field values if a `DmlException.getDmlFieldNames()` payload leaks into the message — but the `Logger.logApiException` overloads at [`Logger.cls:226-260`](../../force-app/main/default/classes/logging/Logger.cls) store `Exception.getMessage()` / `getStackTraceString()`, which is class/method/line, not field values. Clean.
+**Compliance note.** No PII concern — `API_Exception_Log__c` stores `Message__c`, `Stack_Trace__c`, `Source_Record_Id__c` (Id-as-string, not data). Stack traces _could_ contain field values if a `DmlException.getDmlFieldNames()` payload leaks into the message — but the `Logger.logApiException` overloads at [`Logger.cls:226-260`](../../force-app/main/default/classes/logging/Logger.cls) store `Exception.getMessage()` / `getStackTraceString()`, which is class/method/line, not field values. Clean.
 
 **Auxiliary observation.** `API_Exception_Log__c` has `sharingModel=Private` ([object meta:23](../../force-app/main/default/objects/API_Exception_Log__c/API_Exception_Log__c.object-meta.xml#L23)) and no permset grants read access. Combined with SYSTEM_MODE writes, this gives the right shape: **anyone can trip an error → row is written → only admins (View All Data) can read it.** That's the right default for a diagnostic table that may end up holding sensitive operational details.
 
 ---
 
 ### H1 — `WITH USER_MODE` on CMDT SOQL in `JiraPushService.getConfig`
+
 **File:** [`JiraPushService.cls:201-211`](../../force-app/main/default/classes/JiraPushService.cls)
 **Verdict:** 🟨 **MEDIUM caveat — leave as-is for this transport, but file follow-up.**
 
-**The trade-off.** CMDT reads bypass CRUD/FLS by platform rule, so `WITH USER_MODE` here is *semantically* policy-theater — it can't change what the query returns. Pippa flagged that in a scratch org as a Standard User, `WITH USER_MODE` on CMDT *can* raise `QueryException` in edge cases (it has historically — though Salesforce closed most of these in API 60+). The semantically-correct annotation for CMDT is `WITH SYSTEM_MODE`.
+**The trade-off.** CMDT reads bypass CRUD/FLS by platform rule, so `WITH USER_MODE` here is _semantically_ policy-theater — it can't change what the query returns. Pippa flagged that in a scratch org as a Standard User, `WITH USER_MODE` on CMDT _can_ raise `QueryException` in edge cases (it has historically — though Salesforce closed most of these in API 60+). The semantically-correct annotation for CMDT is `WITH SYSTEM_MODE`.
 
 **Why I'm signing off on USER_MODE anyway.** Three reasons:
 
@@ -45,12 +47,14 @@ No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documenta
 2. **Pippa's `QueryException` concern is API-version-dependent.** This codebase is API 64.0 (per `sfdx-project.json` defaults); the historical USER_MODE-on-CMDT edge cases were API 58-60. I have not reproduced the failure on 64.0.
 3. **`JiraPushService` is `with sharing`**, the calling user has authenticated and reached an Opportunity trigger, and the org has the CMDT records deployed. The realistic failure mode is "test in a scratch org without the CMDT records" → returns empty map → `getConfig()` returns null → kill-switch fails closed. That's the right behavior, not a regression.
 
-**Follow-up to log (not blocking).** When `best-practices/apex.md` next gets a revision pass, add an explicit CMDT carve-out: *"`WITH SYSTEM_MODE` is acceptable on Custom Metadata Type queries since CMDT reads bypass CRUD/FLS by platform rule."* That converts the policy-theater into a semantic-truth annotation. Until then, USER_MODE here is the correct conforming choice. **Sage's recommendation: file as a docs ticket for Marlowe / best-practices owner; no code change in this PR.**
+**Follow-up to log (not blocking).** When `best-practices/apex.md` next gets a revision pass, add an explicit CMDT carve-out: _"`WITH SYSTEM_MODE` is acceptable on Custom Metadata Type queries since CMDT reads bypass CRUD/FLS by platform rule."_ That converts the policy-theater into a semantic-truth annotation. Until then, USER_MODE here is the correct conforming choice. **Sage's recommendation: file as a docs ticket for Marlowe / best-practices owner; no code change in this PR.**
 
 ---
 
 ### H2 — New CMDT fields `Jira_Project_Id__c` and `Jira_Issue_Type__c` on `Jira_Push_Object__mdt`
+
 **Files:**
+
 - [`Jira_Project_Id__c.field-meta.xml`](../../force-app/main/default/objects/Jira_Push_Object__mdt/fields/Jira_Project_Id__c.field-meta.xml)
 - [`Jira_Issue_Type__c.field-meta.xml`](../../force-app/main/default/objects/Jira_Push_Object__mdt/fields/Jira_Issue_Type__c.field-meta.xml)
 - [`Jira_Push_Object.Opportunity.md-meta.xml`](../../force-app/main/default/customMetadata/Jira_Push_Object.Opportunity.md-meta.xml)
@@ -67,7 +71,9 @@ No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documenta
 ---
 
 ### H3 — `IJcfsApi.pushUpdates` returns `List<JcfsPushResult>` with per-record success/failure
+
 **Files:**
+
 - [`JiraPushDispatcher.cls:28-50`](../../force-app/main/default/classes/JiraPushDispatcher.cls) (`JcfsPushResult` DTO)
 - [`JiraPushDispatcher.cls:54-58`](../../force-app/main/default/classes/JiraPushDispatcher.cls) (`IJcfsApi` interface)
 - [`JiraPushDispatcher.cls:298-336`](../../force-app/main/default/classes/JiraPushDispatcher.cls) (per-record result handling)
@@ -87,6 +93,7 @@ No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documenta
 ---
 
 ### H4 — Recursion guard key now `SObjectName:Id:ChangeType`
+
 **File:** [`JiraPushService.cls:42-46, 117-120`](../../force-app/main/default/classes/JiraPushService.cls)
 **Verdict:** ✅ **Acknowledge. No security concern; correctness improvement helps audit completeness as a side-effect.**
 
@@ -95,15 +102,18 @@ No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documenta
 ---
 
 ### M1 — Kill-switch CMDT now gated on publish side too
+
 **File:** [`JiraPushService.cls:96-108`](../../force-app/main/default/classes/JiraPushService.cls), new `isActive(sobjectName)` at [`JiraPushService.cls:184-188`](../../force-app/main/default/classes/JiraPushService.cls)
 **Verdict:** ✅ **Acknowledge. Audit completeness win.**
 
-**Rationale.** Failing closed at *both* publish and consume sites is the right shape: an admin who flips `Active__c = false` immediately stops events entering the bus (no phantom backlog), and the consume side still re-checks in case the flag flipped mid-batch. Defense-in-depth on the kill-switch is good operational hygiene; it also means the audit picture is coherent — when admin flips the switch, the absence of new `Jira_Push_Request__e` events is the observable signal that the switch is working, not a delayed "we processed and dropped them" trail.
+**Rationale.** Failing closed at _both_ publish and consume sites is the right shape: an admin who flips `Active__c = false` immediately stops events entering the bus (no phantom backlog), and the consume side still re-checks in case the flag flipped mid-batch. Defense-in-depth on the kill-switch is good operational hygiene; it also means the audit picture is coherent — when admin flips the switch, the absence of new `Jira_Push_Request__e` events is the observable signal that the switch is working, not a delayed "we processed and dropped them" trail.
 
 ---
 
 ### M3 — `JiraPushDispatcherException` thrown for malformed `Source_Id__c`, extends `UtilitiesModuleException`
+
 **Files:**
+
 - [`JiraPushDispatcher.cls:181-198`](../../force-app/main/default/classes/JiraPushDispatcher.cls) (typed throw + catch)
 - [`JiraPushDispatcher.cls:344-351`](../../force-app/main/default/classes/JiraPushDispatcher.cls) (exception declaration extending `UtilitiesModuleException`)
 
@@ -114,6 +124,7 @@ No 🟥. No 🟧. One 🟨 (H1 caveat) and one 🟦 follow-up (permset documenta
 ---
 
 ### Q2 — JCFS startup check with `Type.forName('JCFS', 'API')`
+
 **File:** [`JcfsApiAdapter.cls:73-93`](../../force-app/main/default/classes/JcfsApiAdapter.cls)
 **Verdict:** ✅ **Confirm spec compliance. Logs at `Logger.error` level on first absent-package detection; subsequent calls silent.**
 
@@ -129,7 +140,8 @@ This is the documented "one-time warn, then silent no-op" pattern. **Confirmed.*
 
 ---
 
-### API_Exception_Log__c permset gap (Pippa's flag)
+### API_Exception_Log\_\_c permset gap (Pippa's flag)
+
 **Verdict:** ✅ **Concur with Atlas's preference for Option B — SYSTEM_MODE on `writeApiException` is sufficient. No permset needed.**
 
 **Pippa's flag.** Integration user / Standard User can't write to `API_Exception_Log__c` because no permset grants FLS on the fields. Confirmed: `grep -r "API_Exception_Log__c" force-app/main/default/permissionsets/` returns zero hits, and the object's `sharingModel=Private` with no permset means default-deny across the board.
@@ -145,7 +157,7 @@ This is the documented "one-time warn, then silent no-op" pattern. **Confirmed.*
 2. **Fewer permsets = fewer attack surfaces.** Every permset is a maintenance liability — Sage reviews them for creep (objectPermissions, fieldPermissions, classAccesses, viewAllRecords). A permset that grants `Create` on `API_Exception_Log__c` to "the integration user" today becomes "what's the integration user, and does it also need this in 6 months when we add Slack notifications?" Sage's preference: **don't add permsets that SYSTEM_MODE makes redundant.**
 3. **Operational simplicity.** No permset → no assignment step in release notes → no "we deployed the code but forgot to assign the permset" failure mode. Boomer's design choice eliminates an entire operational risk class.
 
-**Read access is a separate question.** Standard Users still can't *read* `API_Exception_Log__c` rows. That's correct default-deny — only admins (View All Data, or an explicit "API_Exception_Log_Reader" permset granted to support) should see error logs because stack traces may contain operational details. If/when support tooling needs read access, **that** is when a permset gets added — narrowly scoped, read-only, assigned only to the support persona. Sage will review that permset when it's proposed; it is **out of scope for this PR.**
+**Read access is a separate question.** Standard Users still can't _read_ `API_Exception_Log__c` rows. That's correct default-deny — only admins (View All Data, or an explicit "API_Exception_Log_Reader" permset granted to support) should see error logs because stack traces may contain operational details. If/when support tooling needs read access, **that** is when a permset gets added — narrowly scoped, read-only, assigned only to the support persona. Sage will review that permset when it's proposed; it is **out of scope for this PR.**
 
 ---
 

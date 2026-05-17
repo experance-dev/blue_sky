@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <classAccesses>
+        <apexClass>ContactEngagementErasureHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementErasureService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementInboundRest</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementServiceImpl</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementSignalRouter</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouchTriggerHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouches</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>EngagementTouchesSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>IdentityResolutionService</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>LeadEngagementErasureHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>LeadEngagementReparentHandler</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>OpportunityContactRolesSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TouchRoutingRulesSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <classAccesses>
+        <apexClass>TouchTopicSelector</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+    <!--
+      Marketing_Influence_View custom permission is INTENTIONALLY omitted from
+      the Integration atom. That custom-perm gates the LWC panel + the
+      EngagementController @AuraEnabled surface (Sales/Service user-facing).
+      The Integration user only posts inbound REST and never renders the LWC,
+      so granting it the View perm would be over-provisioning and could
+      surface MI-only fields in unrelated FLS contexts. Per Sage on PR #6.
+
+      PSG composition (Zelis admins): assign STANDALONE to the HubSpot integration
+      user. The existing `HubSpot Integration Permissions` and `HubSpot Integration
+      PermissionsV2` permsets handle the Zelis-side HubSpot grants; this atom
+      complements them with MI-specific data access. Standalone is correct — there
+      is no `Persona - System User HubSpot Integration` PSG today.
+      Should NOT be assigned to: any human user.
+    -->
+    <description
+  >Integration atom for the HubSpot inbound user posting Engagement_Touch__c via Apex REST. Full CRUD + viewAll/modifyAll on the four MI objects + class access on EngagementInboundRest and deps. Assign STANDALONE; not for humans. See source comment.</description>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>AccountContactRelation.IsDirect</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>AccountContactRelation.Roles</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.Is_Consultant__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>Contact.Title</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Dismissal__c.Contact__c and Dismissed_At__c omitted: both -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD covers them. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Opportunity__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Dismissal__c.Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Account__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Archived_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Asset_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Asset_Url__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Campaign__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Contact__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Email_At_Touch__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Touch__c.External_Id__c omitted: field-level required; deploy -->
+    <!-- rejects FLS on required fields. Object-level CRUD + modifyAll covers it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Ingested_At__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Intent_Level__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Is_Active__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Lead__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Engagement_Touch__c.Occurred_At__c omitted: field-level required; deploy -->
+    <!-- rejects FLS on required fields. Object-level CRUD + modifyAll covers it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Persona__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Processing_Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Processing_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Resolution_Status__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_Event_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_Event_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Source_System__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Touch_Subtype__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Engagement_Touch__c.Touch_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity.Touch_Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Confidence__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Contact__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Dismissed_Reason__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Dismissed__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Engagement_Touch__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Match_Path__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <!-- Opportunity_Engagement_Signal__c.Opportunity__c omitted: M-D field is -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- CRUD covers it. -->
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Opportunity_Engagement_Signal__c.Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.External_Code__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.Parent_Topic__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Touch_Topic__c.Topic_Name__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Additional Permissions - Marketing Influence Integration</label>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>Engagement_Dismissal__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>Engagement_Touch__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+    <!-- Lead read: IdentityResolutionService / LeadEngagementReparentHandler -->
+    <!-- resolve and reparent touches to/from converted Leads under USER_MODE. -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Lead</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <!-- Opportunity read+edit required: Signal.Opportunity__c is MasterDetail -->
+    <!-- (parent read enforced); Opportunity.Touch_Topic__c is granted edit FLS. -->
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <!-- viewAll/modifyAll on Signal NOT granted: would require viewAll/modifyAll -->
+    <!-- on Opportunity (M-D parent), a Zelis-org-wide sharing escalation outside -->
+    <!-- the feature footprint. Integration user owns the Signals it inserts and -->
+    <!-- inherits Opportunity sharing for parent visibility. -->
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>Opportunity_Engagement_Signal__c</object>
+        <viewAllRecords>false</viewAllRecords>
+    </objectPermissions>
+    <objectPermissions>
+        <allowCreate>true</allowCreate>
+        <allowDelete>true</allowDelete>
+        <allowEdit>true</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>true</modifyAllRecords>
+        <object>Touch_Topic__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+</PermissionSet>

@@ -4,13 +4,13 @@
 
 ApexDoc annotations live **only in the class header** (not on every method):
 
-| Tag | Value |
-| --- | --- |
-| `@description` | One-line purpose statement. |
-| `@group` | Type / category (e.g. `Service`, `Domain`, `Selector`). |
-| `@author` | Author name. |
-| `@since` | Existing date, or current month/year (e.g. `May 2026`). |
-| `@last` | Current date + brief change note; append to existing entries. |
+| Tag            | Value                                                         |
+| -------------- | ------------------------------------------------------------- |
+| `@description` | One-line purpose statement.                                   |
+| `@group`       | Type / category (e.g. `Service`, `Domain`, `Selector`).       |
+| `@author`      | Author name.                                                  |
+| `@since`       | Existing date, or current month/year (e.g. `May 2026`).       |
+| `@last`        | Current date + brief change note; append to existing entries. |
 
 Comment groupings/sections, not lines. Method-level ApexDoc only when params/returns warrant `@param` / `@return`.
 
@@ -22,14 +22,14 @@ Comment groupings/sections, not lines. Method-level ApexDoc only when params/ret
 ## Documentation
 
 - Inline comments only where logic isn't self-evident to a competent Salesforce engineer.
-- Document the *why*, not the *what* — well-named identifiers describe themselves.
+- Document the _why_, not the _what_ — well-named identifiers describe themselves.
 
 ## Complexity budget
 
-| Limit | Per method | Per class |
-| --- | --- | --- |
-| Apex complexity | < 8 | < 45 |
-| Cyclomatic complexity | < 8 | < 36 |
+| Limit                 | Per method | Per class |
+| --------------------- | ---------- | --------- |
+| Apex complexity       | < 8        | < 45      |
+| Cyclomatic complexity | < 8        | < 36      |
 
 Decompose anything over budget. Prefer `Map` lookups over nested loops. Single responsibility per method.
 
@@ -61,7 +61,8 @@ try {
 
 ```apex
 /** @description Custom exception class for OrderProcessor errors. */
-public class OrderProcessorException extends OrderModuleException {}
+public class OrderProcessorException extends OrderModuleException {
+}
 ```
 
 ## Caching

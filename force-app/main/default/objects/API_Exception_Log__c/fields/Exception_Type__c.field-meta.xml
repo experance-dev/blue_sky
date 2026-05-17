@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Exception_Type__c</fullName>
-    <description>Class name of the original Apex exception (DmlException, CalloutException, etc.). Blank when the error path was a non-exception condition.</description>
+    <description
+  >Class name of the original Apex exception (DmlException, CalloutException, etc.). Blank when the error path was a non-exception condition.</description>
     <externalId>false</externalId>
     <label>Exception Type</label>
     <length>100</length>

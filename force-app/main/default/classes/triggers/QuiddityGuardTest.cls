@@ -11,12 +11,16 @@
 private without sharing class QuiddityGuardTest {
   @TestSetup
   static void makeData() {
-    TestFactory.createTestUser();
+    TestFactory.createTestUserFromPermissionSet(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    );
   }
 
   @isTest
   static void testQuiddityGuardFindsTestQuiddityPositive() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    )) {
       Test.startTest();
 
       // Test with a quiddity that should be in the trusted list
@@ -54,7 +58,9 @@ private without sharing class QuiddityGuardTest {
 
   @isTest
   static void testQuiddityOverrideReturnsFalsePositive() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    )) {
       QuiddityGuard.testQuiddityOverride = Quiddity.FUTURE;
       Test.startTest();
 
@@ -70,7 +76,9 @@ private without sharing class QuiddityGuardTest {
 
   @isTest
   static void testQuiddityGuardThrowsException() {
-    System.runAs(TestFactory.getCreatedTestUser()) {
+    System.runAs(TestFactory.getCreatedTestUser(
+      'Additional_Permissions_Marketing_Influence_Integration'
+    )) {
       QuiddityGuard.testQuiddityOverride = Quiddity.FUTURE;
       Test.startTest();
 

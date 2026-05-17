@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>B5 — Loading state</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@salesforce-ux/design-system@2.27.1/assets/styles/salesforce-lightning-design-system.css"
+    />
+    <style>
+      body {
+        background: #f3f3f3;
+        padding: 24px;
+        font-family: "Salesforce Sans", Arial, sans-serif;
+        margin: 0;
+      }
+      .mock-frame {
+        width: 100%;
+        max-width: 1320px;
+        min-width: 720px;
+        background: #fff;
+        border: 1px solid #d8dde6;
+        border-radius: 4px;
+        margin: 0 auto 28px;
+      }
+      .mock-label {
+        font-size: 12px;
+        color: #706e6b;
+        padding: 8px 16px 0;
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+      /* SLDS-style skeleton placeholders */
+      @keyframes shimmer {
+        0% {
+          background-position: -200px 0;
+        }
+        100% {
+          background-position: 200px 0;
+        }
+      }
+      .skel {
+        background: linear-gradient(
+          90deg,
+          #f3f3f3 25%,
+          #e5e7eb 50%,
+          #f3f3f3 75%
+        );
+        background-size: 400px 100%;
+        animation: shimmer 1.4s infinite linear;
+        border-radius: 3px;
+        display: inline-block;
+      }
+      .skel.bar {
+        height: 12px;
+      }
+      .skel.tall {
+        height: 60px;
+        border-radius: 6px;
+      }
+      .skel.dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+      }
+      .skel.title {
+        height: 18px;
+        width: 50%;
+      }
+      .skel.line {
+        height: 10px;
+      }
+      .skel-strip {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        padding: 12px 16px;
+      }
+      .skel-tile {
+        padding: 0;
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid #f3f3f3;
+      }
+      .skel-row {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 46px;
+        align-items: center;
+        border-bottom: 1px dashed #f3f3f3;
+        padding: 0;
+      }
+      .skel-row .label {
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .skel-row .body {
+        padding: 8px 16px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .loading-note {
+        text-align: center;
+        padding: 10px;
+        color: #54698d;
+        font-size: 12px;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mock-label">
+      <strong>B5 — Loading state.</strong> SLDS shimmer-skeleton placeholders
+      matching the eventual layout. Shown for ~200–400ms while the Apex DTO
+      returns. Layout-stable so the user doesn't see a content-jump when data
+      arrives.
+    </div>
+
+    <div class="mock-frame">
+      <header class="slds-modal__header">
+        <h2 class="slds-modal__title">
+          <span class="skel" style="width: 380px; height: 22px"></span>
+        </h2>
+        <p class="slds-var-m-top_x-small">
+          <span class="skel bar" style="width: 260px"></span>
+        </p>
+      </header>
+
+      <!-- Skeleton campaign strip -->
+      <div class="skel-strip">
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 70%"></div>
+            <div
+              class="skel bar"
+              style="width: 50%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 40%; margin-top: 4px"></div>
+          </div>
+        </div>
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 80%"></div>
+            <div
+              class="skel bar"
+              style="width: 40%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 50%; margin-top: 4px"></div>
+          </div>
+        </div>
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 70%"></div>
+            <div
+              class="skel bar"
+              style="width: 40%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 50%; margin-top: 4px"></div>
+          </div>
+        </div>
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 80%"></div>
+            <div
+              class="skel bar"
+              style="width: 40%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 50%; margin-top: 4px"></div>
+          </div>
+        </div>
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 70%"></div>
+            <div
+              class="skel bar"
+              style="width: 40%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 50%; margin-top: 4px"></div>
+          </div>
+        </div>
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 80%"></div>
+            <div
+              class="skel bar"
+              style="width: 40%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 50%; margin-top: 4px"></div>
+          </div>
+        </div>
+        <div class="skel-tile">
+          <div
+            class="skel"
+            style="height: 6px; display: block; width: 100%; border-radius: 0"
+          ></div>
+          <div style="padding: 10px">
+            <div class="skel bar" style="width: 70%"></div>
+            <div
+              class="skel bar"
+              style="width: 40%; height: 18px; margin-top: 6px"
+            ></div>
+            <div class="skel bar" style="width: 50%; margin-top: 4px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skeleton Gantt: 6 lanes -->
+      <div style="padding: 0 16px">
+        <div
+          class="skel bar title slds-var-m-top_small slds-var-m-bottom_x-small"
+          style="width: 30%"
+        ></div>
+
+        <div class="skel-row">
+          <div class="label">
+            <span class="skel" style="width: 4px; height: 30px"></span>
+            <div>
+              <span class="skel bar" style="width: 140px"></span><br /><span
+                class="skel bar"
+                style="width: 100px; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="body"><span class="skel bar" style="flex: 1"></span></div>
+        </div>
+        <div class="skel-row">
+          <div class="label">
+            <span class="skel" style="width: 4px; height: 30px"></span>
+            <div>
+              <span class="skel bar" style="width: 120px"></span><br /><span
+                class="skel bar"
+                style="width: 80px; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="body"><span class="skel bar" style="flex: 1"></span></div>
+        </div>
+        <div class="skel-row">
+          <div class="label">
+            <span class="skel" style="width: 4px; height: 30px"></span>
+            <div>
+              <span class="skel bar" style="width: 160px"></span><br /><span
+                class="skel bar"
+                style="width: 110px; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="body"><span class="skel bar" style="flex: 1"></span></div>
+        </div>
+        <div class="skel-row">
+          <div class="label">
+            <span class="skel" style="width: 4px; height: 30px"></span>
+            <div>
+              <span class="skel bar" style="width: 130px"></span><br /><span
+                class="skel bar"
+                style="width: 90px; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="body"><span class="skel bar" style="flex: 1"></span></div>
+        </div>
+        <div class="skel-row">
+          <div class="label">
+            <span class="skel" style="width: 4px; height: 30px"></span>
+            <div>
+              <span class="skel bar" style="width: 140px"></span><br /><span
+                class="skel bar"
+                style="width: 100px; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="body"><span class="skel bar" style="flex: 1"></span></div>
+        </div>
+        <div class="skel-row">
+          <div class="label">
+            <span class="skel" style="width: 4px; height: 30px"></span>
+            <div>
+              <span class="skel bar" style="width: 120px"></span><br /><span
+                class="skel bar"
+                style="width: 80px; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="body"><span class="skel bar" style="flex: 1"></span></div>
+        </div>
+      </div>
+
+      <!-- Skeleton bottom tiles -->
+      <div
+        style="
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 12px;
+          padding: 24px 16px 16px;
+        "
+      >
+        <div class="slds-box">
+          <div class="skel bar title"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 80%"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 60%"></div>
+        </div>
+        <div class="slds-box">
+          <div class="skel bar title"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 80%"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 60%"></div>
+        </div>
+        <div class="slds-box">
+          <div class="skel bar title"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 80%"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 60%"></div>
+        </div>
+        <div class="slds-box">
+          <div class="skel bar title"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 80%"></div>
+          <div class="skel bar slds-var-m-top_x-small" style="width: 60%"></div>
+        </div>
+      </div>
+
+      <div class="loading-note">
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          style="vertical-align: middle; margin-right: 4px"
+          aria-hidden="true"
+        >
+          <circle
+            cx="7"
+            cy="7"
+            r="5"
+            fill="none"
+            stroke="#0070d2"
+            stroke-width="2"
+            stroke-dasharray="20 8"
+          >
+            <animateTransform
+              attributeName="transform"
+              type="rotate"
+              from="0 7 7"
+              to="360 7 7"
+              dur="0.9s"
+              repeatCount="indefinite"
+            />
+          </circle>
+        </svg>
+        Loading engagement data…
+      </div>
+
+      <footer class="slds-modal__footer">
+        <button class="slds-button slds-button_neutral">Close</button>
+      </footer>
+    </div>
+  </body>
+</html>

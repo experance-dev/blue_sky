@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Severity__c</fullName>
-    <description>ERROR (default) | WARN | FATAL. Most rows will be ERROR.</description>
+    <description
+  >ERROR (default) | WARN | FATAL. Most rows will be ERROR.</description>
     <externalId>false</externalId>
     <label>Severity</label>
     <required>true</required>

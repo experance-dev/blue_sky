@@ -23,6 +23,7 @@ Salesforce Opportunities and the Jira issues tracking implementation work for th
 **Pattern:** Opportunity Trigger -> Domain Service -> Generic Publisher Service -> Platform Event (`PublishAfterCommit`) -> PE Trigger -> Dispatcher -> JCFS adapter -> Appfire JCFS managed package -> Jira.
 
 **Key classes** (force-app/main/default/classes/):
+
 - `OpportunityTrigger` + `OpportunityTriggerHandler` — bare trigger dispatch.
 - `OpportunityService` — domain layer; owns `JIRA_QUALIFYING_FIELDS` and `anyQualifyingFieldChanged` filter.
 - `JiraPushService` — SObject-agnostic publisher; transaction-scoped recursion guard; reads CMDT `Active__c` kill switch.
@@ -30,6 +31,7 @@ Salesforce Opportunities and the Jira issues tracking implementation work for th
 - `JcfsApiAdapter` — thin adapter around `JCFS.API.pushUpdatesToJira`. Falls back to no-op when the managed package is absent.
 
 **Data flow:**
+
 1. Opportunity DML commits in Salesforce.
 2. Trigger fires; `OpportunityService` filters on six qualifying fields (StageName, Amount, CloseDate, AccountId, OwnerId, Probability).
 3. `JiraPushService.publishUpdates` publishes one `Jira_Push_Request__e` per qualifying record (`PublishAfterCommit` — if the originating transaction rolls back, no event is delivered).
@@ -37,10 +39,12 @@ Salesforce Opportunities and the Jira issues tracking implementation work for th
 5. JCFS notifies Jira; Jira calls back to Salesforce via its own auth (managed by the Appfire package) to pull field values per its mapping.
 
 **Integration points:**
+
 - **Appfire JCFS managed package** — required in production. Salesforce side does not manage the Named Credential; JCFS owns Jira auth.
 - **Platform Event `Jira_Push_Request__e`** — `HighVolume`, `PublishAfterCommit`. Fields: `Source_Object__c`, `Source_Id__c`, `Change_Type__c` (`Create`|`Update`), `Event_Timestamp__c`, `Transaction_Id__c`.
 
 **Schema impact:**
+
 - 1 platform event: `Jira_Push_Request__e`.
 - 1 custom object: `API_Exception_Log__c` (shared with other integrations).
 - 1 custom metadata type: `Jira_Push_Object__mdt` (per-SObject config: `SObject_API_Name__c`, `Active__c`, `Jira_Project_Id__c`, `Jira_Issue_Type__c`).

@@ -1,8 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
     <allowInChatterGroups>false</allowInChatterGroups>
     <deploymentStatus>Deployed</deploymentStatus>
-    <description>Persistent record of API / integration exceptions raised by outbound and inbound callout paths (Jira, etc.). One row per error so support can report on, filter by API, and triage. Cleanup is opt-in via existing LogCleanupContext CMDT; no scheduled archive by default.</description>
+    <description
+  >Persistent record of API / integration exceptions raised by outbound and inbound callout paths (Jira, etc.). One row per error so support can report on, filter by API, and triage. Cleanup is opt-in via existing LogCleanupContext CMDT; no scheduled archive by default.</description>
     <enableActivities>false</enableActivities>
     <enableBulkApi>true</enableBulkApi>
     <enableFeeds>false</enableFeeds>
@@ -19,7 +20,7 @@
         <type>AutoNumber</type>
     </nameField>
     <pluralLabel>API Exception Logs</pluralLabel>
-    <searchLayouts/>
+    <searchLayouts />
     <sharingModel>Private</sharingModel>
     <visibility>Public</visibility>
 </CustomObject>

@@ -621,7 +621,7 @@ public class JiraPushDispatcherTest {
       Assert.areEqual(false, r.success, 'NoOp results are always failures');
       Assert.isTrue(
         r.errorMessage != null &&
-          r.errorMessage.contains('JcfsApiAdapter not deployed'),
+        r.errorMessage.contains('JcfsApiAdapter not deployed'),
         'NoOp errorMessage must clearly identify the scratch-org fallback state'
       );
     }
@@ -663,10 +663,9 @@ public class JiraPushDispatcherTest {
     Assert.areEqual(1, rows.size(), 'one API_Exception_Log__c row per bad Id');
     Assert.isTrue(
       rows[0].Exception_Type__c != null &&
-        rows[0]
-          .Exception_Type__c.endsWith('JiraPushDispatcherException'),
+      rows[0].Exception_Type__c.endsWith('JiraPushDispatcherException'),
       'Typed exception must be captured in Exception_Type__c; got: ' +
-        rows[0].Exception_Type__c
+      rows[0].Exception_Type__c
     );
     Assert.isTrue(
       rows[0].Message__c.contains('definitely-not-an-id'),
@@ -750,7 +749,12 @@ public class JiraPushDispatcherTest {
     stub.simulatedResults = new List<JiraPushDispatcher.JcfsPushResult>{
       new JiraPushDispatcher.JcfsPushResult(a1.Id, true, null, 'CSI-1'),
       new JiraPushDispatcher.JcfsPushResult(a2.Id, false, 'rate limited', null),
-      new JiraPushDispatcher.JcfsPushResult(a3.Id, false, 'invalid project', null)
+      new JiraPushDispatcher.JcfsPushResult(
+        a3.Id,
+        false,
+        'invalid project',
+        null
+      )
     };
     JiraPushDispatcher.jcfs = stub;
 
@@ -835,11 +839,17 @@ public class JiraPushDispatcherTest {
    */
   @IsTest
   static void testProcessHandlesNullResultsListFromAdapterGracefully() {
+    // Pre-existing bug surfaced 2026-05-14: this test (and the null-entry
+    // variant below) was the only pair in the file that omitted both the
+    // CMDT override AND used real DML. Without overrideConfig the dispatcher
+    // short-circuits at the cfg==null gate in pushOne and never reaches the
+    // adapter — callCount stays 0. Aligned with the file's DML-less contract
+    // via buildAccount() so this test no longer depends on org-resident CMDT.
+    overrideConfig(accountConfig(true));
     NullReturningJcfs stub = new NullReturningJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Null Results Account');
-    insert a;
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(
@@ -869,11 +879,15 @@ public class JiraPushDispatcherTest {
    */
   @IsTest
   static void testProcessSkipsNullEntriesInResultsList() {
+    // Mirror of testProcessHandlesNullResultsListFromAdapterGracefully:
+    // CMDT override required so pushOne reaches the adapter; DML-less
+    // buildAccount keeps the test portable across orgs that haven't seeded
+    // the Account row of Jira_Push_Object__mdt.
+    overrideConfig(accountConfig(true));
     NullEntryJcfs stub = new NullEntryJcfs();
     JiraPushDispatcher.jcfs = stub;
 
-    Account a = new Account(Name = 'Null Entry Account');
-    insert a;
+    Account a = buildAccount();
 
     Test.startTest();
     JiraPushDispatcher.process(

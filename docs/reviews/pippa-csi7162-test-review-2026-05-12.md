@@ -222,7 +222,7 @@
 - **Coverage gaps:** trigger 1 line + handler `afterInsert`/`afterUpdate` (4 lines) all covered. ✅
 
 - **Test quality issues:**
-  - 🟧 **`testAfterInsertEndToEndReachesJcfs` will silently break** the day someone adds an `OpportunityDefaults` inner class to `TestFactoryDefaults`. The test comment at line 39-41 says: "Required fields set explicitly because TestFactoryDefaults is empty in this branch; in the work org, the defaults class fills them." That's a **half-baked contract** — the test passes in *both* states (defaults empty OR populated), but if the defaults class sets, say, `OwnerId` to a fake user that doesn't exist, the insert fails. **This test is environment-coupled.** Either: (a) the test should explicitly NOT use `TestFactory.createSObject` and build the Opportunity directly (which it does ✅), but then **delete the misleading comment about defaults**; or (b) commit to using `TestFactory.createSObject` everywhere and own the dependency. Currently it does both and the result is ambiguous.
+  - 🟧 **`testAfterInsertEndToEndReachesJcfs` will silently break** the day someone adds an `OpportunityDefaults` inner class to `TestFactoryDefaults`. The test comment at line 39-41 says: "Required fields set explicitly because TestFactoryDefaults is empty in this branch; in the work org, the defaults class fills them." That's a **half-baked contract** — the test passes in _both_ states (defaults empty OR populated), but if the defaults class sets, say, `OwnerId` to a fake user that doesn't exist, the insert fails. **This test is environment-coupled.** Either: (a) the test should explicitly NOT use `TestFactory.createSObject` and build the Opportunity directly (which it does ✅), but then **delete the misleading comment about defaults**; or (b) commit to using `TestFactory.createSObject` everywhere and own the dependency. Currently it does both and the result is ambiguous.
   - **Brittle reset pattern** at lines 67-70: the test manually news up a fresh `RecordingJcfs` stub and clears `JiraPushService.alreadyPublished` mid-test to "reset the recording stub so we only count the update-driven call". That works, but it's **non-obvious** and a future reader will assume the original stub captured both. Better: assert the original stub has `callCount == 1` (the insert) AFTER `insert o`, then reset, then assert the update path. Document or refactor.
   - **No assertion on `Limits.getDmlStatements()`** in tests that do real DML and the full PE chain.
 
@@ -264,6 +264,7 @@
 ## Cross-cutting findings
 
 ### 🟧 Shared fixtures and helpers — **half-built**
+
 - The `silenceFramework()` / `silenceDispatcher()` helper is **duplicated in 4 test classes** with minor variations:
   - [`JiraPushServiceTest.silenceDispatcher`](../../force-app/main/default/classes/JiraPushServiceTest.cls#L40)
   - [`OpportunityServiceTest.silenceFramework`](../../force-app/main/default/classes/OpportunityServiceTest.cls#L22)
@@ -272,22 +273,28 @@
 - **REDESIGN:** Extract a single static helper, e.g. `JiraPushTestHelper.silenceFramework(String sobjectName)`, return the `RecordingJcfs` stub for further assertion. Single source of truth; one place to add new SObject configs.
 
 ### 🟥 Mock fragility — `FailingPublisher` JSON deserialization
+
 - See `JiraPushService` per-class assessment. Hand-rolled JSON for `Database.SaveResult` is the **single most fragile mock in the suite**.
 
 ### 🟦 Callout-mock pattern — **N/A, correctly so**
+
 - No `HttpCalloutMock` needed because the JCFS call is wrapped in `IJcfsApi` and stubbed at the interface. **This is the right design** — no `HttpCalloutMockFactory` involvement needed for these tests.
 
 ### 🟦 `HttpCalloutMockFactory` — **not used here, by design**
+
 - The [`HttpCalloutMockFactory`](../../force-app/main/default/classes/testing/HttpCalloutMockFactory.cls) exists in the framework. The Jira-push code never makes an HTTP callout directly (JCFS handles that downstream), so its absence in these tests is correct.
 
 ### 🟧 Bulk coverage — **systematically missing**
+
 - **No test in the entire 24-method suite exercises 200 records.**
 - The PE consumer (`JiraPushDispatcher`), the publisher (`JiraPushService`), the domain service (`OpportunityService`), and the trigger pipeline (`OpportunityTriggerHandler`) all need bulk runs. This is the **single biggest aggregate gap.**
 
 ### 🟧 `Limits.*` assertions — **systematically missing**
+
 - Only one test (`testPublishRecursionGuardSuppressesSecondPublish`) checks any `Limits.*` value, and it's `getPublishImmediateDml`. **No `getQueries`, no `getDmlStatements`, no `getCpuTime`.** Service-layer assertions per `best-practices/apex-tests.md` should be present.
 
 ### 🟦 USER_MODE permission boundary — **acceptable gap, mostly**
+
 - The CMDT read in `JiraPushService.getConfig` doesn't enforce USER_MODE because CMDT is not subject to CRUD/FLS anyway.
 - The `EventBus.publish` call is platform-managed.
 - The `Schema.getGlobalDescribe()` describe is no-perm-required.
@@ -296,13 +303,16 @@
 - **Net:** USER_MODE testing is **not required here**; document the rationale in the per-class headers so future reviewers don't ding it.
 
 ### 🟧 Determinism — **mostly clean, two soft spots**
+
 - `Datetime.now()` is used in several `Jira_Push_Request__e` constructions in tests. Harmless (only stored, never compared), but worth noting.
 - `JiraPushService.alreadyPublished` is a static `Set<String>` initialized at class load. Tests that don't reset it could see stale state — **specifically [`OpportunityTriggerHandlerTest.testAfterUpdateQualifyingFieldChangeEndToEnd` at line 70](../../force-app/main/default/classes/OpportunityTriggerHandlerTest.cls#L70)** calls `JiraPushService.alreadyPublished.clear()` explicitly because of this. **Fine that it works, but the next test author won't know to do this.** Wrap the static in a `@TestVisible static void resetTransientState()` or document the gotcha in the class header.
 
 ### 🟦 Run-time per test
+
 - Eyeballing the assertions: every test is in-memory or single-DML. **No test should exceed 1-2 seconds**, suite should be well under 1 minute. Cannot verify without running.
 
 ### 🟨 Naming consistency
+
 - All test methods use CamelCase, no underscores. ✅
 - `testProcessLogsApiExceptionForMalformedSourceId` is a great name. `testHandlersEmptyAndNullInputAreNoOp` covers both handlers in one method — slight nit but understandable.
 
@@ -310,7 +320,7 @@
 
 ## BUGs discovered (test code reveals production bugs)
 
-- **None confirmed.** The test suite doesn't expose a production bug — it exposes coverage *gaps*, which is different. The closest miss is the **dispatcher's lack of duplicate-Id collapsing within a single batch** (two events with the same `Source_Id__c` produce two entries in the typed list). This is reported as a missing-test, not a bug — duplicates are valid `Set<Id>.add` no-ops, so it's actually handled correctly by the `Set` accumulation at line 113-115 of `JiraPushDispatcher`. ✅
+- **None confirmed.** The test suite doesn't expose a production bug — it exposes coverage _gaps_, which is different. The closest miss is the **dispatcher's lack of duplicate-Id collapsing within a single batch** (two events with the same `Source_Id__c` produce two entries in the typed list). This is reported as a missing-test, not a bug — duplicates are valid `Set<Id>.add` no-ops, so it's actually handled correctly by the `Set` accumulation at line 113-115 of `JiraPushDispatcher`. ✅
 - **One soft concern:** [`JiraPushService.publish` line 96](../../force-app/main/default/classes/JiraPushService.cls#L96) does `records[0].getSObjectType().getDescribe().getName()` — if the caller passes a heterogeneous list of SObject types (not a trigger list), only the first record's type is captured but all records publish under that single `Source_Object__c`. **Caller-contract violation, not a class bug**, but the lack of a defensive check means a misuse would silently mis-classify records to Jira. Worth a unit test that explicitly verifies single-SObject-type assumption: e.g. pass a `List<SObject>{ acct, opp }` and assert either a throw or a graceful fallback. Currently neither happens. Flag for David.
 
 ---
@@ -330,10 +340,12 @@
 In **rough priority order** (BLOCK → HIGH → MEDIUM):
 
 ### 🟥 BLOCK — fragility / bug-class
+
 1. **`testPublishHandlesHeterogeneousRecordListSafely`** (in `JiraPushServiceTest`) — passes `List<SObject>{ Account, Opportunity }`, asserts either explicit exception or that only matching-type events publish. Closes the misuse-silently-misclassifies risk.
 2. **Refactor `FailingPublisher`** (not a new test, but a fragility fix) — replace JSON-deserialized `Database.SaveResult` with a wrapper DTO. Either eliminate the test or rebuild the seam.
 
 ### 🟧 HIGH — bulk and pipeline gaps
+
 3. **`testDispatcherProcessesBulkPEBatchOfTwoHundredEvents`** (in `JiraPushDispatcherTest`) — 200 events spanning Account + Opportunity + Case; asserts exactly 3 JCFS calls (one per SObject) and each typed list has the right count + concrete type. Add `Limits.getDmlStatements()` and `Limits.getQueries()` ceilings.
 4. **`testPublishInsertsBulkTwoHundredOpportunities`** (in `JiraPushServiceTest`) — 200 records, one `EventBus.publish` call, assert `Limits.getPublishImmediateDml() == 1` after.
 5. **`testHandleJiraPushUpdateBulkTwoHundredRecords`** (in `OpportunityServiceTest`) — 200 records with mixed qualifying/non-qualifying changes; assert correct filtering and exactly one downstream publish call.
@@ -343,11 +355,13 @@ In **rough priority order** (BLOCK → HIGH → MEDIUM):
 9. **`testHandleJiraPushUpdatePublishesForEachQualifyingField`** (in `OpportunityServiceTest`) — parametric-style coverage of `CloseDate`, `AccountId`, `OwnerId`, `Probability` triggering the publish. Currently only `StageName` and `Amount` are covered.
 
 ### 🟨 MEDIUM — limits / cache / log-failure paths
+
 10. **`testGetConfigCachesAcrossInvocations`** (in `JiraPushServiceTest`) — call `getConfig('Opportunity')` twice; assert `Limits.getQueries()` advances exactly once across both calls.
 11. **`testLogApiExceptionCatchesDmlFailure`** (in `LoggerApiExceptionTest`) — induce an insert failure (oversized `Message__c` or null required field) and assert the `error()` debug-log path fires. Closes the only uncovered Logger branch.
 12. **`testTriggerPipelineRefireIdempotencyAcrossSeparateTransactions`** (in `OpportunityTriggerHandlerTest`) — update the same Opportunity twice in separate `Test.startTest/stopTest` blocks (use `System.runAs` to break the transaction); assert both transactions publish their own event (recursion guard is per-transaction by design).
 
 ### 🟦 LOW — documentation
+
 13. **Add a class-header comment to `JiraPushDispatcherTest`** declaring `RecordingJcfs`, `ThrowingJcfsApi`, and `buildAccount()` as the public test-helper API that five other test classes consume.
 14. **Add a class-header comment to `OpportunityTriggerHandlerTest`** clarifying the `TestFactoryDefaults` dependency (or remove the misleading comment if defaults aren't actually used).
 
@@ -391,4 +405,4 @@ Coverage that exercises only the happy path is theater. Right now the happy path
 
 — Pippa
 
-*Filed under: tests that don't break when the code breaks is not a test, and tests that don't run 200 records aren't proving the only thing that matters in a PE consumer.*
+_Filed under: tests that don't break when the code breaks is not a test, and tests that don't run 200 records aren't proving the only thing that matters in a PE consumer._

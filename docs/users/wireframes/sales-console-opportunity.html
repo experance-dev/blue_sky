@@ -1,0 +1,1404 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sales Console — Opportunity — Engagement (SLDS wireframe)</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/styles/salesforce-lightning-design-system.min.css"
+    />
+    <style>
+      body {
+        background: #f3f3f3;
+      }
+      .wireframe-note {
+        background: #fff3cd;
+        color: #664d03;
+        padding: 8px 16px;
+        border-bottom: 1px solid #ffe69c;
+        font-size: 12px;
+      }
+
+      /* Console tabs (not in SLDS proper) */
+      .console-tabs {
+        background: #ecebea;
+        height: 32px;
+        display: flex;
+        padding: 0 4px;
+      }
+      .console-tabs .tab {
+        background: #f3f3f3;
+        padding: 0 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: #706e6b;
+        border-right: 1px solid #dddbda;
+        cursor: pointer;
+      }
+      .console-tabs .tab.active {
+        background: #fff;
+        color: #181818;
+        border-bottom: 2px solid #0070d2;
+        font-weight: 600;
+      }
+      .console-tabs .tab .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #0070d2;
+      }
+
+      /* Body grid */
+      .body-grid {
+        display: grid;
+        grid-template-columns: 320px 1fr 360px;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      /* Engagement repeat badge */
+      .repeat-badge {
+        display: inline-block;
+        padding: 1px 6px;
+        border-radius: 9px;
+        background: #fef5e8;
+        color: #b25700;
+        font-weight: 600;
+        font-size: 11px;
+        margin-left: 4px;
+      }
+
+      /* Avatar tint variants beyond stock SLDS */
+      .av-consultant {
+        background: #6a4dc7 !important;
+      }
+      .av-acr {
+        background: #06a59a !important;
+      }
+
+      /* Compact engagement box rows */
+      .eng-row {
+        display: grid;
+        grid-template-columns: 32px 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid #f3f3f3;
+      }
+      .eng-row:last-child {
+        border-bottom: none;
+      }
+      .eng-row:hover {
+        background: #fafafa;
+      }
+      .eng-section-label {
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #706e6b;
+        padding: 6px 12px;
+        background: #fafafa;
+        border-bottom: 1px solid #ecebea;
+        border-top: 1px solid #ecebea;
+      }
+      .eng-section-label.deal {
+        color: #0070d2;
+      }
+
+      /* Modal table rows */
+      .modal-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .modal-table th {
+        text-align: left;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #706e6b;
+        padding: 8px 12px;
+        border-bottom: 1px solid #dddbda;
+        background: #fafafa;
+        font-weight: 600;
+      }
+      .modal-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #f3f3f3;
+        font-size: 13px;
+        vertical-align: middle;
+      }
+      .person-row {
+        cursor: pointer;
+      }
+      .person-row:hover {
+        background: #fafafa;
+      }
+      .group-header td {
+        background: #eef4f8;
+        color: #032d60;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        padding: 8px 12px;
+        border-bottom: 1px solid #cfe3ee;
+      }
+      .group-header.not-team td {
+        background: #fafafa;
+        color: #706e6b;
+      }
+
+      .touch-detail {
+        display: none;
+      }
+      .open + .touch-detail {
+        display: table-row;
+      }
+      .touch-detail td {
+        background: #fbfbfb;
+        padding: 0;
+      }
+      .asset-list {
+        display: grid;
+        grid-template-columns: 80px 1fr 70px 110px;
+        padding: 6px 16px 6px 60px;
+        gap: 12px;
+        align-items: center;
+        font-size: 12px;
+        border-bottom: 1px dashed #ecebea;
+      }
+      .asset-list:last-child {
+        border-bottom: none;
+      }
+      .asset-list .type {
+        color: #706e6b;
+        text-transform: uppercase;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        font-weight: 700;
+      }
+      .asset-list .title-cell .campaign-ref {
+        display: block;
+        color: #8c8c8c;
+        font-size: 11px;
+        margin-top: 2px;
+      }
+      .asset-list .count {
+        text-align: right;
+      }
+      .asset-list .date {
+        color: #706e6b;
+        text-align: right;
+        font-size: 11px;
+      }
+
+      .caret-icon {
+        transition: transform 0.15s;
+        display: inline-block;
+      }
+      .open .caret-icon {
+        transform: rotate(90deg);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wireframe-note">
+      <strong
+        >Sales Console — Opportunity record · Engagement box on right rail
+        (SLDS).</strong
+      >
+      "View all" opens the detail modal. "+ Add" opens the role-picker modal.
+    </div>
+
+    <!-- ========== Global Header ========== -->
+    <header class="slds-global-header_container">
+      <div class="slds-global-header slds-grid slds-grid_align-spread">
+        <div class="slds-global-header__item">
+          <div
+            class="slds-global-header__logo"
+            style="
+              background-image: none;
+              background-color: #032d60;
+              width: 64px;
+              height: 32px;
+              color: #fff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-weight: 700;
+              font-size: 12px;
+            "
+          >
+            salesforce
+          </div>
+        </div>
+        <div
+          class="slds-global-header__item slds-global-header__item_search slds-grow"
+        >
+          <div class="slds-form-element slds-form-element_horizontal">
+            <div
+              class="slds-form-element__control slds-input-has-icon slds-input-has-icon_left"
+            >
+              <svg
+                class="slds-icon slds-input__icon slds-input__icon_left slds-icon-text-default"
+                aria-hidden="true"
+              >
+                <use
+                  href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#search"
+                ></use>
+              </svg>
+              <input
+                type="search"
+                class="slds-input"
+                placeholder="Search Salesforce..."
+              />
+            </div>
+          </div>
+        </div>
+        <div class="slds-global-header__item">
+          <ul class="slds-global-actions">
+            <li class="slds-global-actions__item">
+              <button
+                class="slds-button slds-button_icon slds-button_icon-container slds-global-actions__notifications"
+              >
+                <svg class="slds-button__icon" aria-hidden="true">
+                  <use
+                    href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#notification"
+                  ></use>
+                </svg>
+              </button>
+            </li>
+            <li class="slds-global-actions__item">
+              <span class="slds-avatar slds-avatar_circle slds-avatar_medium">
+                <abbr class="slds-avatar__initials slds-icon-standard-user"
+                  >AR</abbr
+                >
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- App context bar -->
+      <div class="slds-context-bar">
+        <div class="slds-context-bar__primary">
+          <div class="slds-context-bar__item">
+            <span
+              class="slds-context-bar__label-action slds-context-bar__app-name"
+            >
+              <span class="slds-truncate" title="Sales Console"
+                ><strong>Sales Console</strong></span
+              >
+            </span>
+          </div>
+        </div>
+        <nav class="slds-context-bar__secondary" role="navigation">
+          <ul class="slds-grid">
+            <li class="slds-context-bar__item">
+              <a href="#" class="slds-context-bar__label-action">Accounts</a>
+            </li>
+            <li class="slds-context-bar__item slds-is-active">
+              <a href="#" class="slds-context-bar__label-action"
+                >Opportunities</a
+              >
+            </li>
+            <li class="slds-context-bar__item">
+              <a href="#" class="slds-context-bar__label-action">Contacts</a>
+            </li>
+            <li class="slds-context-bar__item">
+              <a href="#" class="slds-context-bar__label-action">Reports</a>
+            </li>
+            <li class="slds-context-bar__item">
+              <a href="#" class="slds-context-bar__label-action">Dashboards</a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Console tabs -->
+    <div class="console-tabs">
+      <div class="tab"><span class="dot"></span>Acme Corp</div>
+      <div class="tab active">
+        <span class="dot"></span>Acme — Pricing Implementation
+      </div>
+      <div class="tab"><span class="dot"></span>Acme — Compliance Module</div>
+    </div>
+
+    <!-- ========== Page Header (Highlights) ========== -->
+    <div class="slds-page-header slds-page-header_record-home">
+      <div class="slds-page-header__row">
+        <div class="slds-page-header__col-title">
+          <div class="slds-media">
+            <div class="slds-media__figure">
+              <span class="slds-icon_container slds-icon-standard-opportunity">
+                <svg class="slds-icon" aria-hidden="true">
+                  <use
+                    href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/standard-sprite/svg/symbols.svg#opportunity"
+                  ></use>
+                </svg>
+              </span>
+            </div>
+            <div class="slds-media__body">
+              <div class="slds-page-header__name">
+                <div class="slds-page-header__name-title">
+                  <h1>
+                    <span
+                      class="slds-page-header__title slds-truncate"
+                      title="Acme — Pricing Implementation"
+                      >Acme Corp — Zelis Pricing Implementation</span
+                    >
+                  </h1>
+                </div>
+              </div>
+              <p class="slds-page-header__name-meta">
+                Opportunity · ID 0061x000003pZ4u
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="slds-page-header__col-actions">
+          <div class="slds-page-header__controls">
+            <div class="slds-page-header__control">
+              <ul class="slds-button-group-list">
+                <li>
+                  <button class="slds-button slds-button_neutral">
+                    Follow
+                  </button>
+                </li>
+                <li>
+                  <button class="slds-button slds-button_neutral">
+                    New Note
+                  </button>
+                </li>
+                <li>
+                  <button class="slds-button slds-button_neutral">Edit</button>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slds-page-header__row slds-page-header__row_gutters">
+        <div class="slds-page-header__col-details">
+          <ul class="slds-page-header__detail-row">
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate">Account Name</div>
+              <p class="slds-text-body_regular slds-truncate">
+                <a href="#">Acme Corp</a>
+              </p>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate">Amount</div>
+              <p class="slds-text-body_regular slds-truncate">$850,000</p>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate">Stage</div>
+              <p class="slds-text-body_regular slds-truncate">
+                Proposal / Quote
+              </p>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate">Close Date</div>
+              <p class="slds-text-body_regular slds-truncate">8/31/2026</p>
+            </li>
+            <li class="slds-page-header__detail-block">
+              <div class="slds-text-title slds-truncate">Owner</div>
+              <p class="slds-text-body_regular slds-truncate">Alex Rivera</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== Path ========== -->
+    <div class="slds-path">
+      <div class="slds-grid slds-path__track">
+        <div class="slds-grid slds-path__scroller-container">
+          <div class="slds-path__scroller">
+            <div class="slds-path__scroller_inner">
+              <ul class="slds-path__nav" role="listbox">
+                <li
+                  class="slds-path__item slds-is-complete"
+                  role="presentation"
+                >
+                  <a href="#" class="slds-path__link"
+                    ><span class="slds-path__stage"
+                      ><svg
+                        class="slds-icon slds-icon_x-small"
+                        aria-hidden="true"
+                      >
+                        <use
+                          href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#check"
+                        ></use></svg></span
+                    ><span class="slds-path__title">Qualification</span></a
+                  >
+                </li>
+                <li
+                  class="slds-path__item slds-is-complete"
+                  role="presentation"
+                >
+                  <a href="#" class="slds-path__link"
+                    ><span class="slds-path__stage"
+                      ><svg
+                        class="slds-icon slds-icon_x-small"
+                        aria-hidden="true"
+                      >
+                        <use
+                          href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#check"
+                        ></use></svg></span
+                    ><span class="slds-path__title">Needs Analysis</span></a
+                  >
+                </li>
+                <li
+                  class="slds-path__item slds-is-complete"
+                  role="presentation"
+                >
+                  <a href="#" class="slds-path__link"
+                    ><span class="slds-path__stage"
+                      ><svg
+                        class="slds-icon slds-icon_x-small"
+                        aria-hidden="true"
+                      >
+                        <use
+                          href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#check"
+                        ></use></svg></span
+                    ><span class="slds-path__title">Value Prop</span></a
+                  >
+                </li>
+                <li
+                  class="slds-path__item slds-is-current slds-is-active"
+                  role="presentation"
+                >
+                  <a href="#" class="slds-path__link"
+                    ><span class="slds-path__stage"></span
+                    ><span class="slds-path__title">Proposal / Quote</span></a
+                  >
+                </li>
+                <li
+                  class="slds-path__item slds-is-incomplete"
+                  role="presentation"
+                >
+                  <a href="#" class="slds-path__link"
+                    ><span class="slds-path__stage"></span
+                    ><span class="slds-path__title">Negotiation</span></a
+                  >
+                </li>
+                <li
+                  class="slds-path__item slds-is-incomplete"
+                  role="presentation"
+                >
+                  <a href="#" class="slds-path__link"
+                    ><span class="slds-path__stage"></span
+                    ><span class="slds-path__title">Closed Won</span></a
+                  >
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== Body grid ========== -->
+    <div class="body-grid">
+      <!-- LEFT -->
+      <div>
+        <article class="slds-card">
+          <div class="slds-card__header slds-grid">
+            <header
+              class="slds-media slds-media_center slds-has-flexi-truncate"
+            >
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-task">
+                  <svg class="slds-icon slds-icon_small" aria-hidden="true">
+                    <use
+                      href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/standard-sprite/svg/symbols.svg#task"
+                    ></use>
+                  </svg>
+                </span>
+              </div>
+              <div class="slds-media__body">
+                <h2 class="slds-card__header-title">
+                  <span>Activity Timeline (5)</span>
+                </h2>
+              </div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-card__body_inner">
+            <ul class="slds-has-dividers_bottom-space">
+              <li class="slds-item slds-text-body_small">
+                <strong>Email sent</strong> — Pricing follow-up ·
+                <span class="slds-text-color_weak">Yesterday</span>
+              </li>
+              <li class="slds-item slds-text-body_small">
+                <strong>Call logged</strong> — Discovery w/ Jane ·
+                <span class="slds-text-color_weak">Mon</span>
+              </li>
+              <li class="slds-item slds-text-body_small">
+                <strong>Meeting</strong> — Demo w/ Robert ·
+                <span class="slds-text-color_weak">Last Tue</span>
+              </li>
+              <li class="slds-item slds-text-body_small">
+                <strong>Email received</strong> — Re: pricing ·
+                <span class="slds-text-color_weak">3d ago</span>
+              </li>
+              <li class="slds-item slds-text-body_small">
+                <strong>Note added</strong> ·
+                <span class="slds-text-color_weak">5d ago</span>
+              </li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <!-- CENTER -->
+      <div>
+        <article class="slds-card">
+          <div class="slds-card__header slds-grid">
+            <header
+              class="slds-media slds-media_center slds-has-flexi-truncate"
+            >
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-record">
+                  <svg class="slds-icon slds-icon_small" aria-hidden="true">
+                    <use
+                      href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/standard-sprite/svg/symbols.svg#record"
+                    ></use>
+                  </svg>
+                </span>
+              </div>
+              <div class="slds-media__body">
+                <h2 class="slds-card__header-title">
+                  <span>Opportunity Details</span>
+                </h2>
+              </div>
+            </header>
+          </div>
+          <div class="slds-card__body slds-card__body_inner">
+            <dl class="slds-list_horizontal slds-wrap">
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Account Name
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                Acme Corp
+              </dd>
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Owner
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                Alex Rivera
+              </dd>
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Amount
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                $850,000
+              </dd>
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Probability
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                60%
+              </dd>
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Type
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                Existing Customer — Upgrade
+              </dd>
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Lead Source
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                Marketing Campaign
+              </dd>
+              <dt
+                class="slds-item_label slds-text-color_weak slds-truncate"
+                style="width: 50%"
+              >
+                Next Step
+              </dt>
+              <dd class="slds-item_detail slds-truncate" style="width: 50%">
+                Send revised pricing
+              </dd>
+            </dl>
+          </div>
+        </article>
+
+        <article class="slds-card slds-var-m-top_medium">
+          <div class="slds-card__header slds-grid">
+            <header
+              class="slds-media slds-media_center slds-has-flexi-truncate"
+            >
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-contact"
+                  ><svg class="slds-icon slds-icon_small" aria-hidden="true">
+                    <use
+                      href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/standard-sprite/svg/symbols.svg#contact"
+                    ></use></svg
+                ></span>
+              </div>
+              <div class="slds-media__body">
+                <h2 class="slds-card__header-title">
+                  <span>Contact Roles (2)</span>
+                </h2>
+              </div>
+            </header>
+          </div>
+          <div
+            class="slds-card__body slds-card__body_inner slds-text-color_weak slds-text-body_small"
+          >
+            Jane Smith — Decision Maker · Robert Chen — Technical Buyer
+          </div>
+        </article>
+      </div>
+
+      <!-- RIGHT — Engagement box ========== -->
+      <div>
+        <article class="slds-card">
+          <div class="slds-card__header slds-grid">
+            <header
+              class="slds-media slds-media_center slds-has-flexi-truncate"
+            >
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-lead">
+                  <svg class="slds-icon slds-icon_small" aria-hidden="true">
+                    <use
+                      href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/standard-sprite/svg/symbols.svg#lead"
+                    ></use>
+                  </svg>
+                </span>
+              </div>
+              <div class="slds-media__body">
+                <h2 class="slds-card__header-title">
+                  <span class="slds-text-heading_small">Engagement</span>
+                </h2>
+                <p class="slds-text-body_small slds-text-color_weak">
+                  17 touches · 30 days · last 2h ago
+                </p>
+              </div>
+              <div class="slds-no-flex">
+                <button
+                  class="slds-button slds-button_neutral"
+                  onclick="
+                    document
+                      .getElementById('detail-modal')
+                      .classList.add('slds-fade-in-open');
+                    document
+                      .getElementById('detail-backdrop')
+                      .classList.add('slds-backdrop_open');
+                  "
+                >
+                  View all
+                </button>
+              </div>
+            </header>
+          </div>
+
+          <div class="eng-section-label deal">Deal Team — 2 on OCR</div>
+          <div class="eng-row">
+            <span
+              class="slds-avatar slds-avatar_circle slds-avatar_small av-acr"
+              ><abbr class="slds-avatar__initials">JS</abbr></span
+            >
+            <div>
+              <div class="slds-text-body_small">
+                <strong>Jane Smith</strong>
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                Decision Maker · 3 touches · 3d
+              </div>
+            </div>
+            <span class="slds-badge">on team</span>
+          </div>
+          <div class="eng-row">
+            <span class="slds-avatar slds-avatar_circle slds-avatar_small"
+              ><abbr class="slds-avatar__initials">RC</abbr></span
+            >
+            <div>
+              <div class="slds-text-body_small">
+                <strong>Robert Chen</strong>
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                Tech Buyer · 2 touches · 7d
+              </div>
+            </div>
+            <span class="slds-badge">on team</span>
+          </div>
+
+          <div class="eng-section-label">Engaged — not on Deal Team · 4</div>
+          <div class="eng-row">
+            <span class="slds-avatar slds-avatar_circle slds-avatar_small"
+              ><abbr class="slds-avatar__initials">SJ</abbr></span
+            >
+            <div>
+              <div class="slds-text-body_small">
+                <strong>Sarah Johnson</strong> · CFO
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                4 touches · 2h<span class="repeat-badge">3× whitepaper</span>
+              </div>
+            </div>
+            <button
+              class="slds-button slds-button_brand"
+              onclick="openAdd('Sarah Johnson', 'CFO · Acme Corp')"
+            >
+              + Add
+            </button>
+          </div>
+          <div class="eng-row">
+            <span
+              class="slds-avatar slds-avatar_circle slds-avatar_small av-consultant"
+              ><abbr class="slds-avatar__initials">MW</abbr></span
+            >
+            <div>
+              <div class="slds-text-body_small">
+                <strong>Marcus Webb</strong> · Deloitte
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                ACR · 2 touches · 1d
+              </div>
+            </div>
+            <button
+              class="slds-button slds-button_brand"
+              onclick="
+                openAdd('Marcus Webb', 'Implementation Consultant · Deloitte')
+              "
+            >
+              + Add
+            </button>
+          </div>
+          <div class="eng-row">
+            <span class="slds-avatar slds-avatar_circle slds-avatar_small"
+              ><abbr class="slds-avatar__initials">DP</abbr></span
+            >
+            <div>
+              <div class="slds-text-body_small">
+                <strong>David Park</strong> · VP Ops
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                1 touch · 5d
+              </div>
+            </div>
+            <button
+              class="slds-button slds-button_brand"
+              onclick="openAdd('David Park', 'VP Operations · Acme Corp')"
+            >
+              + Add
+            </button>
+          </div>
+          <div class="eng-row">
+            <span
+              class="slds-avatar slds-avatar_circle slds-avatar_small av-consultant"
+              ><abbr class="slds-avatar__initials">LP</abbr></span
+            >
+            <div>
+              <div class="slds-text-body_small">
+                <strong>Linda Park</strong> · Advisor
+              </div>
+              <div class="slds-text-body_small slds-text-color_weak">
+                ACR · 1 touch · 8d
+              </div>
+            </div>
+            <button
+              class="slds-button slds-button_brand"
+              onclick="openAdd('Linda Park', 'Independent Advisor')"
+            >
+              + Add
+            </button>
+          </div>
+
+          <footer class="slds-card__footer">
+            <span class="slds-text-color_weak slds-text-body_small"
+              >Topics: Pricing, Integration, Implementation</span
+            >
+            <a
+              href="#"
+              onclick="
+                document
+                  .getElementById('detail-modal')
+                  .classList.add('slds-fade-in-open');
+                document
+                  .getElementById('detail-backdrop')
+                  .classList.add('slds-backdrop_open');
+                return false;
+              "
+              >View all engagement →</a
+            >
+          </footer>
+        </article>
+
+        <article class="slds-card slds-var-m-top_medium">
+          <div class="slds-card__header slds-grid">
+            <header
+              class="slds-media slds-media_center slds-has-flexi-truncate"
+            >
+              <div class="slds-media__figure">
+                <span class="slds-icon_container slds-icon-standard-feed"
+                  ><svg class="slds-icon slds-icon_small" aria-hidden="true">
+                    <use
+                      href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/standard-sprite/svg/symbols.svg#feed"
+                    ></use></svg
+                ></span>
+              </div>
+              <div class="slds-media__body">
+                <h2 class="slds-card__header-title"><span>Chatter</span></h2>
+              </div>
+            </header>
+          </div>
+          <div
+            class="slds-card__body slds-card__body_inner slds-text-color_weak slds-text-body_small"
+          >
+            No recent posts
+          </div>
+        </article>
+      </div>
+    </div>
+
+    <!-- ========== DETAIL MODAL: View All Engagement ========== -->
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      aria-labelledby="detail-heading"
+      class="slds-modal slds-modal_large"
+      id="detail-modal"
+    >
+      <div class="slds-modal__container">
+        <button
+          class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+          title="Close"
+          onclick="
+            document
+              .getElementById('detail-modal')
+              .classList.remove('slds-fade-in-open');
+            document
+              .getElementById('detail-backdrop')
+              .classList.remove('slds-backdrop_open');
+          "
+        >
+          <svg
+            class="slds-button__icon slds-button__icon_large"
+            aria-hidden="true"
+          >
+            <use
+              href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#close"
+            ></use>
+          </svg>
+          <span class="slds-assistive-text">Close</span>
+        </button>
+        <header class="slds-modal__header">
+          <h1 id="detail-heading" class="slds-modal__title slds-hyphenate">
+            Engagement — Acme Corp · Pricing Implementation
+          </h1>
+        </header>
+        <div class="slds-modal__content slds-p-around_none" id="detail-content">
+          <!-- Toolbar -->
+          <div
+            class="slds-grid slds-grid_vertical-align-center slds-var-p-around_small slds-border_bottom"
+            style="background: #fafaf9"
+          >
+            <span
+              class="slds-text-title slds-text-color_weak slds-var-m-right_small"
+              >Group by</span
+            >
+            <div class="slds-button-group" role="group">
+              <button class="slds-button slds-button_brand">Person</button>
+              <button class="slds-button slds-button_neutral">Campaign</button>
+            </div>
+            <div
+              class="slds-col_bump-left slds-text-body_small slds-text-color_weak"
+            >
+              Last 30 days · Topics: Pricing, Integration, Implementation
+            </div>
+          </div>
+
+          <!-- Table -->
+          <table class="modal-table">
+            <thead>
+              <tr>
+                <th colspan="6"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-header">
+                <td colspan="6">Deal Team — 2 on OCR</td>
+              </tr>
+
+              <tr
+                class="person-row open"
+                onclick="this.classList.toggle('open')"
+              >
+                <td style="width: 32px"><span class="caret-icon">▶</span></td>
+                <td style="width: 40px">
+                  <span
+                    class="slds-avatar slds-avatar_circle slds-avatar_small av-acr"
+                    ><abbr class="slds-avatar__initials">JS</abbr></span
+                  >
+                </td>
+                <td>
+                  <strong>Jane Smith</strong>
+                  <div class="slds-text-body_small slds-text-color_weak">
+                    CRO · Acme Corp
+                  </div>
+                  <div class="slds-var-m-top_xx-small">
+                    <span
+                      class="slds-pill slds-pill_link"
+                      style="
+                        background: #f0f7fb;
+                        color: #032d60;
+                        font-size: 11px;
+                      "
+                      >Decision Maker</span
+                    >
+                    <span
+                      class="slds-pill"
+                      style="
+                        background: #e8f6f5;
+                        color: #06a59a;
+                        font-size: 11px;
+                      "
+                      >ACR · Champion</span
+                    >
+                    <span
+                      class="slds-pill"
+                      style="background: #eef; color: #032d60; font-size: 11px"
+                      >Pricing</span
+                    >
+                  </div>
+                </td>
+                <td></td>
+                <td>
+                  <strong>3</strong> touches ·
+                  <span class="slds-text-color_weak">3d</span>
+                </td>
+                <td style="text-align: right">
+                  <span class="slds-badge">on team</span>
+                </td>
+              </tr>
+              <tr class="touch-detail">
+                <td colspan="6">
+                  <div class="asset-list">
+                    <div class="type">Download</div>
+                    <div class="title-cell">
+                      Zelis Pricing &amp; Packaging Whitepaper<span
+                        class="campaign-ref"
+                        >Campaign: Q2 Zelis Pricing Promo</span
+                      >
+                    </div>
+                    <div class="count">
+                      <span class="repeat-badge">2×</span>
+                    </div>
+                    <div class="date">3d ago · 11d ago</div>
+                  </div>
+                  <div class="asset-list">
+                    <div class="type">Form</div>
+                    <div class="title-cell">
+                      Pricing inquiry form<span class="campaign-ref"
+                        >Campaign: Q2 Zelis Pricing Promo</span
+                      >
+                    </div>
+                    <div class="count">1×</div>
+                    <div class="date">14d ago</div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="person-row" onclick="this.classList.toggle('open')">
+                <td><span class="caret-icon">▶</span></td>
+                <td>
+                  <span class="slds-avatar slds-avatar_circle slds-avatar_small"
+                    ><abbr class="slds-avatar__initials">RC</abbr></span
+                  >
+                </td>
+                <td>
+                  <strong>Robert Chen</strong>
+                  <div class="slds-text-body_small slds-text-color_weak">
+                    VP Engineering
+                  </div>
+                  <div class="slds-var-m-top_xx-small">
+                    <span
+                      class="slds-pill"
+                      style="
+                        background: #f0f7fb;
+                        color: #032d60;
+                        font-size: 11px;
+                      "
+                      >Technical Buyer</span
+                    >
+                    <span
+                      class="slds-pill"
+                      style="background: #eef; color: #032d60; font-size: 11px"
+                      >Integration</span
+                    >
+                  </div>
+                </td>
+                <td></td>
+                <td>
+                  <strong>2</strong> touches ·
+                  <span class="slds-text-color_weak">7d</span>
+                </td>
+                <td style="text-align: right">
+                  <span class="slds-badge">on team</span>
+                </td>
+              </tr>
+
+              <tr class="group-header not-team">
+                <td colspan="6">Engaged — Not on Deal Team · 4</td>
+              </tr>
+
+              <tr
+                class="person-row open"
+                onclick="this.classList.toggle('open')"
+              >
+                <td><span class="caret-icon">▶</span></td>
+                <td>
+                  <span class="slds-avatar slds-avatar_circle slds-avatar_small"
+                    ><abbr class="slds-avatar__initials">SJ</abbr></span
+                  >
+                </td>
+                <td>
+                  <strong>Sarah Johnson</strong>
+                  <div class="slds-text-body_small slds-text-color_weak">
+                    CFO · Acme Corp
+                  </div>
+                  <div class="slds-var-m-top_xx-small">
+                    <span
+                      class="slds-pill"
+                      style="background: #eef; color: #032d60; font-size: 11px"
+                      >Pricing</span
+                    >
+                  </div>
+                </td>
+                <td></td>
+                <td>
+                  <strong>4</strong> touches ·
+                  <span class="slds-text-color_weak">2h</span>
+                </td>
+                <td style="text-align: right">
+                  <button
+                    class="slds-button slds-button_brand"
+                    onclick="
+                      event.stopPropagation();
+                      openAdd('Sarah Johnson', 'CFO · Acme Corp');
+                    "
+                  >
+                    + Add to Deal Team
+                  </button>
+                </td>
+              </tr>
+              <tr class="touch-detail">
+                <td colspan="6">
+                  <div class="asset-list">
+                    <div class="type">Download</div>
+                    <div class="title-cell">
+                      Zelis Pricing &amp; Packaging Whitepaper<span
+                        class="campaign-ref"
+                        >Campaign: Q2 Zelis Pricing Promo</span
+                      >
+                    </div>
+                    <div class="count">
+                      <span class="repeat-badge">3×</span>
+                    </div>
+                    <div class="date">2h · 1d · 4d</div>
+                  </div>
+                  <div class="asset-list">
+                    <div class="type">Page</div>
+                    <div class="title-cell">
+                      /pricing/calculator<span class="campaign-ref"
+                        >No campaign</span
+                      >
+                    </div>
+                    <div class="count">1×</div>
+                    <div class="date">2h ago</div>
+                  </div>
+                </td>
+              </tr>
+
+              <tr class="person-row" onclick="this.classList.toggle('open')">
+                <td><span class="caret-icon">▶</span></td>
+                <td>
+                  <span
+                    class="slds-avatar slds-avatar_circle slds-avatar_small av-consultant"
+                    ><abbr class="slds-avatar__initials">MW</abbr></span
+                  >
+                </td>
+                <td>
+                  <strong>Marcus Webb</strong>
+                  <div class="slds-text-body_small slds-text-color_weak">
+                    Implementation Consultant · Deloitte
+                  </div>
+                  <div class="slds-var-m-top_xx-small">
+                    <span
+                      class="slds-pill"
+                      style="
+                        background: #f1ecff;
+                        color: #6a4dc7;
+                        font-size: 11px;
+                      "
+                      >ACR · Consultant</span
+                    >
+                    <span
+                      class="slds-pill"
+                      style="background: #eef; color: #032d60; font-size: 11px"
+                      >Competitive</span
+                    >
+                  </div>
+                </td>
+                <td></td>
+                <td>
+                  <strong>2</strong> touches ·
+                  <span class="slds-text-color_weak">1d</span>
+                </td>
+                <td style="text-align: right">
+                  <button
+                    class="slds-button slds-button_brand"
+                    onclick="
+                      event.stopPropagation();
+                      openAdd(
+                        'Marcus Webb',
+                        'Implementation Consultant · Deloitte'
+                      );
+                    "
+                  >
+                    + Add to Deal Team
+                  </button>
+                </td>
+              </tr>
+
+              <tr class="person-row" onclick="this.classList.toggle('open')">
+                <td><span class="caret-icon">▶</span></td>
+                <td>
+                  <span class="slds-avatar slds-avatar_circle slds-avatar_small"
+                    ><abbr class="slds-avatar__initials">DP</abbr></span
+                  >
+                </td>
+                <td>
+                  <strong>David Park</strong>
+                  <div class="slds-text-body_small slds-text-color_weak">
+                    VP Operations
+                  </div>
+                  <div class="slds-var-m-top_xx-small">
+                    <span
+                      class="slds-pill"
+                      style="background: #eef; color: #032d60; font-size: 11px"
+                      >Implementation</span
+                    >
+                  </div>
+                </td>
+                <td></td>
+                <td>
+                  <strong>1</strong> touch ·
+                  <span class="slds-text-color_weak">5d</span>
+                </td>
+                <td style="text-align: right">
+                  <button
+                    class="slds-button slds-button_brand"
+                    onclick="
+                      event.stopPropagation();
+                      openAdd('David Park', 'VP Operations · Acme Corp');
+                    "
+                  >
+                    + Add to Deal Team
+                  </button>
+                </td>
+              </tr>
+
+              <tr class="person-row" onclick="this.classList.toggle('open')">
+                <td><span class="caret-icon">▶</span></td>
+                <td>
+                  <span
+                    class="slds-avatar slds-avatar_circle slds-avatar_small av-consultant"
+                    ><abbr class="slds-avatar__initials">LP</abbr></span
+                  >
+                </td>
+                <td>
+                  <strong>Linda Park</strong>
+                  <div class="slds-text-body_small slds-text-color_weak">
+                    Independent Advisor
+                  </div>
+                  <div class="slds-var-m-top_xx-small">
+                    <span
+                      class="slds-pill"
+                      style="
+                        background: #f1ecff;
+                        color: #6a4dc7;
+                        font-size: 11px;
+                      "
+                      >ACR · Advisor</span
+                    >
+                    <span
+                      class="slds-pill"
+                      style="background: #eef; color: #032d60; font-size: 11px"
+                      >Integration</span
+                    >
+                  </div>
+                </td>
+                <td></td>
+                <td>
+                  <strong>1</strong> touch ·
+                  <span class="slds-text-color_weak">8d</span>
+                </td>
+                <td style="text-align: right">
+                  <button
+                    class="slds-button slds-button_brand"
+                    onclick="
+                      event.stopPropagation();
+                      openAdd('Linda Park', 'Independent Advisor');
+                    "
+                  >
+                    + Add to Deal Team
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <footer class="slds-modal__footer">
+          <button
+            class="slds-button slds-button_neutral"
+            onclick="
+              document
+                .getElementById('detail-modal')
+                .classList.remove('slds-fade-in-open');
+              document
+                .getElementById('detail-backdrop')
+                .classList.remove('slds-backdrop_open');
+            "
+          >
+            Close
+          </button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop" id="detail-backdrop"></div>
+
+    <!-- ========== ADD TO DEAL TEAM MODAL ========== -->
+    <section
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      aria-labelledby="add-heading"
+      class="slds-modal slds-modal_small"
+      id="add-modal"
+    >
+      <div class="slds-modal__container">
+        <button
+          class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+          title="Close"
+          onclick="closeAdd()"
+        >
+          <svg
+            class="slds-button__icon slds-button__icon_large"
+            aria-hidden="true"
+          >
+            <use
+              href="https://cdn.jsdelivr.net/npm/@salesforce-ux/design-system@2.24.5/assets/icons/utility-sprite/svg/symbols.svg#close"
+            ></use>
+          </svg>
+        </button>
+        <header class="slds-modal__header">
+          <h2 id="add-heading" class="slds-modal__title">Add to Deal Team</h2>
+        </header>
+        <div class="slds-modal__content slds-var-p-around_medium">
+          <p class="slds-text-body_regular slds-var-m-bottom_small">
+            Add <strong id="add-name">—</strong>
+            <span id="add-title" class="slds-text-color_weak"></span> to
+            <em>Acme — Pricing Implementation</em>.
+          </p>
+          <div class="slds-form-element slds-var-m-bottom_small">
+            <label class="slds-form-element__label" for="role-select"
+              >Role</label
+            >
+            <div class="slds-form-element__control">
+              <div class="slds-select_container">
+                <select class="slds-select" id="role-select">
+                  <option>Economic Buyer</option>
+                  <option>Decision Maker</option>
+                  <option>Influencer</option>
+                  <option>Evaluator</option>
+                  <option>Executive Sponsor</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="slds-form-element slds-var-m-bottom_small">
+            <span class="slds-checkbox">
+              <input type="checkbox" id="primary-check" />
+              <label class="slds-checkbox__label" for="primary-check">
+                <span class="slds-checkbox_faux"></span>
+                <span class="slds-form-element__label"
+                  >Make primary contact</span
+                >
+              </label>
+            </span>
+          </div>
+        </div>
+        <footer class="slds-modal__footer">
+          <button class="slds-button slds-button_neutral" onclick="closeAdd()">
+            Cancel
+          </button>
+          <button class="slds-button slds-button_brand" onclick="closeAdd()">
+            Add to Deal Team
+          </button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop" id="add-backdrop"></div>
+
+    <script>
+      function openAdd(name, title) {
+        document.getElementById("add-name").textContent = name;
+        document.getElementById("add-title").textContent = " (" + title + ")";
+        document.getElementById("add-modal").classList.add("slds-fade-in-open");
+        document
+          .getElementById("add-backdrop")
+          .classList.add("slds-backdrop_open");
+      }
+      function closeAdd() {
+        document
+          .getElementById("add-modal")
+          .classList.remove("slds-fade-in-open");
+        document
+          .getElementById("add-backdrop")
+          .classList.remove("slds-backdrop_open");
+      }
+      // Click backdrops to close
+      document
+        .getElementById("detail-backdrop")
+        .addEventListener("click", () => {
+          document
+            .getElementById("detail-modal")
+            .classList.remove("slds-fade-in-open");
+          document
+            .getElementById("detail-backdrop")
+            .classList.remove("slds-backdrop_open");
+        });
+      document
+        .getElementById("add-backdrop")
+        .addEventListener("click", closeAdd);
+    </script>
+  </body>
+</html>

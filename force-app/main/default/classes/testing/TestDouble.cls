@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Reusable StubProvider implementation with a fluent builder API.
  *              Wraps `System.StubProvider` so tests can stub collaborator methods

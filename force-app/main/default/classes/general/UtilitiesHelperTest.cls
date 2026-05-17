@@ -93,11 +93,18 @@ public without sharing class UtilitiesHelperTest {
 
   @isTest
   static void testCreateDynamicIdListMap() {
+    // In-memory grouping assertion — no DML needed. The template carries the
+    // shared AccountId so every cloned Contact inherits the same parent and
+    // the resulting Map<Id, List<Contact>> has exactly one key. Setting it
+    // on the template (not in defaults) keeps the parent intent visible at
+    // the call site and avoids side effects in the shared defaults class.
+    Id sharedAccountId = TestFactory.getFakeId(Account.SObjectType);
+    Contact template = new Contact(AccountId = sharedAccountId);
     List<Contact> contacts = (List<Contact>) TestFactory.createSObjectList(
-      new Contact(),
+      template,
       3,
       'TestFactoryDefaults.ContactWithAccountDefaults',
-      true
+      false
     );
 
     Test.startTest();
@@ -110,7 +117,7 @@ public without sharing class UtilitiesHelperTest {
       Assert.areEqual(1, contactMap.size(), 'There should be 1 account Id key');
       Assert.areEqual(
         3,
-        contactMap.get(contacts[0].AccountId).size(),
+        contactMap.get(sharedAccountId).size(),
         'There should be 3 contacts for the first account'
       );
     }

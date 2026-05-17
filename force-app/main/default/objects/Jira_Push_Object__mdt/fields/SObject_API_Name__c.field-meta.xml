@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>SObject_API_Name__c</fullName>
-    <description>API name of the SObject this row configures (e.g. Opportunity, Case).</description>
+    <description
+  >API name of the SObject this row configures (e.g. Opportunity, Case).</description>
     <externalId>true</externalId>
     <fieldManageability>DeveloperControlled</fieldManageability>
     <label>SObject API Name</label>

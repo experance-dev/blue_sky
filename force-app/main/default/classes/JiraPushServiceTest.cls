@@ -428,11 +428,7 @@ private class JiraPushServiceTest {
       pub.publishCount,
       'Single publish call regardless of mixed types'
     );
-    Assert.areEqual(
-      2,
-      pub.lastEvents.size(),
-      'Both events present in batch'
-    );
+    Assert.areEqual(2, pub.lastEvents.size(), 'Both events present in batch');
     Jira_Push_Request__e firstEvent = (Jira_Push_Request__e) pub.lastEvents[0];
     Jira_Push_Request__e secondEvent = (Jira_Push_Request__e) pub.lastEvents[1];
     Assert.areEqual('Account', firstEvent.Source_Object__c);
@@ -440,7 +436,7 @@ private class JiraPushServiceTest {
       'Account',
       secondEvent.Source_Object__c,
       'Mis-classification: Opportunity tagged Account because records[0] won. ' +
-        'See class header REDESIGN note for the fix.'
+      'See class header REDESIGN note for the fix.'
     );
   }
 

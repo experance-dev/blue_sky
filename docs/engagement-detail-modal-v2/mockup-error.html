@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>B5 — Error state</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/@salesforce-ux/design-system@2.27.1/assets/styles/salesforce-lightning-design-system.css"
+    />
+    <style>
+      body {
+        background: #f3f3f3;
+        padding: 24px;
+        font-family: "Salesforce Sans", Arial, sans-serif;
+        margin: 0;
+      }
+      .mock-frame {
+        width: 100%;
+        max-width: 1320px;
+        min-width: 720px;
+        background: #fff;
+        border: 1px solid #d8dde6;
+        border-radius: 4px;
+        margin: 0 auto 28px;
+      }
+      .mock-label {
+        font-size: 12px;
+        color: #706e6b;
+        padding: 8px 16px 0;
+        max-width: 1320px;
+        margin: 0 auto;
+      }
+      .err-illust {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 50px 24px;
+      }
+      .err-illust svg {
+        max-width: 240px;
+        height: auto;
+      }
+      .err-illust h3 {
+        margin: 24px 0 8px;
+        font-size: 18px;
+        color: #ba0517;
+      }
+      .err-illust p {
+        margin: 4px 0;
+        font-size: 14px;
+        max-width: 540px;
+        text-align: center;
+        color: #54698d;
+      }
+      .err-illust .actions {
+        margin-top: 20px;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .err-illust code {
+        background: #f3f3f3;
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        color: #ba0517;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mock-label">
+      <strong>B5 — Error state.</strong> Apex throw, FLS-denied query, or
+      hierarchy traversal failure. SLDS-style illustration + plain-language
+      explanation + retry + escalate-to-admin path. Never expose
+      AuraHandledException internals to the user (per Sage).
+    </div>
+
+    <div class="mock-frame">
+      <header class="slds-modal__header">
+        <h2 class="slds-modal__title">
+          Engagement Detail — Acme Health Network
+        </h2>
+        <p
+          class="slds-text-body_small slds-var-m-top_xx-small slds-text-color_weak"
+        >
+          Could not load engagement data
+        </p>
+      </header>
+
+      <div class="err-illust">
+        <!-- Friendly error illustration: cable unplugged / dropped puzzle piece style -->
+        <svg
+          viewBox="0 0 240 180"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <!-- ground -->
+          <line
+            x1="20"
+            y1="150"
+            x2="220"
+            y2="150"
+            stroke="#a8b7c7"
+            stroke-width="2"
+          />
+          <!-- left jigsaw piece -->
+          <path
+            d="M 60 100 L 60 70 Q 80 70 80 55 Q 80 40 95 40 L 120 40 L 120 70 L 100 70 Q 100 85 115 85 Q 130 85 130 100 L 130 130 L 60 130 Z"
+            fill="#dde3ee"
+            stroke="#54698d"
+            stroke-width="2.5"
+          />
+          <!-- right jigsaw piece, separated -->
+          <g transform="translate(8, 6) rotate(-8 195 100)">
+            <path
+              d="M 160 105 L 160 75 L 190 75 Q 190 60 205 60 Q 220 60 220 75 L 220 135 L 150 135 L 150 110 Q 165 110 165 95 Q 165 80 160 80 Z"
+              fill="#fcdce0"
+              stroke="#ba0517"
+              stroke-width="2.5"
+            />
+          </g>
+          <!-- gap indicator dotted -->
+          <line
+            x1="135"
+            y1="100"
+            x2="155"
+            y2="100"
+            stroke="#ba0517"
+            stroke-width="2"
+            stroke-dasharray="3 3"
+          />
+          <!-- ! exclamation -->
+          <circle cx="145" cy="50" r="12" fill="#ba0517" />
+          <text
+            x="145"
+            y="56"
+            text-anchor="middle"
+            fill="#fff"
+            font-weight="bold"
+            font-size="16"
+          >
+            !
+          </text>
+        </svg>
+
+        <h3>Something went wrong loading engagement data</h3>
+        <p>
+          We couldn't pull the touch records for
+          <strong>Acme Health Network</strong>. This might be a temporary issue,
+          or you may not have permission to see some of the underlying records.
+        </p>
+        <p class="slds-text-body_small slds-var-m-top_x-small">
+          Error ID: <code>MI-DTO-503-1763838914</code> &nbsp; · &nbsp; Time:
+          14:35:18 GMT
+        </p>
+
+        <div class="actions">
+          <button class="slds-button slds-button_brand">Try again</button>
+          <button class="slds-button slds-button_neutral">
+            Switch to "This account only"
+          </button>
+          <button class="slds-button slds-button_neutral">
+            Report to admin
+          </button>
+        </div>
+        <p
+          class="slds-text-body_small slds-text-color_weak slds-var-m-top_small"
+        >
+          If this keeps happening, the error ID above lets your admin trace the
+          cause.
+        </p>
+      </div>
+
+      <footer class="slds-modal__footer">
+        <button class="slds-button slds-button_neutral">Close</button>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -132,12 +132,7 @@ public with sharing class JiraPushDispatcher {
       // the "Jira not actually called" state is visible in support reports.
       for (SObject rec : records) {
         results.add(
-          new JcfsPushResult(
-            rec.Id,
-            false,
-            'JcfsApiAdapter not deployed',
-            null
-          )
+          new JcfsPushResult(rec.Id, false, 'JcfsApiAdapter not deployed', null)
         );
       }
       return results;
@@ -161,8 +156,7 @@ public with sharing class JiraPushDispatcher {
     for (Jira_Push_Request__e e : events) {
       // Skip malformed events (empty source) but keep processing the rest.
       if (
-        String.isBlank(e.Source_Object__c) ||
-        String.isBlank(e.Source_Id__c)
+        String.isBlank(e.Source_Object__c) || String.isBlank(e.Source_Id__c)
       ) {
         continue;
       }
@@ -312,9 +306,7 @@ public with sharing class JiraPushDispatcher {
             sobjectName +
             ' ' +
             r.recordId +
-            (String.isBlank(r.jiraIssueKey)
-              ? ''
-              : ' -> ' + r.jiraIssueKey),
+            (String.isBlank(r.jiraIssueKey) ? '' : ' -> ' + r.jiraIssueKey),
           CLASS_NAME,
           'pushOne'
         );

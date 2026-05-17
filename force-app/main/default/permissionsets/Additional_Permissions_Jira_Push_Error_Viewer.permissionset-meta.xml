@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <customPermissions>
+        <enabled>true</enabled>
+        <name>Jira_Push_View_Errors</name>
+    </customPermissions>
+    <!--
+      PSG composition (Zelis admins): add this atom to the following Persona PSGs:
+        - Persona - System User Jira Integration
+        - Persona - IE Implementation Operations Director Plus
+      Should NOT be assigned to: end users or sales personas — error-queue
+      visibility is operational. Use the MI atoms for engagement-attribution access.
+      Standalone OK for: implementation engineers, integration operators,
+      on-call support staff who triage Jira sync failures without admin cleanup.
+    -->
+    <description
+  >Read-only Jira Push error-queue atom. Grants Jira_Push_View_Errors custom perm, read + viewAll on API_Exception_Log__c, read on every API_Exception_Log__c field. Compose into operator and implementation Persona PSGs; see source comment for PSG list.</description>
+    <!-- API_Exception_Log__c.API_Name__c and Severity__c omitted: both are -->
+    <!-- field-level required; deploy rejects FLS on required fields. Object-level -->
+    <!-- read implicitly grants visibility, matching the legacy TMP permset. -->
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Do_Not_Delete__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Exception_Type__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Message__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Operation__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Source_Object__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Source_Record_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Stack_Trace__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>false</editable>
+        <field>API_Exception_Log__c.Transaction_Id__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <hasActivationRequired>false</hasActivationRequired>
+    <label>Additional Permissions - Jira Push Error Viewer</label>
+    <objectPermissions>
+        <allowCreate>false</allowCreate>
+        <allowDelete>false</allowDelete>
+        <allowEdit>false</allowEdit>
+        <allowRead>true</allowRead>
+        <modifyAllRecords>false</modifyAllRecords>
+        <object>API_Exception_Log__c</object>
+        <viewAllRecords>true</viewAllRecords>
+    </objectPermissions>
+</PermissionSet>

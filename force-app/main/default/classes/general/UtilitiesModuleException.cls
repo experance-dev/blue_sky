@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Base exception class for the Utilities module. Downstream modules extend this to create
  *              typed exceptions that share a common catch point for utilities-layer errors.
@@ -6,4 +11,5 @@
  * @last May 2026 — conformance refactor
  * @group Utilities
  */
-public inherited sharing virtual class UtilitiesModuleException extends Exception {}
+public inherited sharing virtual class UtilitiesModuleException extends Exception {
+}

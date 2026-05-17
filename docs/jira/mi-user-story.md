@@ -13,6 +13,7 @@ Marketing knows everyone who engaged with our content. Sales knows who's on the 
 Marketing Influence (internal: Engagement Attribution) closes that gap by recording every marketing engagement as an event-level Salesforce record, attributing it to Opportunities and Accounts through topic + account match (OCR membership not required), and surfacing the result as a compact right-rail panel that lets reps act on it in one click.
 
 **Quantified impact (from prior deployments of this pattern):**
+
 - Attribution coverage rises from ~OCR-membership baseline (typically 40-60% of engaged contacts) to ~95%+ of engaged contacts.
 - "Buying committee discovery" — reps add 1.5-3x more contacts to deal teams once engagement is visible.
 - Event-level retention gives downstream AI work (next-best-action, predictive scoring) a usable substrate. None of that exists today.
@@ -28,6 +29,7 @@ Marketing Influence (internal: Engagement Attribution) closes that gap by record
 **Pattern:** HubSpot REST POST -> identity resolution -> Touch upsert -> trigger -> rule-based signal router -> per-Opportunity signals -> LWC right-rail panel. Three-layer Selector / Service / Domain stack throughout. Documented in [ADR-0001](../../.claude/worktrees/feature-engagement-attribution/docs/architecture/decisions/0001-three-layer-selector-service-controller.md).
 
 **Key Apex classes** (`force-app/main/default/classes/engagement/`):
+
 - **REST surface:** `EngagementInboundRest` — parses inbound HubSpot envelope, bulk-resolves Topics and Campaigns, delegates identity resolution, upserts touches.
 - **Identity:** `IdentityResolutionService` — 2 SOQL (Contact then Lead) per call regardless of batch size; Contact takes precedence over Lead.
 - **Routing:** `EngagementSignalRouter` — applies `Touch_Routing_Rule__mdt` rules in priority ASC order; produces `Opportunity_Engagement_Signal__c` records via `DMLManager`.
@@ -39,6 +41,7 @@ Marketing Influence (internal: Engagement Attribution) closes that gap by record
 - **Triggers:** `EngagementTouchTrigger` -> `EngagementTouchTriggerHandler` -> `EngagementSignalRouter.routeTouches`. Plus `ContactTrigger` / `LeadTrigger` fan out to `ContactEngagementErasureHandler` / `LeadEngagementErasureHandler` / `LeadEngagementReparentHandler`.
 
 **LWC surface** (`force-app/main/default/lwc/`):
+
 - `engagementPanel` — compact right-rail; supports Opportunity and Account scope.
 - `engagementDetailModal` — "View all" drill-down with per-asset history.
 - `addToDealTeamModal` — role-picker; creates `OpportunityContactRole`.
@@ -46,6 +49,7 @@ Marketing Influence (internal: Engagement Attribution) closes that gap by record
 - `engagementAdminApp` — admin app for routing-rule management.
 
 **Data flow:**
+
 1. HubSpot POSTs to `https://<org>.my.salesforce.com/services/apexrest/engagement/touches/` with `{events:[...]}` — Bearer auth via Integration User session.
 2. `EngagementInboundRest.ingest` validates envelope, bulk-looks-up `Touch_Topic__c` and `Campaign`, calls `IdentityResolutionService.resolveAll`.
 3. Touches upsert by `External_Id__c` (idempotent under HubSpot retries).
@@ -54,11 +58,13 @@ Marketing Influence (internal: Engagement Attribution) closes that gap by record
 6. Rep clicks "+ Add" -> `addToDealTeamModal` -> `addToOcrSafe` -> `OpportunityContactRole` insert via `DMLManager.insertAsUser`.
 
 **Integration points:**
+
 - **HubSpot** (or any source-of-truth marketing system) -> Salesforce REST endpoint `/services/apexrest/engagement/touches/`.
 - **Salesforce Integration User** — Bearer-auth identity for the inbound REST call. Permset: `MI_Integration_User`.
 - **No outbound callouts.** MI does not call HubSpot back. Identity-resolved email is the only key.
 
 **Schema impact:**
+
 - 4 custom objects:
   - `Engagement_Touch__c` — one row per marketing event.
   - `Opportunity_Engagement_Signal__c` — one row per (touch, opp, match-path) tuple.
@@ -97,7 +103,7 @@ Marketing Influence (internal: Engagement Attribution) closes that gap by record
 
 **AC-13**: Given a rep dismisses a row, When the panel reloads, Then the dismissed row no longer appears for that user (other users still see it).
 
-**AC-14**: Given the panel is loaded on an Account record page, When it renders, Then it shows a single flat list of engaged people (ACR + Contact + unresolved Leads on the account's domain), sorted by `lastTouchAt DESC`, no Deal Team grouping.
+**AC-14**: Given the panel is loaded on an Account record page, When it renders, Then it shows a single flat list of engaged people (ACR + Contact-resolved touches on the account), sorted by `lastTouchAt DESC`, no Deal Team grouping. **Scope narrowed 2026-05-17 (David approved, Vista recommend):** unresolved domain-matched Leads are excluded from the Account-scope panel for v1 — `selectByAccountIds` filters on `Account__c IN`, and `Pending` touches have `Account__c = null`. The domain-Lead fallback for Account-scope rendering is deferred to Phase 3 (the panel's `+ Add` path already requires a resolved person, so unresolved Leads would have no actionable affordance even if surfaced).
 
 ## Out of Scope
 

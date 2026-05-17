@@ -56,9 +56,16 @@ Confirm **before** the maintenance window starts. Each line item must be green.
 
 ### Permsets
 
-- `Engagement_Attribution_User` (end-user), `Engagement_Attribution_Admin` (admin overlay)
+The 4-tier MI permset ladder (Zelis `Additional Permissions - <Feature> <Tier>` convention) — full reference table with grants + PSG composition in [Permset reference — assignment guide](#permset-reference--assignment-guide):
 
-> **TODO:** No dedicated CSI-7162 / MI integration permset exists in source today. The HubSpot integration user's ApexREST + object access flows through the user's profile (or `Engagement_Attribution_Admin` as a stop-gap). If we want a least-privilege `Engagement_Attribution_Integration` permset, that's a separate ticket.
+- `Additional_Permissions_Marketing_Influence_View` — read-only
+- `Additional_Permissions_Marketing_Influence_Power_User` — View + Add/Dismiss + OCR CRUD
+- `Additional_Permissions_Marketing_Influence_Admin` — Power User + admin console + CMDT/setting edit
+- `Additional_Permissions_Marketing_Influence_Integration` — HubSpot inbound REST + full CRUD on MI objects
+
+Plus 2 custom permissions gating UI visibility: `Marketing_Influence_View` (FlexiPage Component Visibility) + `Marketing_Influence_Power_User` (intra-LWC button gating).
+
+The retired pair `Engagement_Attribution_User` / `Engagement_Attribution_Admin` was deleted from dwood_z on 2026-05-14 as part of the ladder cutover.
 
 ### Lightning App Builder pages
 
@@ -114,7 +121,7 @@ Capture the deploy Id (`0Af...`).
 
 ### Step 4 — Confirm custom-object FLS
 
-Open Setup -> Object Manager -> `Engagement_Touch__c` -> Field-Level Security. Confirm fields are visible to the `Engagement_Attribution_User` and `Engagement_Attribution_Admin` permsets per the deploy.
+Open Setup -> Object Manager -> `Engagement_Touch__c` -> Field-Level Security. Confirm fields are visible to the 4 MI permsets per the deploy: `Additional_Permissions_Marketing_Influence_View`, `_Power_User`, `_Admin`, `_Integration`. Each tier carries the FLS slice it needs (read-only on View; write on action fields for Power User and above; full edit on Integration).
 
 Repeat for `Opportunity_Engagement_Signal__c`, `Engagement_Dismissal__c`, `Touch_Topic__c`.
 
@@ -270,34 +277,104 @@ upsert s;
 
 ## Permset assignment
 
+Assignment in Zelis uses the canonical Persona PSG composition pattern — full reference + PSG mapping in [Permset reference — assignment guide](#permset-reference--assignment-guide). Steps below execute that pattern at go-live.
+
 ### Step 1 — Grant inbound REST access to the HubSpot integration user
 
-The integration user that runs the inbound REST callouts needs ApexREST + write access to `Engagement_Touch__c`. Until a dedicated integration permset exists, assign `Engagement_Attribution_Admin` to the dedicated integration user as a stop-gap:
+The integration user that runs the inbound REST callouts gets the dedicated `Additional_Permissions_Marketing_Influence_Integration` permset — full CRUD + viewAll/modifyAll on the four MI objects + `EngagementInboundRest` Apex Class Access. Standalone assignment, NOT composed into a Persona PSG (no PSG exists for HubSpot system users today).
 
 ```bash
-sfdx force:user:permset:assign -u prod -n Engagement_Attribution_Admin -o mi-integration@<orgname>.com
+sf org assign permset -o prod -n Additional_Permissions_Marketing_Influence_Integration --on-behalf-of mi-integration@<orgname>.com
 ```
 
-> **Note:** Only assign to the dedicated integration user. Do **not** assign `Engagement_Attribution_Admin` to humans as a side effect of this step — they should be assigned via Step 3 instead.
->
-> **TODO:** See the [Permsets](#permsets) note above re: shipping an `Engagement_Attribution_Integration` permset in a future release.
+> **Note:** Only assign the Integration permset to the dedicated integration user. Do NOT assign it to humans — it carries broad CRUD that bypasses normal user-tier rules.
 
-### Step 2 — Assign `Engagement_Attribution_User` to the sales team
+### Step 2 — Compose `Additional_Permissions_Marketing_Influence_View` into sales-team PSGs
+
+Zelis admins add the View atom to the existing Persona PSGs for read-only sales tiers: `Persona - IE Sales`, `Persona - Enterprise Sales User`, `Persona - ZNA Sales User`. Setup -> Permission Set Groups -> open the target PSG -> Permission Sets in Group -> Add -> `Additional_Permissions_Marketing_Influence_View` -> Save -> wait for the group to finish recalculating.
+
+### Step 3 — Compose `Additional_Permissions_Marketing_Influence_Power_User` into account-management PSGs
+
+Same pattern, target PSGs: `Persona - IE Account Manager`, `Persona - Enterprise Account Manager`, `Persona - ZNA Account Manager`, `Persona - Enterprise Sales Exec`, `Persona - ZNA Sales Exec`. The Power User atom grants View + Add to Deal Team + Dismiss + OCR CRUD.
+
+### Step 4 — Compose `Additional_Permissions_Marketing_Influence_Admin` into marketing-admin PSGs
+
+Target PSGs: `Persona - Marketing User` (admin-tier seats only) and `Persona - IE Marketing` (admin-tier seats only). The Admin atom carries the Engagement Admin Console tab + viewAll/modifyAll on MI objects + CMDT/setting edit. NOT for general marketing users — they get View or Power User instead.
+
+## Permset reference — assignment guide
+
+Zelis is OWD Private; permsets ARE the visibility model. Each MI permset is an
+_atomic functional grant_ meant to be composed into existing Zelis Persona PSGs,
+not assigned standalone (with one exception noted). Each permset XML carries
+inline PSG-composition guidance in its `<description>` — this table consolidates
+that guidance for release engineers.
+
+| Permset (API name)                                                                                                                                                                    | Grants                                                                                                                      | Custom permissions granted                                   | Compose into Persona PSGs                                                                                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`Additional_Permissions_Marketing_Influence_View`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_View.permissionset-meta.xml)               | Read on the 4 MI objects + `EngagementController` Apex Class Access                                                         | `Marketing_Influence_View`                                   | Persona - IE Sales; Persona - Enterprise Sales User; Persona - ZNA Sales User; Persona - IE Marketing; Persona - Marketing User                              |
+| [`Additional_Permissions_Marketing_Influence_Power_User`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_Power_User.permissionset-meta.xml)   | View + Add to Deal Team + Dismiss + OCR CRUD                                                                                | `Marketing_Influence_View`, `Marketing_Influence_Power_User` | Persona - IE Account Manager; Persona - Enterprise Account Manager; Persona - ZNA Account Manager; Persona - Enterprise Sales Exec; Persona - ZNA Sales Exec |
+| [`Additional_Permissions_Marketing_Influence_Admin`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_Admin.permissionset-meta.xml)             | Power User + Engagement Admin Console tab + viewAll/modifyAll on MI objects + `EngagementAdminController` Apex Class Access | `Marketing_Influence_View`, `Marketing_Influence_Power_User` | Persona - Marketing User (admin-tier); Persona - IE Marketing (admin-tier)                                                                                   |
+| [`Additional_Permissions_Marketing_Influence_Integration`](../../force-app/main/default/permissionsets/Additional_Permissions_Marketing_Influence_Integration.permissionset-meta.xml) | Full CRUD + viewAll/modifyAll on MI objects + `EngagementInboundRest` Apex Class Access                                     | `Marketing_Influence_View`                                   | **STANDALONE** — assign directly to the HubSpot inbound integration user. No Persona PSG exists for HubSpot system users.                                    |
+
+### How to assign (composition path — the default)
+
+1. Setup -> Permission Set Groups -> open the target Persona PSG.
+2. **Permission Sets in Group** -> Add.
+3. Pick the MI atom (e.g. `Additional_Permissions_Marketing_Influence_View`).
+4. Save. PSG recalculation runs asynchronously; assignments propagate within minutes.
+
+### How to assign (standalone — Integration user only)
+
+1. Setup -> Permission Sets -> search `Additional_Permissions_Marketing_Influence_Integration`.
+2. **Manage Assignments** -> Add Assignments.
+3. Pick the HubSpot integration user (e.g. `mi-integration@<orgname>.com`).
+4. Save.
+
+CLI equivalent:
 
 ```bash
-sfdx force:data:soql:query -u prod -q "SELECT Id, Username FROM User WHERE IsActive = true AND ProfileId IN (SELECT Id FROM Profile WHERE Name IN ('Sales User', 'Sales Manager', 'Account Executive'))" -r csv > /tmp/sales-users.csv
-
-# Manual loop or use a single call:
-sfdx force:user:permset:assign -u prod -n Engagement_Attribution_User -o <comma-separated-usernames>
+sfdx force:user:permset:assign -u prod \
+  -n Additional_Permissions_Marketing_Influence_Integration \
+  -o mi-integration@<orgname>.com
 ```
 
-### Step 3 — Assign `Engagement_Attribution_User` to Marketing Ops team
+### What NOT to assign
 
-Per the sales-team pattern above, scoped to Marketing Operations users.
+- DO NOT assign `Additional_Permissions_Marketing_Influence_Integration` to a human user — it carries broad CRUD that bypasses normal user-tier rules.
+- DO NOT assign `Additional_Permissions_Marketing_Influence_Admin` to non-marketing-ops users — it carries CMDT edit + custom-setting edit, which are admin-level.
+- DO NOT compose `Additional_Permissions_Marketing_Influence_Integration` into any Persona PSG. It is the only atom in this feature that is standalone-only.
 
-### Step 4 — Assign `Engagement_Attribution_Admin` to feature owners
+## FlexiPage footprint — Zelis pages we contribute to
 
-Per the sales-team pattern above, scoped to David Wood + designated support tier.
+Three Zelis-owned Account FlexiPages now carry the `c:engagementPanel` additively
+in our source. Future Zelis edits to these pages MUST coordinate with the MI
+feature owner to preserve the additive contribution — Salesforce FlexiPage merge
+is last-deploy-wins.
+
+| FlexiPage                                                                                                                       | Region      | Slot                              | Rendered for                               |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------- | --------------------------------- | ------------------------------------------ |
+| [`Account_Record_Page_Provider`](../../force-app/main/default/flexipages/Account_Record_Page_Provider.flexipage-meta.xml)       | sidebar     | 1 (above tabset)                  | Provider RT Accounts in legacy app routing |
+| [`PE_Provider_Account_Record_Page`](../../force-app/main/default/flexipages/PE_Provider_Account_Record_Page.flexipage-meta.xml) | leftsidebar | 2 (below highlightsPanel)         | Provider Enrollment workspace users        |
+| [`PE_Payer_Record_Page`](../../force-app/main/default/flexipages/PE_Payer_Record_Page.flexipage-meta.xml)                       | sidebar     | 1 (above activity/chatter tabset) | Payer Enrollment workspace users           |
+
+Every contribution carries a Component Visibility rule:
+
+```xml
+<visibilityRule>
+    <criteria>
+        <leftValue
+    >{!$Permission.CustomPermission.Marketing_Influence_View}</leftValue>
+        <operator>EQUAL</operator>
+        <rightValue>true</rightValue>
+    </criteria>
+</visibilityRule>
+```
+
+so the panel renders only for users with the `Marketing_Influence_View` custom
+permission. PE Enrollment users without MI permsets see their existing workspace
+unchanged — no visual regression, no FLS error.
+
+> **Note:** The dedicated `Account_Engagement_Record_Page` shipped with this feature is a separate, MI-owned page for record types that don't sit on a Zelis-owned page. The three pages above are additive contributions to Zelis-owned surfaces; treat them as shared assets.
 
 ## Lightning App Builder activation
 
@@ -422,12 +499,12 @@ Sign-off captured in the release ticket:
 
 **Symptom:** Bad data flooding in; need to stop ingestion.
 
-Remove the stop-gap `Engagement_Attribution_Admin` permset from the HubSpot integration user:
+Remove the `Additional_Permissions_Marketing_Influence_Integration` permset from the HubSpot integration user — the inbound REST endpoint will start rejecting POSTs immediately:
 
 ```bash
-sfdx force:data:soql:query -u prod -q "SELECT Id FROM PermissionSetAssignment WHERE Assignee.Username = 'mi-integration@<orgname>.com' AND PermissionSet.Name = 'Engagement_Attribution_Admin'"
+sf data query -o prod -q "SELECT Id FROM PermissionSetAssignment WHERE Assignee.Username = 'mi-integration@<orgname>.com' AND PermissionSet.Name = 'Additional_Permissions_Marketing_Influence_Integration'"
 # Then delete the returned Id:
-sfdx force:data:record:delete -u prod -s PermissionSetAssignment -i <id>
+sf data delete record -o prod -s PermissionSetAssignment -i <id>
 ```
 
 Effect: subsequent HubSpot POSTs receive `401 Unauthorized`. HubSpot Ops will see the failure in their workflow logs.

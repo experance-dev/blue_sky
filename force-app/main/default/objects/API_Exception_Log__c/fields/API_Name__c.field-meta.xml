@@ -1,7 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>API_Name__c</fullName>
-    <description>Logical name of the API / integration that raised the error (e.g. JCFS, Slack, Workday). Filterable.</description>
+    <description
+  >Logical name of the API / integration that raised the error (e.g. JCFS, Slack, Workday). Filterable.</description>
     <externalId>false</externalId>
     <label>API Name</label>
     <length>80</length>

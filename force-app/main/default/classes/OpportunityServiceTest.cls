@@ -19,10 +19,10 @@
  */
 @IsTest
 private class OpportunityServiceTest {
-  private static final String UPDATE_KEY_SUFFIX = ':' +
-    JiraPushService.CHANGE_UPDATE;
-  private static final String INSERT_KEY_SUFFIX = ':' +
-    JiraPushService.CHANGE_INSERT;
+  private static final String UPDATE_KEY_SUFFIX =
+    ':' + JiraPushService.CHANGE_UPDATE;
+  private static final String INSERT_KEY_SUFFIX =
+    ':' + JiraPushService.CHANGE_INSERT;
 
   // Wires up a RecordingJcfs stub + CMDT override via the shared fixture.
   // Static state is per-transaction, so this can't live in @TestSetup
@@ -426,8 +426,8 @@ private class OpportunityServiceTest {
     Test.startTest();
     OpportunityService.handleJiraPushUpdate(
       new List<Opportunity>{ o },
-      new Map<Id, Opportunity>() // empty - simulates the edge case
-    );
+      new Map<Id, Opportunity>()
+    ); // empty - simulates the edge case
     Test.stopTest();
 
     Assert.isFalse(

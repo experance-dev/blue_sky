@@ -1,10 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Is_Consultant__c</fullName>
     <defaultValue>false</defaultValue>
-    <description>@author David Wood. Overlay for the platform-readonly AccountContactRelation.IsDirect. True when this Contact has at least one indirect ACR (IsDirect=false). Maintained by the AccountContactRelation_Set_Is_Consultant flow. Read by engagement-routing Apex (Q11).</description>
+    <description
+  >@author David Wood. Overlay for the platform-readonly AccountContactRelation.IsDirect. True when this Contact has at least one indirect ACR (IsDirect=false). Maintained by the AccountContactRelation_Set_Is_Consultant flow. Read by engagement-routing Apex (Q11).</description>
     <externalId>false</externalId>
-    <inlineHelpText>Auto-maintained. True when the contact is related to any account as a consultant (indirect ACR).</inlineHelpText>
+    <inlineHelpText
+  >Auto-maintained. True when the contact is related to any account as a consultant (indirect ACR).</inlineHelpText>
     <label>Is Consultant</label>
     <trackHistory>false</trackHistory>
     <trackTrending>false</trackTrending>

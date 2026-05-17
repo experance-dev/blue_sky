@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Creates and queues HttpResponse instances for use with Test.setMock.
  *              Supports single-response and ordered multi-response scenarios.
@@ -71,5 +76,6 @@ public without sharing class HttpCalloutMockFactory implements HttpCalloutMock {
     return res;
   }
 
-  public class HttpCalloutMockException extends UtilitiesModuleException {}
+  public class HttpCalloutMockException extends UtilitiesModuleException {
+  }
 }

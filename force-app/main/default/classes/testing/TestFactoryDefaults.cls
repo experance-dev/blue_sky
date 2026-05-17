@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2020-2026 David Wood
+ * Licensed under the MIT License — see LICENSE in the repo root.
+ * Source: <https://github.com/experance-dev/salesforce-utilities>
+ */
 /**
  * @description Per-SObject `FieldDefaults` registry consumed by
  *              `TestFactory.createSObject`. Convention: a default class for
@@ -45,7 +50,9 @@
 // on the dynamic-dispatch Schema.getDescribe() helpers (lines 283, 315, 353);
 // CognitiveComplexity / ExcessiveParameterList are intrinsic to the per-RT
 // defaults registry + putIfFieldExists graceful-degradation shape.
-@SuppressWarnings('PMD.EagerlyLoadedDescribeSObjectResult, PMD.CognitiveComplexity, PMD.ExcessiveParameterList')
+@SuppressWarnings(
+  'PMD.EagerlyLoadedDescribeSObjectResult, PMD.CognitiveComplexity, PMD.ExcessiveParameterList'
+)
 @IsTest
 public without sharing class TestFactoryDefaults {
   // Permission set assigned to the default `TestFactory.createTestUser()`.
@@ -166,10 +173,7 @@ public without sharing class TestFactoryDefaults {
     public Map<Schema.SObjectField, Object> getFieldDefaults() {
       Map<Schema.SObjectField, Object> base = new AccountDefaults()
         .getFieldDefaults();
-      Id payerRtId = getRecordTypeId(
-        Account.SObjectType,
-        'PayerAccount'
-      );
+      Id payerRtId = getRecordTypeId(Account.SObjectType, 'PayerAccount');
       if (payerRtId != null) {
         base.put(Account.RecordTypeId, payerRtId);
       }
@@ -188,10 +192,7 @@ public without sharing class TestFactoryDefaults {
     public Map<Schema.SObjectField, Object> getFieldDefaults() {
       Map<Schema.SObjectField, Object> base = new AccountDefaults()
         .getFieldDefaults();
-      Id providerRtId = getRecordTypeId(
-        Account.SObjectType,
-        'ProviderAccount'
-      );
+      Id providerRtId = getRecordTypeId(Account.SObjectType, 'ProviderAccount');
       if (providerRtId != null) {
         base.put(Account.RecordTypeId, providerRtId);
       }
@@ -215,7 +216,9 @@ public without sharing class TestFactoryDefaults {
       return new Map<Schema.SObjectField, Object>{
         Contact.FirstName => 'Test',
         Contact.LastName => 'Contact ' + suffix,
-        Contact.Email => 'mi-test-' + suffix + '@example.invalid'
+        Contact.Email => 'mi-test-' +
+        suffix +
+        '@example.invalid'
       };
     }
   }
@@ -320,18 +323,8 @@ public without sharing class TestFactoryDefaults {
       base.put(Opportunity.StageName, 'Discovery (10%)');
       Map<String, Schema.SObjectField> fieldMap = Opportunity.SObjectType.getDescribe()
         .fields.getMap();
-      putIfFieldExists(
-        base,
-        fieldMap,
-        'Opportunity_Source__c',
-        'Conference'
-      );
-      putIfFieldExists(
-        base,
-        fieldMap,
-        'I_E_Core_Product__c',
-        'S365'
-      );
+      putIfFieldExists(base, fieldMap, 'Opportunity_Source__c', 'Conference');
+      putIfFieldExists(base, fieldMap, 'I_E_Core_Product__c', 'S365');
       putIfFieldExists(
         base,
         fieldMap,
@@ -386,14 +379,18 @@ public without sharing class TestFactoryDefaults {
       ];
       return new Map<Schema.SObjectField, Object>{
         User.Alias => ('mi' + suffix).left(8),
-        User.Email => 'mi-' + suffix + '@example.invalid',
+        User.Email => 'mi-' +
+        suffix +
+        '@example.invalid',
         User.EmailEncodingKey => 'UTF-8',
         User.LastName => 'MI Test User',
         User.LanguageLocaleKey => 'en_US',
         User.LocaleSidKey => 'en_US',
         User.ProfileId => p.Id,
         User.TimeZoneSidKey => 'America/New_York',
-        User.UserName => 'mi-' + suffix + '@example.invalid.test'
+        User.UserName => 'mi-' +
+        suffix +
+        '@example.invalid.test'
       };
     }
   }

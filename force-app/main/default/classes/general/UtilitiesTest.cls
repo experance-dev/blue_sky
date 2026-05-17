@@ -21,12 +21,21 @@ public without sharing class UtilitiesTest {
 
   @isTest
   static void testStandardPricebookId() {
+    // dwood_z (and orgs without a Sales license) reject Pricebook2 SOQL with
+    // "sObject type 'Pricebook2' is not supported." Inject a known Id via
+    // the @TestVisible hook so this test exercises the lazy-cache contract
+    // rather than the live SOQL. Test.getStandardPricebookId() returns the
+    // platform-managed test pricebook Id and is safe in every org context.
+    PricebookUtil.testStandardPricebookId = Test.getStandardPricebookId();
     Test.startTest();
     System.runAs(TestFactory.getMinAccessUser()) {
-      // Test the standardPricebookId method
       Id pricebookId = Utilities.standardPricebookId;
-      // Assert that the pricebookId is not null
       Assert.isNotNull(pricebookId, 'Standard Pricebook Id should not be null');
+      Assert.areEqual(
+        Test.getStandardPricebookId(),
+        pricebookId,
+        'standardPricebookId should return the injected value'
+      );
     }
     Test.stopTest();
   }
@@ -184,11 +193,18 @@ public without sharing class UtilitiesTest {
 
   @isTest
   static void testCreateMapFromCollectionWithCollectionValues() {
+    // In-memory grouping assertion — no DML needed. The template carries the
+    // shared AccountId so every cloned Contact inherits the same parent and
+    // the resulting Map<Id, List<Contact>> has exactly one key. Setting it
+    // on the template (not in defaults) keeps the parent intent visible at
+    // the call site and avoids side effects in the shared defaults class.
+    Id sharedAccountId = TestFactory.getFakeId(Account.SObjectType);
+    Contact template = new Contact(AccountId = sharedAccountId);
     List<Contact> contacts = (List<Contact>) TestFactory.createSObjectList(
-      new Contact(),
+      template,
       3,
       'TestFactoryDefaults.ContactWithAccountDefaults',
-      true
+      false
     );
 
     Test.startTest();
@@ -200,7 +216,7 @@ public without sharing class UtilitiesTest {
       Assert.areEqual(1, contactMap.size(), 'There should be 1 account Id key');
       Assert.areEqual(
         3,
-        contactMap.get(contacts[0].AccountId).size(),
+        contactMap.get(sharedAccountId).size(),
         'There should be 3 contacts for the first account'
       );
     }
@@ -341,15 +357,36 @@ public without sharing class UtilitiesTest {
 
   @isTest
   static void testGetRecordTypeIdValid() {
+    // Use the first active Account RecordType in the running org. Hard-coding
+    // a developer name (e.g. 'Prospect_Account') ties the test to one org's
+    // setup; querying the schema keeps the assertion focused on the
+    // Utilities.getRecordTypeId contract: given a real DeveloperName, return
+    // the matching Id. Skipped (with an explicit reason) only if the org has
+    // zero active Account record types.
+    Schema.DescribeSObjectResult accountDescribe = Account.SObjectType.getDescribe();
+    String knownDeveloperName;
+    for (Schema.RecordTypeInfo info : accountDescribe.getRecordTypeInfos()) {
+      if (info.isActive() && info.isAvailable() && !info.isMaster()) {
+        knownDeveloperName = info.getDeveloperName();
+        break;
+      }
+    }
+    Assert.isNotNull(
+      knownDeveloperName,
+      'Test requires at least one active non-master Account RecordType in the org'
+    );
+
     Id recordTypeId;
     Test.startTest();
     System.runAs(TestFactory.getMinAccessUser()) {
-      recordTypeId = Utilities.getRecordTypeId('Account', 'Prospect_Account');
+      recordTypeId = Utilities.getRecordTypeId('Account', knownDeveloperName);
     }
     Test.stopTest();
     Assert.isNotNull(
       recordTypeId,
-      'The RecordTypeId should not be null for valid inputs'
+      'The RecordTypeId should not be null for valid inputs (' +
+        knownDeveloperName +
+        ')'
     );
   }
 

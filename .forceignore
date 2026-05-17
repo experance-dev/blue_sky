@@ -13,13 +13,33 @@ package.xml
 
 node_modules/
 
-# JcfsApiAdapter.cls is the only file in the framework that references
-# the Appfire JCFS managed-package namespace. Excluded from scratch-org
-# deploys because the package isn't installed there - JiraPushDispatcher
-# falls back to NoOpJcfsApi via Type.forName when this class is absent.
-# Deploy normally to the work org (where the managed package IS installed).
-force-app/main/default/classes/JcfsApiAdapter.cls
-force-app/main/default/classes/JcfsApiAdapter.cls-meta.xml
+# ---- MI / Engagement-Attribution carve-outs ----
+
+# Stowers-era logging cleanup utilities (reference ATM_Endpoint_Log__c, Block_Trigger_Log__c, Log_Clean_Up__mdt).
+# Re-enable when those objects exist in the target org.
+force-app/main/default/classes/logging/LogCleanUp/**
+
+# Admin app-page flexipage + tab — un-forceignored 2026-05-12 after confirming
+# flexipage:defaultAppHomeTemplate (single Region1) deploys clean from source
+# with all 3 admin LWCs.
+# force-app/main/default/flexipages/Engagement_Admin_Console.flexipage-meta.xml
+# force-app/main/default/tabs/Engagement_Admin_Console.tab-meta.xml
+
+# Phase 5 reports + report types — XML field-path syntax is finicky (3 small
+# issues per the build report). Build/refine in Setup → Reports → save → retrieve
+# to get canonical paths. Per-report fixes documented in DEMO.md §Phase 5 — Reports.
+force-app/main/default/reportTypes/**
+force-app/main/default/reports/**
+
+# ---- CSI-7162 / Jira Push carve-outs ----
+
+# JcfsApiAdapter.cls references the Appfire JCFS managed-package namespace.
+# Default policy (2026-05-14): deploy it to every target. Real sandboxes
+# (dwood_z, UAT, prod) have JCFS installed; JiraPushDispatcher resolves the
+# adapter via Type.forName at runtime and uses it when present.
+# For the rare JCFS-free scratch org, use a per-org overlay (e.g.
+# `.forceignore.scratch`) or a manifest-based deploy that excludes this
+# class - those are scratch-specific code paths, not the default.
 
 # Scratch-org compile blockers. PricebookUtilTest tries to assign to
 # PricebookUtil.standardPricebookId which only has a getter (no setter) -
