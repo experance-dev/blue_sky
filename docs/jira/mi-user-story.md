@@ -103,7 +103,7 @@ Marketing Influence (internal: Engagement Attribution) closes that gap by record
 
 **AC-13**: Given a rep dismisses a row, When the panel reloads, Then the dismissed row no longer appears for that user (other users still see it).
 
-**AC-14**: Given the panel is loaded on an Account record page, When it renders, Then it shows a single flat list of engaged people (ACR + Contact + unresolved Leads on the account's domain), sorted by `lastTouchAt DESC`, no Deal Team grouping.
+**AC-14**: Given the panel is loaded on an Account record page, When it renders, Then it shows a single flat list of engaged people (ACR + Contact-resolved touches on the account), sorted by `lastTouchAt DESC`, no Deal Team grouping. **Scope narrowed 2026-05-17 (David approved, Vista recommend):** unresolved domain-matched Leads are excluded from the Account-scope panel for v1 — `selectByAccountIds` filters on `Account__c IN`, and `Pending` touches have `Account__c = null`. The domain-Lead fallback for Account-scope rendering is deferred to Phase 3 (the panel's `+ Add` path already requires a resolved person, so unresolved Leads would have no actionable affordance even if surfaced).
 
 ## Out of Scope
 
