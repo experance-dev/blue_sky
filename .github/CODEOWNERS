@@ -3,17 +3,35 @@
 # ============================================================================
 # Gate model — codeowner ≠ reviewer
 # ============================================================================
-# CODEOWNERS = approval-gate identities (David + Atlas).
-# The review team (Sage / Iris / Magnus) is enforced via branch protection's
-# required-reviewers config, not via this file.
+# CODEOWNERS = approval-gate identities (humans: David + Atlas, plus the
+# single-member reviewer Teams for path-specific co-ownership).
+# The review team (Sage / Iris / Magnus = GitHub APPS, not users) is enforced
+# via a Repository Ruleset's `required_reviewers` clause — not via this file.
 # See docs/operations/pr-gate-protocol.md for the full pattern.
 #
 # Both gates must pass on every PR:
-#   - 3 reviews from the review team (branch-protection required-reviewers)
+#   - 3 reviews from the review-team Apps (Rulesets required_reviewers, pinned
+#     by single-member team-IDs — see protocol §6.4)
 #   - 1 codeowner approval (this file + "Require review from Code Owners")
 #
 # ============================================================================
-# Codeowner identities
+# Why CODEOWNERS uses team slugs for path-specific lines, not App slugs
+# ============================================================================
+# GitHub's CODEOWNERS syntax accepts users, teams, and email addresses ONLY.
+# App slugs (e.g. `bluesky-sage[bot]`) are NOT valid CODEOWNERS entries:
+#   https://docs.github.com/articles/about-code-owners
+#
+# Each reviewer App is therefore wrapped in a single-member org Team:
+#   bluesky-sage[bot]   → sole member of @experance-dev/reviewer-sage
+#   bluesky-iris[bot]   → sole member of @experance-dev/reviewer-iris
+#   bluesky-magnus[bot] → sole member of @experance-dev/reviewer-magnus
+#
+# This file uses the team slugs for path-scoped co-ownership. When the App
+# posts an approval review via installation token, the bot user is recognized
+# as a member of the team, satisfying the CODEOWNERS rule for that path.
+#
+# ============================================================================
+# Codeowner identities — humans
 # ============================================================================
 #   David Wood    — primary approver       → @david-wood
 #   Atlas         — codeowner peer, preferred fallback when David is offline
@@ -23,19 +41,25 @@
 # Every Atlas approval is logged in docs/operations/atlas-standin-approvals.log
 # with full context — Atlas is a real codeowner, not a workaround.
 #
-# Review-team handles (NOT codeowners — enforced separately via branch
-# protection's required_pull_request_reviews settings):
-#   Sage Cloudy   — security review        → @sage-cloudy   [TODO: confirm handle]
-#   Iris Ruth     — PO / business-fit      → @iris-ruth     [TODO: provision GH account]
-#   Magnus        — CTA / standards canon  → @magnus        [TODO: confirm handle]
+# ============================================================================
+# Path-scoped co-ownership — single-member Teams wrapping reviewer Apps
+# ============================================================================
+# These Teams must exist in `experance-dev` with exactly one member each
+# (the corresponding App's bot user). See protocol §7 for provisioning.
 #
-# Notes:
-#  - GH handles below are PLACEHOLDERS pending Sharp Kai's provisioning roster.
-#    Replace once the handle list is confirmed; until then GitHub will skip
-#    unresolvable handles silently, so manual reviewer assignment is required.
-#  - `iris-ruth` was not on David's approved 7-account list as of 2026-05-16
-#    — Iris review is informal until her GH account lands. Branch protection
-#    can still require the other two reviewers in the meantime.
+#   Sage (security)    → @experance-dev/reviewer-sage    [TODO: org team]
+#   Iris (PO)          → @experance-dev/reviewer-iris    [TODO: org team]
+#   Magnus (standards) → @experance-dev/reviewer-magnus  [TODO: org team]
+#
+# Test canon stays on the existing human Pippa/Verity model until those
+# personas migrate to Apps. Pippa + Verity have GH user accounts pending.
+#
+#   Pippa Codey    → @pippa-codey     [TODO: confirm handle]
+#   Verity Hootie  → @verity-hootie   [TODO: confirm handle]
+#
+# Dash owns deploy mechanics as a human DevOps identity (not an App).
+#
+#   Dash Earnie    → @dash-earnie     [TODO: confirm handle]
 
 # ----------------------------------------------------------------------------
 # Default — every change codeowner-approved by David or Atlas
@@ -43,13 +67,13 @@
 * @david-wood @atlas
 
 # ----------------------------------------------------------------------------
-# Standards canon — Magnus is exclusive owner (substantive canon authority)
+# Standards canon — Magnus App co-owns with David
 # ----------------------------------------------------------------------------
-/docs/standards/sf-best-practices.md @magnus @david-wood
-/docs/standards/                     @magnus @david-wood
+/docs/standards/sf-best-practices.md @experance-dev/reviewer-magnus @david-wood
+/docs/standards/                     @experance-dev/reviewer-magnus @david-wood
 
 # ----------------------------------------------------------------------------
-# Test canon — Pippa + Verity (both required)
+# Test canon — Pippa + Verity (both required) — humans, not Apps (yet)
 # ----------------------------------------------------------------------------
 /docs/testing/known-failures-canon.md @pippa-codey @verity-hootie @david-wood
 /docs/testing/                        @pippa-codey @verity-hootie @david-wood
@@ -66,9 +90,9 @@
 /docs/operations/ @dash-earnie @david-wood @atlas
 
 # ----------------------------------------------------------------------------
-# Security-sensitive metadata — Sage co-owns with David
+# Security-sensitive metadata — Sage App co-owns with David
 # ----------------------------------------------------------------------------
-/force-app/main/default/permissionsets/  @sage-cloudy @david-wood
-/force-app/main/default/profiles/        @sage-cloudy @david-wood
-/force-app/main/default/sharingRules/    @sage-cloudy @david-wood
-/force-app/main/default/customPermissions/ @sage-cloudy @david-wood
+/force-app/main/default/permissionsets/    @experance-dev/reviewer-sage @david-wood
+/force-app/main/default/profiles/          @experance-dev/reviewer-sage @david-wood
+/force-app/main/default/sharingRules/      @experance-dev/reviewer-sage @david-wood
+/force-app/main/default/customPermissions/ @experance-dev/reviewer-sage @david-wood
