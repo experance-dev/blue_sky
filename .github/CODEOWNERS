@@ -1,0 +1,66 @@
+# blue_sky CODEOWNERS — Zelis Engagement Attribution work
+#
+# GitHub's native branch-protection "Require review from Code Owners" uses
+# this file to enforce which humans/teams must approve a PR before it
+# merges. This is the REVIEWER side of the gate. The APPROVER side (David,
+# with Atlas standing in on develop/UAT) is enforced via branch-protection
+# `required_approving_review_count` configured at the repo Settings UI.
+#
+# See docs/operations/pr-gate-protocol.md for the full gate model.
+#
+# ============================================================================
+# Reviewer tier (parallel, all required)
+# ============================================================================
+#   Sage Cloudy   — security review        → @sage-cloudy   [TODO: confirm handle]
+#   Iris Ruth     — PO / business-fit      → @iris-ruth     [TODO: provision GH account]
+#   Magnus        — CTA / standards canon  → @magnus        [TODO: confirm handle]
+#
+# ============================================================================
+# Approver tier (1 of {David, Atlas} — Atlas only on develop/UAT)
+# ============================================================================
+#   David Wood    — primary approver       → @davidatexperance
+#   Atlas         — stand-in on dev/UAT    → @atlas         [TODO: confirm handle]
+#
+# Notes:
+#  - GH handles below are PLACEHOLDERS pending Sharp Kai's provisioning roster.
+#    Replace once the handle list is confirmed; until then GitHub will skip
+#    unresolvable handles silently, so manual reviewer assignment is required.
+#  - `iris-ruth` was not on David's approved 7-account list as of 2026-05-16
+#    — Iris review is informal until her GH account lands. Branch protection
+#    can still require the other two reviewers in the meantime.
+
+# ----------------------------------------------------------------------------
+# Default — every change reviewed by the three-reviewer tier
+# ----------------------------------------------------------------------------
+* @sage-cloudy @iris-ruth @magnus
+
+# ----------------------------------------------------------------------------
+# Standards canon — Magnus is exclusive owner
+# ----------------------------------------------------------------------------
+/docs/standards/sf-best-practices.md @magnus
+/docs/standards/                     @magnus
+
+# ----------------------------------------------------------------------------
+# Test canon — Pippa + Verity (both required)
+# ----------------------------------------------------------------------------
+/docs/testing/known-failures-canon.md @pippa-codey @verity-hootie
+/docs/testing/                        @pippa-codey @verity-hootie
+
+# ----------------------------------------------------------------------------
+# CI / workflows — Dash owns the pipeline shape
+# ----------------------------------------------------------------------------
+/.github/workflows/ @dash-earnie
+/.github/CODEOWNERS @dash-earnie @magnus
+
+# ----------------------------------------------------------------------------
+# Operations runbooks — Dash owns deploy mechanics
+# ----------------------------------------------------------------------------
+/docs/operations/ @dash-earnie
+
+# ----------------------------------------------------------------------------
+# Security-sensitive metadata — Sage co-owns
+# ----------------------------------------------------------------------------
+/force-app/main/default/permissionsets/  @sage-cloudy @magnus
+/force-app/main/default/profiles/        @sage-cloudy @magnus
+/force-app/main/default/sharingRules/    @sage-cloudy @magnus
+/force-app/main/default/customPermissions/ @sage-cloudy @magnus

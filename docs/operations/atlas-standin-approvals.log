@@ -1,0 +1,26 @@
+# Atlas Stand-in Approvals — audit log
+#
+# Atlas appends one row per PR he approves on David's behalf, per
+# [pr-gate-protocol.md §2.3](pr-gate-protocol.md).
+#
+# Format (one row per approval, pipe-delimited):
+#
+#   <ISO-8601 UTC timestamp> | PR #<n> | <head-branch> → <base-branch> | Atlas approved on David's behalf | Reason: <reason> | David away: <window or "after-hours">
+#
+# Example:
+#
+#   2026-05-16T22:30:00Z | PR #6 | feature/engagement-attribution → develop | Atlas approved on David's behalf | Reason: pre-Magnus merge gate before UAT cutover | David away: 2026-05-16T18:00Z–2026-05-17T08:00Z (after-hours)
+#
+# Rules (per protocol §2):
+#   - Atlas may stand in on `develop` and `UAT` only — NEVER on `main`.
+#   - Atlas must have personally verified the change in dwood_z (or relevant
+#     scratch org) before approving.
+#   - Atlas appends in the SAME PR he approves, or a follow-up if a protection
+#     rule blocks the same-PR write.
+#   - David greps this log periodically. Entries are append-only — never edit
+#     a prior row.
+#
+# ============================================================================
+# Log entries below this line
+# ============================================================================
+
