@@ -30,6 +30,11 @@ permissions:
 
 jobs:
   block-atlas-on-main:
+    # Job-name pin: GitHub registers the check-run under this `name:` string.
+    # §6.3 `required_status_checks.contexts` declares "gate-atlas-main-block",
+    # so the job-name must match exactly or the gate arms misaligned and
+    # silently never enforces. Do not rename without updating §6.3 in lockstep.
+    name: gate-atlas-main-block
     # Only evaluate on PRs targeting main.
     if: github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-latest
