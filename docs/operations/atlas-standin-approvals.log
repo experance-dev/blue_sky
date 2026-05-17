@@ -1,18 +1,27 @@
-# Atlas Stand-in Approvals — audit log
+# Atlas Codeowner Approvals — audit log
 #
-# Atlas appends one row per PR he approves on David's behalf, per
-# [pr-gate-protocol.md §2.3](pr-gate-protocol.md).
+# Atlas IS a real codeowner on this repo (see .github/CODEOWNERS). When David
+# is around, his approval is preferred; when David is offline, Atlas's
+# codeowner approval satisfies the gate on `develop` and `UAT`. Atlas is
+# NEVER a valid codeowner approver on `main` — that's David explicit.
+#
+# Every Atlas codeowner approval is logged here for traceability. David greps
+# this log periodically to confirm Atlas only signed where David would have
+# signed. The audit captures full context — Atlas is a real codeowner, not a
+# workaround.
+#
+# Per [pr-gate-protocol.md §2.3](pr-gate-protocol.md):
 #
 # Format (one row per approval, pipe-delimited):
 #
-#   <ISO-8601 UTC timestamp> | PR #<n> | <head-branch> → <base-branch> | Atlas approved on David's behalf | Reason: <reason> | David away: <window or "after-hours">
+#   <ISO-8601 UTC timestamp> | PR #<n> | <head-branch> → <base-branch> | Atlas codeowner-approved | Reason: <reason> | David context: <window or "after-hours">
 #
 # Example:
 #
-#   2026-05-16T22:30:00Z | PR #6 | feature/engagement-attribution → develop | Atlas approved on David's behalf | Reason: pre-Magnus merge gate before UAT cutover | David away: 2026-05-16T18:00Z–2026-05-17T08:00Z (after-hours)
+#   2026-05-16T22:30:00Z | PR #6 | feature/engagement-attribution → develop | Atlas codeowner-approved | Reason: pre-Magnus merge gate before UAT cutover | David context: 2026-05-16T18:00Z–2026-05-17T08:00Z (after-hours)
 #
 # Rules (per protocol §2):
-#   - Atlas may stand in on `develop` and `UAT` only — NEVER on `main`.
+#   - Atlas codeowner approval valid on `develop` and `UAT` only — NEVER on `main`.
 #   - Atlas must have personally verified the change in dwood_z (or relevant
 #     scratch org) before approving.
 #   - Atlas appends in the SAME PR he approves, or a follow-up if a protection

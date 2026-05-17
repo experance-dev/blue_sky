@@ -4,32 +4,52 @@ Authoritative protocol for how pull requests get merged in this repo. Mirrors
 the shape of [`experance-dev/fosfoundry`](https://github.com/experance-dev/fosfoundry)'s
 gate, adapted for the Zelis Engagement Attribution engagement.
 
-> **TL;DR** — every PR needs **3 reviewers + 1 approver + green status checks**.
-> Reviewers (parallel): Sage (security), Iris (PO), Magnus (standards).
-> Approvers: David (always) or Atlas (only on `develop` / `UAT`, with audit-log entry).
+> **TL;DR** — every PR needs **3 review-team reviews + 1 codeowner approval + green status checks**.
+> Review team (parallel, required-reviewers via branch protection): Sage (security), Iris (PO), Magnus (standards).
+> Codeowners (this file's [`.github/CODEOWNERS`](../../.github/CODEOWNERS) gate): David (preferred) or Atlas (peer codeowner; logs every stand-in approval).
 
 ---
 
 ## 1. Gate model
 
-### 1.1 Reviewer tier — 3 required, parallel
+**Codeowner ≠ reviewer.** Two independent gates, both required:
+
+1. **CODEOWNERS gate** — substantive approval identity (David or Atlas)
+2. **Review-team gate** — substantive review by Sage + Iris + Magnus
+
+The review team gives *substantive review* (security, business-fit, standards).
+The codeowner gives *final approval identity* — the signoff that says "this
+ships." Branch protection enforces both.
+
+### 1.1 Review team — 3 required, parallel
+
+Enforced via branch protection's `required_pull_request_reviews`
+settings (NOT via CODEOWNERS).
 
 | Reviewer | Role | Scope |
 | --- | --- | --- |
 | **Sage Cloudy** | Security | Sharing, permsets, custom permissions, auth, FLS/CRUD, OWD-Private posture, HIPAA-perimeter design |
 | **Iris Ruth** | Product Owner | Business-fit, persona acceptance, gate-1 spec adherence, gate-2 delivery |
-| **Magnus** | CTA / Standards | [`docs/standards/sf-best-practices.md`](../standards/sf-best-practices.md) compliance, architecture, scanner severity, code-canon waiver decisions |
+| **Magnus** | CTA / Standards | [`docs/standards/sf-best-practices.md`](../standards/sf-best-practices.md) compliance, architecture, scanner severity, code-canon decisions |
 
-All three review **in parallel**. Required by [`.github/CODEOWNERS`](../../.github/CODEOWNERS).
+All three review **in parallel**. Branch protection requires 3 reviews
+total; the reviewer identities are pinned by the team membership when GH
+accounts land.
 
-### 1.2 Approver tier — 1 of 2 required
+### 1.2 Codeowner approval — 1 of 2 required
 
-| Approver | When |
+Enforced via [`.github/CODEOWNERS`](../../.github/CODEOWNERS) +
+`require_code_owner_reviews: true` on branch protection.
+
+| Codeowner | Preference |
 | --- | --- |
-| **David Wood** (`@davidatexperance`) | Always eligible. Required on PRs targeting `main`. |
-| **Atlas** | Stand-in for David on PRs targeting `develop` or `UAT` **only**. Records each approval in [`atlas-standin-approvals.log`](atlas-standin-approvals.log). |
+| **David Wood** (`@david-wood`) | Preferred when David is around. Required on PRs targeting `main`. |
+| **Atlas** | Peer codeowner. Real codeowner identity (not a stand-in workaround). When David is offline, Atlas's approval satisfies the gate. Every Atlas approval logged in [`atlas-standin-approvals.log`](atlas-standin-approvals.log) with full context. |
 
-The approval gate is **OR** — either David or (where eligible) Atlas signs.
+Both David and Atlas are listed in CODEOWNERS, so either's approval
+satisfies the GitHub codeowner-review rule. The hard rule that David is
+the only codeowner approver on `main` lives in §2 + §3; branch protection
+on `main` enforces it via `enforce_admins: true` and David-only push allowlist.
 
 ### 1.3 Status checks — required green
 
@@ -39,17 +59,22 @@ The approval gate is **OR** — either David or (where eligible) Atlas signs.
 
 ### 1.4 Merge action
 
-Once **3 reviews + 1 approval + all status checks** are green, **anyone with
-write access** can click merge. David may choose to be sole merger as preference;
-that's not a hard rule.
+Once **3 review-team reviews + 1 codeowner approval + all status checks**
+are green, **anyone with write access** can click merge. David may choose to
+be sole merger as preference; that's not a hard rule.
 
 ---
 
-## 2. When Atlas stands in vs waits for David
+## 2. When Atlas approves vs waits for David
+
+Atlas is a real codeowner — not a workaround for David being away. When David
+is around, his approval is preferred (he's the engagement TA + sole approver on
+`main`). When David is offline, Atlas's codeowner approval satisfies the
+GitHub gate on `develop` / `UAT` and the PR moves.
 
 Per [`feedback_atlas_verifies_before_uat`](https://docs.local/feedback) — Atlas
-approves on David's behalf **only when** he has personally verified the work
-meets the David-review bar. If Atlas is unsure, the PR waits for David.
+approves **only when** he has personally verified the work meets the
+David-review bar. If Atlas is unsure, the PR waits for David.
 
 ### 2.1 Atlas may approve
 
@@ -73,11 +98,13 @@ meets the David-review bar. If Atlas is unsure, the PR waits for David.
 
 ### 2.3 Atlas approval audit trail
 
-Every Atlas stand-in approval **must** be logged. See
+Atlas is a real codeowner, but every Atlas codeowner approval **must** still
+be logged for traceability — David greps the log to confirm Atlas only signed
+where David would have. See
 [`atlas-standin-approvals.log`](atlas-standin-approvals.log). Format:
 
 ```
-2026-05-16T22:30:00Z | PR #6 | feature/engagement-attribution → develop | Atlas approved on David's behalf | Reason: <reason> | David away: <timestamp range or "after-hours">
+2026-05-16T22:30:00Z | PR #6 | feature/engagement-attribution → develop | Atlas codeowner-approved | Reason: <reason> | David context: <window or "after-hours">
 ```
 
 Atlas commits the log row in the same PR he approves (or a follow-up PR if the
@@ -89,11 +116,11 @@ log write fails the protection rule). David greps the log periodically.
 
 Three permanent boxes (per [`feedback_branch_strategy`](https://docs.local/feedback)):
 
-| Branch | Purpose | Approver | Atlas may stand in? |
+| Branch | Purpose | Codeowner approver | Atlas codeowner approval valid? |
 | --- | --- | --- | --- |
-| `main` | Production | David only | No |
-| `UAT` | Pre-prod / Verity gate | David or Atlas | Yes (with audit log) |
-| `develop` | Integration | David or Atlas | Yes (with audit log) |
+| `main` | Production | David only | No (David explicit) |
+| `UAT` | Pre-prod / Verity gate | David or Atlas | Yes (audit-logged) |
+| `develop` | Integration | David or Atlas | Yes (audit-logged) |
 
 Feature branches off `develop`; story branches off feature. Promotion path:
 `story → feature → develop → UAT → main`.
@@ -128,9 +155,9 @@ language (e.g. *"merge now, retroactive sign-offs"*). David shorthand like
 
 ### 5.1 What this PR ships (in-repo)
 
-- [`.github/CODEOWNERS`](../../.github/CODEOWNERS) — reviewer-tier enforcement
+- [`.github/CODEOWNERS`](../../.github/CODEOWNERS) — codeowner-gate enforcement (David + Atlas)
 - [`docs/operations/pr-gate-protocol.md`](pr-gate-protocol.md) — this file
-- [`docs/operations/atlas-standin-approvals.log`](atlas-standin-approvals.log) — Atlas approval audit log
+- [`docs/operations/atlas-standin-approvals.log`](atlas-standin-approvals.log) — Atlas codeowner-approval audit log
 
 ### 5.2 What David must apply via `gh api` / repo Settings UI
 
@@ -142,19 +169,40 @@ placeholders first.** See §6 for the exact `gh api` commands.
 
 | Gap | Impact | Resolution |
 | --- | --- | --- |
-| Iris Ruth has no GH account | Branch protection can only require Sage + Magnus | Provision Iris account; update CODEOWNERS |
-| Other persona handles unconfirmed | CODEOWNERS placeholders won't resolve | Coordinate with Sharp Kai for canonical roster |
+| Iris Ruth has no GH account | Branch protection can only require Sage + Magnus as named reviewers | Provision Iris account; update branch-protection reviewer config |
+| Other persona handles unconfirmed | Reviewer-team handles + Atlas codeowner handle won't resolve | Coordinate with Sharp Kai for canonical roster |
 | `code-analyzer` + `apex-test-run` not yet required checks | CI runs but doesn't gate | Land [PR #8](https://github.com/experance-dev/blue_sky/pull/8), then add via §6 commands |
 
 ---
 
 ## 6. `gh api` commands David runs
 
-> Replace `@<placeholder>` handles with real ones before executing. These mirror
-> the [fosfoundry development branch protection](https://github.com/experance-dev/fosfoundry/settings/branches)
-> shape (1 review + status checks), extended to 3 reviewers + code-owner enforcement.
+> Replace `@<placeholder>` handles with real ones before executing.
 
-### 6.1 `develop` — 3 reviewers, Atlas may approve
+### 6.0 How the two gates map to the GitHub API
+
+Classic branch-protection's `required_pull_request_reviews` accepts a single
+integer (`required_approving_review_count`) and one boolean
+(`require_code_owner_reviews`). It does **not** natively let you pin
+"reviewer X, Y, Z by name." Named-reviewer enforcement comes from two
+mechanisms:
+
+1. **CODEOWNERS** + `require_code_owner_reviews: true` → enforces named
+   approval from the codeowner identities for files they own. We use this
+   for the **codeowner gate (David + Atlas)** — the entire repo's catch-all
+   line in [`.github/CODEOWNERS`](../../.github/CODEOWNERS) is `@david-wood @atlas`.
+2. **Repository Rulesets** (newer API,
+   [`POST /repos/{owner}/{repo}/rulesets`](https://docs.github.com/en/rest/repos/rules)) — support
+   a `required_reviewers` clause that pins specific bypass / approval
+   identities by name. We use this for the **review-team gate (Sage + Iris +
+   Magnus)**.
+
+The interim until Rulesets land: the integer count is set to 4 (3 review
+team + 1 codeowner) and Sage/Iris/Magnus are auto-requested as reviewers
+by a workflow (TODO: `.github/workflows/auto-request-reviewers.yml`).
+Reviewer identity is enforced manually until Rulesets ship.
+
+### 6.1 `develop` — codeowner gate via branch protection
 
 ```bash
 gh api -X PUT repos/experance-dev/blue_sky/branches/develop/protection \
@@ -172,7 +220,7 @@ gh api -X PUT repos/experance-dev/blue_sky/branches/develop/protection \
     "require_last_push_approval": false
   },
   "restrictions": {
-    "users": ["davidatexperance", "dash-earnie", "atlas"],
+    "users": ["david-wood", "dash-earnie", "atlas"],
     "teams": [],
     "apps": []
   },
@@ -183,13 +231,13 @@ gh api -X PUT repos/experance-dev/blue_sky/branches/develop/protection \
 JSON
 ```
 
-Count = 4 because GitHub's `required_approving_review_count` is a single
-integer that bundles reviewer-tier and approver-tier together (3 reviewers
-+ 1 approver = 4). The reviewer-tier identities are pinned by CODEOWNERS
-+ `require_code_owner_reviews: true`; the +1 is satisfied by David or Atlas
-manually clicking Approve.
+Count = 4 = (3 review-team) + (1 codeowner). `require_code_owner_reviews:
+true` reserves one of the four slots for a David-or-Atlas approval (per
+[`.github/CODEOWNERS`](../../.github/CODEOWNERS)). The other three slots
+are filled by the review team — see §6.4 for the Ruleset that pins those
+identities by name.
 
-### 6.2 `UAT` — identical to develop
+### 6.2 `UAT` — identical mechanics to develop
 
 ```bash
 gh api -X PUT repos/experance-dev/blue_sky/branches/UAT/protection \
@@ -207,7 +255,7 @@ gh api -X PUT repos/experance-dev/blue_sky/branches/UAT/protection \
     "require_last_push_approval": false
   },
   "restrictions": {
-    "users": ["davidatexperance", "dash-earnie", "atlas"],
+    "users": ["david-wood", "dash-earnie", "atlas"],
     "teams": [],
     "apps": []
   },
@@ -218,12 +266,14 @@ gh api -X PUT repos/experance-dev/blue_sky/branches/UAT/protection \
 JSON
 ```
 
-### 6.3 `main` — David explicit, Atlas excluded from approver tier
+### 6.3 `main` — David explicit, Atlas excluded from codeowner approval
 
-Branch protection cannot encode *"David but not Atlas"* directly — both have
-write access. The hard rule lives in the protocol (§1.2, §2). Mechanical
-protection is identical to develop/UAT plus `enforce_admins: true` and a
-tighter push allowlist:
+Branch protection cannot encode *"David but not Atlas"* by identity within
+CODEOWNERS — both are listed as codeowners and either's review satisfies
+`require_code_owner_reviews`. The hard rule that **only David** approves
+`main` lives in the protocol (§1.2, §2.2) + push-allowlist below +
+`enforce_admins: true`. Atlas's audit-log discipline (§2.3) plus David's
+periodic grep catches any violation:
 
 ```bash
 gh api -X PUT repos/experance-dev/blue_sky/branches/main/protection \
@@ -241,7 +291,7 @@ gh api -X PUT repos/experance-dev/blue_sky/branches/main/protection \
     "require_last_push_approval": true
   },
   "restrictions": {
-    "users": ["davidatexperance"],
+    "users": ["david-wood"],
     "teams": [],
     "apps": []
   },
@@ -256,13 +306,65 @@ JSON
 `main`. Push allowlist narrowed to David — Dash/Atlas push to feature/UAT
 only; `main` is David's explicit lane.
 
-### 6.4 Verifying
+### 6.4 Review-team gate via Repository Ruleset — Sage + Iris + Magnus by name
+
+[`POST /repos/{owner}/{repo}/rulesets`](https://docs.github.com/en/rest/repos/rules)
+ships named-reviewer enforcement that classic branch protection can't.
+This Ruleset applies to `develop` + `UAT` and requires Sage, Iris, and
+Magnus by ID before merge. Run **once** per environment after the GH
+accounts are provisioned and you have their numeric user IDs (look them up
+with `gh api users/<handle> --jq .id`).
 
 ```bash
+gh api -X POST repos/experance-dev/blue_sky/rulesets \
+  --input - <<'JSON'
+{
+  "name": "review-team-gate",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/develop", "refs/heads/UAT", "refs/heads/main"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 3,
+        "require_code_owner_review": false,
+        "dismiss_stale_reviews_on_push": true,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": true,
+        "required_reviewers": [
+          { "id": "<sage-user-id>",   "type": "User" },
+          { "id": "<iris-user-id>",   "type": "User" },
+          { "id": "<magnus-user-id>", "type": "User" }
+        ]
+      }
+    }
+  ]
+}
+JSON
+```
+
+The Ruleset's `required_approving_review_count: 3` + named reviewers
+satisfies the review-team gate (Sage + Iris + Magnus, each by identity).
+The branch-protection's count-of-4 in §6.1 / §6.2 sums review-team (3) +
+codeowner (1). Both gates evaluate independently; both must pass.
+
+### 6.5 Verifying
+
+```bash
+# Branch protection rules
 for b in main UAT develop; do
   echo "=== $b ==="
   gh api repos/experance-dev/blue_sky/branches/$b/protection
 done
+
+# Repository rulesets
+gh api repos/experance-dev/blue_sky/rulesets
 ```
 
 ---
@@ -274,7 +376,7 @@ Owners of this protocol:
 - **Magnus** — Standards canon, owns the gating posture
 - **David Wood** — Sole approver on `main`, final authority on protocol changes
 
-Changes to this file require: CODEOWNERS review (Sage + Iris + Magnus) +
-David approval (no Atlas stand-in for protocol changes).
+Changes to this file require: review-team review (Sage + Iris + Magnus) +
+David codeowner approval (no Atlas stand-in for protocol changes).
 
 — Dash

@@ -1,25 +1,33 @@
 # blue_sky CODEOWNERS — Zelis Engagement Attribution work
 #
-# GitHub's native branch-protection "Require review from Code Owners" uses
-# this file to enforce which humans/teams must approve a PR before it
-# merges. This is the REVIEWER side of the gate. The APPROVER side (David,
-# with Atlas standing in on develop/UAT) is enforced via branch-protection
-# `required_approving_review_count` configured at the repo Settings UI.
+# ============================================================================
+# Gate model — codeowner ≠ reviewer
+# ============================================================================
+# CODEOWNERS = approval-gate identities (David + Atlas).
+# The review team (Sage / Iris / Magnus) is enforced via branch protection's
+# required-reviewers config, not via this file.
+# See docs/operations/pr-gate-protocol.md for the full pattern.
 #
-# See docs/operations/pr-gate-protocol.md for the full gate model.
+# Both gates must pass on every PR:
+#   - 3 reviews from the review team (branch-protection required-reviewers)
+#   - 1 codeowner approval (this file + "Require review from Code Owners")
 #
 # ============================================================================
-# Reviewer tier (parallel, all required)
+# Codeowner identities
 # ============================================================================
+#   David Wood    — primary approver       → @david-wood
+#   Atlas         — codeowner peer, preferred fallback when David is offline
+#                                          → @atlas         [TODO: confirm handle]
+#
+# When David is around, his approval is preferred; Atlas's is the fallback.
+# Every Atlas approval is logged in docs/operations/atlas-standin-approvals.log
+# with full context — Atlas is a real codeowner, not a workaround.
+#
+# Review-team handles (NOT codeowners — enforced separately via branch
+# protection's required_pull_request_reviews settings):
 #   Sage Cloudy   — security review        → @sage-cloudy   [TODO: confirm handle]
 #   Iris Ruth     — PO / business-fit      → @iris-ruth     [TODO: provision GH account]
 #   Magnus        — CTA / standards canon  → @magnus        [TODO: confirm handle]
-#
-# ============================================================================
-# Approver tier (1 of {David, Atlas} — Atlas only on develop/UAT)
-# ============================================================================
-#   David Wood    — primary approver       → @davidatexperance
-#   Atlas         — stand-in on dev/UAT    → @atlas         [TODO: confirm handle]
 #
 # Notes:
 #  - GH handles below are PLACEHOLDERS pending Sharp Kai's provisioning roster.
@@ -30,37 +38,37 @@
 #    can still require the other two reviewers in the meantime.
 
 # ----------------------------------------------------------------------------
-# Default — every change reviewed by the three-reviewer tier
+# Default — every change codeowner-approved by David or Atlas
 # ----------------------------------------------------------------------------
-* @sage-cloudy @iris-ruth @magnus
+* @david-wood @atlas
 
 # ----------------------------------------------------------------------------
-# Standards canon — Magnus is exclusive owner
+# Standards canon — Magnus is exclusive owner (substantive canon authority)
 # ----------------------------------------------------------------------------
-/docs/standards/sf-best-practices.md @magnus
-/docs/standards/                     @magnus
+/docs/standards/sf-best-practices.md @magnus @david-wood
+/docs/standards/                     @magnus @david-wood
 
 # ----------------------------------------------------------------------------
 # Test canon — Pippa + Verity (both required)
 # ----------------------------------------------------------------------------
-/docs/testing/known-failures-canon.md @pippa-codey @verity-hootie
-/docs/testing/                        @pippa-codey @verity-hootie
+/docs/testing/known-failures-canon.md @pippa-codey @verity-hootie @david-wood
+/docs/testing/                        @pippa-codey @verity-hootie @david-wood
 
 # ----------------------------------------------------------------------------
-# CI / workflows — Dash owns the pipeline shape
+# CI / workflows — Dash owns the pipeline shape (under codeowner approval)
 # ----------------------------------------------------------------------------
-/.github/workflows/ @dash-earnie
-/.github/CODEOWNERS @dash-earnie @magnus
+/.github/workflows/ @dash-earnie @david-wood @atlas
+/.github/CODEOWNERS @david-wood @atlas
 
 # ----------------------------------------------------------------------------
-# Operations runbooks — Dash owns deploy mechanics
+# Operations runbooks — Dash owns deploy mechanics (under codeowner approval)
 # ----------------------------------------------------------------------------
-/docs/operations/ @dash-earnie
+/docs/operations/ @dash-earnie @david-wood @atlas
 
 # ----------------------------------------------------------------------------
-# Security-sensitive metadata — Sage co-owns
+# Security-sensitive metadata — Sage co-owns with David
 # ----------------------------------------------------------------------------
-/force-app/main/default/permissionsets/  @sage-cloudy @magnus
-/force-app/main/default/profiles/        @sage-cloudy @magnus
-/force-app/main/default/sharingRules/    @sage-cloudy @magnus
-/force-app/main/default/customPermissions/ @sage-cloudy @magnus
+/force-app/main/default/permissionsets/  @sage-cloudy @david-wood
+/force-app/main/default/profiles/        @sage-cloudy @david-wood
+/force-app/main/default/sharingRules/    @sage-cloudy @david-wood
+/force-app/main/default/customPermissions/ @sage-cloudy @david-wood
