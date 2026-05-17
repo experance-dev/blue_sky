@@ -39,8 +39,9 @@ All three review **in parallel**. The App posts an approval review from its
 bot identity (`bluesky-sage[bot]` etc.); because the bot is the only member
 of the matching Team, the Rulesets `required_reviewers` Team-ID requirement
 is satisfied by exactly that App's approval. See [§6.4](#64-review-team-gate-via-repository-ruleset--apps-pinned-via-single-member-teams)
-for the Ruleset shape; see [§7](#7-app-provisioning) for what David creates in
-org settings.
+for the Ruleset shape; see [§7.3](#73-tier-b--review-team-approve-only) for the
+review-team Apps and [§7.5](#75-provisioning-runbook--bash-for-loops) for the
+full provisioning runbook.
 
 > **Why single-member teams instead of direct App pinning?** GitHub Rulesets'
 > `required_reviewers.reviewer.type` enum is `Team` only; CODEOWNERS likewise
@@ -181,7 +182,7 @@ placeholders first.** See §6 for the exact `gh api` commands.
 
 | Gap | Impact | Resolution |
 | --- | --- | --- |
-| Reviewer Apps not yet created | Rulesets can't pin reviewers until the Apps + single-member teams exist | David provisions per [§7](#7-app-provisioning); paste numeric Team IDs into §6.4 |
+| Reviewer Apps (and the other 24) not yet created | Rulesets can't pin reviewers until the Tier B Apps + single-member teams exist | David provisions all 27 per [§7.5](#75-provisioning-runbook--bash-for-loops); paste Tier B numeric Team IDs into §6.4 |
 | Atlas's GH user handle unconfirmed | CODEOWNERS catch-all has placeholder `@atlas` | Coordinate with Sharp Kai for canonical handle; replace in [`.github/CODEOWNERS`](../../.github/CODEOWNERS) |
 | `code-analyzer` + `apex-test-run` not yet required checks | CI runs but doesn't gate | Land [PR #8](https://github.com/experance-dev/blue_sky/pull/8), then add via §6 commands |
 
@@ -399,6 +400,16 @@ Ruleset's count-of-3 + three single-member Teams = exactly one approval per
 App. Branch protection's count-of-4 in §6.1 / §6.2 sums review-team (3) +
 codeowner (1). Both gates evaluate independently; both must pass.
 
+**Only Tier B Apps satisfy the required-reviewer gate.** Tier A
+(orchestrator) and Tier C (worker) Apps have `pull_requests: write` so they
+can open PRs and comment on review threads — that permission technically
+allows them to also post `event: APPROVE`. The Ruleset doesn't care: it
+counts approvals only from the three Tier B teams pinned above
+(reviewer-sage / reviewer-iris / reviewer-magnus). A stray approval from a
+worker or orchestrator App is visible in the PR timeline but does not
+satisfy the gate. Worker / orchestrator workflows should issue `COMMENT` or
+`REQUEST_CHANGES` only — see [§7.7](#77-honest-pre-flight-unknowns) #7.
+
 ### 6.5 Verifying
 
 ```bash
@@ -419,85 +430,288 @@ gh api repos/experance-dev/blue_sky/rulesets
 **This is a one-time org-level action — David runs it.** Document only;
 Dash does not create the Apps.
 
-### 7.1 What to create — one App per agent
+### 7.1 Overview — 27 Apps, 3 tiers, single-member-team wrapper
 
-Three GitHub Apps, each registered under the `experance-dev` organization:
+Every agent that touches `experance-dev/blue_sky` gets its own GitHub App.
+Per-App isolation is the design point — **not** one umbrella App with many
+slugs:
 
-| App name | Slug | Bot identity | Backing agent |
+- **Per-App rate limits** — GitHub Apps get their own 5,000-req/hr/installation
+  bucket ([rate-limit docs](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/rate-limits-for-github-apps)).
+  Sharing a single App across 27 agents collapses everyone into one bucket
+  and one mass-revocation switch.
+- **Per-App revocation** — if one agent's logic drifts, suspend that App
+  without affecting the other 26.
+- **Auditability** — each App has its own activity stream; `bluesky-sage[bot]`
+  approvals are filterable from `bluesky-boomer[bot]` commits at the API level.
+- **Permission scope** — tier-specific permission sets keep blast radius
+  minimal. Tier B (review-only) cannot commit; Tier A/C cannot touch settings.
+
+We're at **27 of 100** Apps allowed per org installation. Plenty of room.
+
+| Tier | Role | Count | Permission shape |
 | --- | --- | --- | --- |
-| BlueSky Sage Reviewer | `bluesky-sage` | `bluesky-sage[bot]` | Sage Cloudy (security) |
-| BlueSky Iris Reviewer | `bluesky-iris` | `bluesky-iris[bot]` | Iris Ruth (product owner) |
-| BlueSky Magnus Reviewer | `bluesky-magnus` | `bluesky-magnus[bot]` | Magnus (standards) |
+| **A** | Orchestrators | 2 | contents:write + pull_requests:write + issues:write + workflows:write |
+| **B** | Reviewers | 3 | pull_requests:write + contents:read |
+| **C** | Workers | 22 | contents:write + pull_requests:write |
 
-**One App per agent**, not one umbrella App with three slugs. Reasons:
-- Each App has a single bot identity — three reviewer bots = three Apps.
-- Per-App installation tokens give per-agent least-privilege blast radius.
-- Auditability — each App's PR-review history is its own activity stream.
-- Per-App revocation: if Sage's logic goes off the rails, suspend the Sage
-  App without touching Iris or Magnus.
+Every App is wrapped in a single-member org Team so Rulesets + CODEOWNERS
+can pin the App by Team-ID / Team-slug (the only GitHub-idiomatic shape;
+neither accepts App slugs directly — see [§6.0](#60-how-the-two-gates-map-to-the-github-api)).
 
-### 7.2 Required permissions — least-privilege
+### 7.2 Tier A — Orchestrators (heavy GitHub write)
 
-Each App needs **only**:
+App slug pattern: `bluesky-<name>`. Team wrapper pattern: `@experance-dev/orchestrator-<name>`.
+
+| App name | Slug | Bot identity | Team wrapper | Backing agent |
+| --- | --- | --- | --- | --- |
+| BlueSky Atlas | `bluesky-atlas` | `bluesky-atlas[bot]` | `@experance-dev/orchestrator-atlas` | Atlas — Dev Team orchestrator |
+| BlueSky Reeve | `bluesky-reeve` | `bluesky-reeve[bot]` | `@experance-dev/orchestrator-reeve` | Reeve — Design Team orchestrator |
+
+**Permissions (per App):**
+
+| Permission | Level | Why |
+| --- | --- | --- |
+| Repository → Contents | **Read & write** | Branch ops, commit orchestration |
+| Repository → Pull requests | **Read & write** | Open, comment, merge PRs |
+| Repository → Issues | **Read & write** | Track work-items, link PR→issue |
+| Repository → Workflows | **Read & write** | Update `.github/workflows/` for pipeline shape changes |
+| Repository → Metadata | **Read** | Mandatory baseline |
+
+No webhooks, no org-level permissions, no `administration`. Orchestrator
+Apps still pass through the same PR-gate as workers — they commit, they
+don't bypass.
+
+### 7.3 Tier B — Review team (approve-only)
+
+App slug pattern: `bluesky-<name>`. Team wrapper pattern: `@experance-dev/reviewer-<name>`.
+
+| App name | Slug | Bot identity | Team wrapper | Scope |
+| --- | --- | --- | --- | --- |
+| BlueSky Sage | `bluesky-sage` | `bluesky-sage[bot]` | `@experance-dev/reviewer-sage` | Security — sharing, permsets, custom permissions, auth, FLS/CRUD, OWD-Private, HIPAA perimeter |
+| BlueSky Iris | `bluesky-iris` | `bluesky-iris[bot]` | `@experance-dev/reviewer-iris` | Product Owner — business-fit, persona acceptance, gate-1/gate-2 |
+| BlueSky Magnus | `bluesky-magnus` | `bluesky-magnus[bot]` | `@experance-dev/reviewer-magnus` | CTA / Standards — [`sf-best-practices.md`](../standards/sf-best-practices.md), architecture, scanner severity, canon |
+
+**Permissions (per App) — read + approve only, no commit:**
 
 | Permission | Level | Why |
 | --- | --- | --- |
 | Repository → Pull requests | **Read & write** | Post `event: APPROVE` reviews via `POST /repos/{o}/{r}/pulls/{n}/reviews` |
 | Repository → Contents | **Read** | Fetch diff context for the review |
-| Repository → Metadata | **Read** | Mandatory baseline (auto-included) |
+| Repository → Metadata | **Read** | Mandatory baseline |
 
-No webhooks. No commit/push. No org-level permissions. No `administration`.
-The Apps approve only — they never modify code or settings.
+The Tier B Apps **cannot commit code** — they approve only. This is the
+deliberate separation that lets Rulesets pin them as required reviewers
+without those approvals being self-reviews of their own commits.
 
-### 7.3 Installation
+### 7.4 Tier C — Workers (commit + push their slice)
 
-Install all three Apps **on the `experance-dev/blue_sky` repo only** (not
-org-wide). Each App should have a private key downloaded and stored as a
-GitHub Actions secret in the repo:
+App slug pattern: `bluesky-<name>`. Team wrapper pattern: `@experance-dev/worker-<name>`.
 
-| Secret | Value |
-| --- | --- |
-| `SAGE_APP_ID` / `SAGE_APP_PRIVATE_KEY` | Sage App's numeric ID + PEM contents |
-| `IRIS_APP_ID` / `IRIS_APP_PRIVATE_KEY` | Iris App's numeric ID + PEM contents |
-| `MAGNUS_APP_ID` / `MAGNUS_APP_PRIVATE_KEY` | Magnus App's numeric ID + PEM contents |
+**Permissions (per App, all 22):**
 
-### 7.4 Single-member Teams (Rulesets pinning workaround)
-
-After Apps are installed on the repo, create three org Teams in
-`experance-dev` and add **only the App's bot user** to each:
-
-| Team | Slug | Member |
+| Permission | Level | Why |
 | --- | --- | --- |
-| Reviewer — Sage | `reviewer-sage` | `bluesky-sage[bot]` (sole member) |
-| Reviewer — Iris | `reviewer-iris` | `bluesky-iris[bot]` (sole member) |
-| Reviewer — Magnus | `reviewer-magnus` | `bluesky-magnus[bot]` (sole member) |
+| Repository → Contents | **Read & write** | Commit + push feature work |
+| Repository → Pull requests | **Read & write** | Open PRs, comment on review threads |
+| Repository → Metadata | **Read** | Mandatory baseline |
 
-Each Team's repo permission on `blue_sky`: **Read** (sufficient for posting
-PR reviews; Apps' approval authority comes from the App's installation
-token, not from the Team's repo permission).
+| Sub-role | App slug | Bot identity | Team wrapper |
+| --- | --- | --- | --- |
+| **DevOps** | `bluesky-dash` | `bluesky-dash[bot]` | `@experance-dev/worker-dash` |
+| **Apex dev** | `bluesky-boomer` | `bluesky-boomer[bot]` | `@experance-dev/worker-boomer` |
+| **Apex dev** | `bluesky-tex` | `bluesky-tex[bot]` | `@experance-dev/worker-tex` |
+| **Apex dev** | `bluesky-finn` | `bluesky-finn[bot]` | `@experance-dev/worker-finn` |
+| **LWC dev** | `bluesky-coda` | `bluesky-coda[bot]` | `@experance-dev/worker-coda` |
+| **LWC dev** | `bluesky-kit` | `bluesky-kit[bot]` | `@experance-dev/worker-kit` |
+| **LWC dev** | `bluesky-robin` | `bluesky-robin[bot]` | `@experance-dev/worker-robin` |
+| **Test** | `bluesky-pippa` | `bluesky-pippa[bot]` | `@experance-dev/worker-pippa` |
+| **Test** | `bluesky-wren` | `bluesky-wren[bot]` | `@experance-dev/worker-wren` |
+| **Doc writer** | `bluesky-marlowe` | `bluesky-marlowe[bot]` | `@experance-dev/worker-marlowe` |
+| **Doc writer** | `bluesky-lyric` | `bluesky-lyric[bot]` | `@experance-dev/worker-lyric` |
+| **Doc writer** | `bluesky-astrid` | `bluesky-astrid[bot]` | `@experance-dev/worker-astrid` |
+| **Design Team** | `bluesky-vista` | `bluesky-vista[bot]` | `@experance-dev/worker-vista` |
+| **Design Team** | `bluesky-nova` | `bluesky-nova[bot]` | `@experance-dev/worker-nova` |
+| **Design Team** | `bluesky-scarlet` | `bluesky-scarlet[bot]` | `@experance-dev/worker-scarlet` |
+| **Design Team** | `bluesky-helix` | `bluesky-helix[bot]` | `@experance-dev/worker-helix` |
+| **Design Team** | `bluesky-ezra` | `bluesky-ezra[bot]` | `@experance-dev/worker-ezra` |
+| **Design Team** | `bluesky-tally` | `bluesky-tally[bot]` | `@experance-dev/worker-tally` |
+| **Design Team** | `bluesky-quill` | `bluesky-quill[bot]` | `@experance-dev/worker-quill` |
+| **Design Team** | `bluesky-beacon` | `bluesky-beacon[bot]` | `@experance-dev/worker-beacon` |
+| **Admin** | `bluesky-otto` | `bluesky-otto[bot]` | `@experance-dev/worker-otto` |
+| **Admin** | `bluesky-mira` | `bluesky-mira[bot]` | `@experance-dev/worker-mira` |
+| **QA** | `bluesky-echo` | `bluesky-echo[bot]` | `@experance-dev/worker-echo` |
+| **QA** | `bluesky-vera` | `bluesky-vera[bot]` | `@experance-dev/worker-vera` |
+| **QA** | `bluesky-marlo` | `bluesky-marlo[bot]` | `@experance-dev/worker-marlo` |
+| **QA** | `bluesky-argus` | `bluesky-argus[bot]` | `@experance-dev/worker-argus` |
+| **QA** | `bluesky-saba` | `bluesky-saba[bot]` | `@experance-dev/worker-saba` |
+| **QA** | `bluesky-verity` | `bluesky-verity[bot]` | `@experance-dev/worker-verity` |
 
-Once Teams exist, fetch their numeric IDs and substitute into §6.4:
+**Worker Apps commit; they do not satisfy the required-reviewer gate.** Only
+Tier B Apps count toward `required_reviewers` on the develop → UAT → main
+ruleset. A worker can open a PR and self-comment, but cannot approve it.
+
+### 7.5 Provisioning runbook — bash for-loops
+
+David runs this once per org. Each App takes ~30 seconds via the `gh` CLI;
+~30 min total for all 27. Workflow per App:
+
+1. Create the App (interactive, browser-confirmation required by GitHub —
+   `gh api` cannot create Apps from scratch; we use the GH UI for the App
+   manifest, then capture the App ID + private key).
+2. Install the App on `experance-dev/blue_sky`.
+3. Create the wrapping single-member team.
+4. Add the App's bot user to that team.
+5. Store App ID + private key as repo secrets.
+
+**Step 1 (App creation) — manifest-flow approach.** GitHub's UI accepts a
+JSON manifest at `https://github.com/organizations/experance-dev/settings/apps/new`
+and pre-fills the App. We generate one manifest per tier, then create-from-
+manifest 27 times. Manifest templates live in `.github/app-manifests/` (to
+be added by Atlas once provisioning starts). David clicks "Create GitHub App
+from manifest" once per slug — the manifest carries the permission shape so
+there's no per-App permission-checkbox dance.
+
+**Steps 2–4 (install + team + member)** — fully scriptable. Driving arrays:
 
 ```bash
-gh api orgs/experance-dev/teams/reviewer-sage   --jq .id
-gh api orgs/experance-dev/teams/reviewer-iris   --jq .id
-gh api orgs/experance-dev/teams/reviewer-magnus --jq .id
+# Tier A — orchestrators
+TIER_A=(atlas reeve)
+
+# Tier B — reviewers (already in place; here for completeness)
+TIER_B=(sage iris magnus)
+
+# Tier C — workers
+TIER_C=(
+  dash
+  boomer tex finn
+  coda kit robin
+  pippa wren
+  marlowe lyric astrid
+  vista nova scarlet helix ezra tally quill beacon
+  otto mira
+  echo vera marlo argus saba verity
+)
 ```
 
-### 7.5 Token flow at action-time
+**Create the single-member teams** (after Apps exist + IDs captured):
 
-Reviewer agents run inside GitHub Actions workflows (or equivalent CI).
-Each workflow step that posts a review mints a short-lived installation
-token using `actions/create-github-app-token@v1` (GitHub-official; preferred
-over `tibdex/github-app-token`):
+```bash
+ORG=experance-dev
+
+# Tier A — orchestrator-<slug>
+for slug in "${TIER_A[@]}"; do
+  gh api -X POST orgs/$ORG/teams \
+    -f name="orchestrator-$slug" \
+    -f description="Single-member wrapper for bluesky-$slug[bot]" \
+    -f privacy=closed
+done
+
+# Tier B — reviewer-<slug>
+for slug in "${TIER_B[@]}"; do
+  gh api -X POST orgs/$ORG/teams \
+    -f name="reviewer-$slug" \
+    -f description="Single-member wrapper for bluesky-$slug[bot]" \
+    -f privacy=closed
+done
+
+# Tier C — worker-<slug>
+for slug in "${TIER_C[@]}"; do
+  gh api -X POST orgs/$ORG/teams \
+    -f name="worker-$slug" \
+    -f description="Single-member wrapper for bluesky-$slug[bot]" \
+    -f privacy=closed
+done
+```
+
+**Grant each team Read on `blue_sky`** (sufficient for Tier B; Tier A/C
+get their write authority from their installation token, not from team
+permissions — Read is fine):
+
+```bash
+REPO=blue_sky
+
+for slug in "${TIER_A[@]}"; do
+  gh api -X PUT orgs/$ORG/teams/orchestrator-$slug/repos/$ORG/$REPO -f permission=pull
+done
+for slug in "${TIER_B[@]}"; do
+  gh api -X PUT orgs/$ORG/teams/reviewer-$slug/repos/$ORG/$REPO -f permission=pull
+done
+for slug in "${TIER_C[@]}"; do
+  gh api -X PUT orgs/$ORG/teams/worker-$slug/repos/$ORG/$REPO -f permission=pull
+done
+```
+
+**Add each App's bot user to its team.** The bot username is
+`bluesky-<slug>[bot]`; GitHub stores it without the brackets for API calls:
+
+```bash
+# Adjust the prefix once on first App if GH uses a different shape
+BOT_PREFIX=bluesky-
+
+add_bot() {
+  local team_kind=$1   # orchestrator | reviewer | worker
+  local slug=$2
+  local bot_login="${BOT_PREFIX}${slug}[bot]"   # verify exact shape on first run
+  gh api -X PUT "orgs/$ORG/teams/${team_kind}-${slug}/memberships/${bot_login}"
+}
+
+for slug in "${TIER_A[@]}"; do add_bot orchestrator "$slug"; done
+for slug in "${TIER_B[@]}"; do add_bot reviewer     "$slug"; done
+for slug in "${TIER_C[@]}"; do add_bot worker       "$slug"; done
+```
+
+**Collect Team IDs for §6.4 Ruleset substitution** (Tier B only — those
+are the required reviewers):
+
+```bash
+for slug in "${TIER_B[@]}"; do
+  printf "reviewer-%s  team_id=%s\n" \
+    "$slug" \
+    "$(gh api orgs/$ORG/teams/reviewer-$slug --jq .id)"
+done
+```
+
+### 7.6 Token flow + secret naming convention
+
+**Per-App secrets, not per-tier.** Each App has its own private key — one
+secret rotation = one App. Sharing a key across tier would defeat the
+isolation-design.
+
+**Storage recommendation: GitHub *organization* secrets** (not per-repo),
+scoped to the `blue_sky` repository. 27 Apps × 2 secrets each = 54 secrets;
+managing them at the org level avoids per-repo duplication once `blue_sky`
+spawns sibling repos (which it will).
+
+**Naming convention** — UPPERCASE, suffix indicates secret role:
+
+| Secret name | Value |
+| --- | --- |
+| `APP_ID_<SLUG>` | App's numeric ID (integer) |
+| `APP_PRIVATE_KEY_<SLUG>` | Full PEM contents of the private key |
+
+Examples:
+
+- `APP_ID_ATLAS` / `APP_PRIVATE_KEY_ATLAS`
+- `APP_ID_SAGE` / `APP_PRIVATE_KEY_SAGE`
+- `APP_ID_BOOMER` / `APP_PRIVATE_KEY_BOOMER`
+- … (27 pairs)
+
+**Why not per-tier shared secrets:** if Tier C shared one App, that App's
+commit history would lose attribution (everyone shows as `bluesky-workers[bot]`)
+and rotation would re-key 22 agents at once. The per-App design is the
+whole point.
+
+**Workflow consumption** — `actions/create-github-app-token@v1` (GitHub-
+official; preferred over `tibdex/github-app-token`):
 
 ```yaml
 - name: Mint Sage installation token
   id: sage-token
   uses: actions/create-github-app-token@v1
   with:
-    app-id: ${{ secrets.SAGE_APP_ID }}
-    private-key: ${{ secrets.SAGE_APP_PRIVATE_KEY }}
+    app-id: ${{ secrets.APP_ID_SAGE }}
+    private-key: ${{ secrets.APP_PRIVATE_KEY_SAGE }}
 
 - name: Sage posts approval
   env:
@@ -509,48 +723,93 @@ over `tibdex/github-app-token`):
       -f body="Sage security review — see workflow run for findings."
 ```
 
-Tokens are valid for ~1 hour and scoped to the App's installation —
-they cannot be replayed against other repos in the org or escalated.
+Tokens are valid for ~1 hour, scoped to the App's installation, and cannot
+be replayed against other repos in the org or escalated.
 
-### 7.6 Honest pre-flight unknowns
+### 7.7 Honest pre-flight unknowns
 
-Flagged for verification once the first App is installed:
+Flagged for verification once the first Apps from each tier are installed:
 
-1. **Does an App's `event: APPROVE` count toward CODEOWNERS satisfaction?**
-   Not applicable to our model — CODEOWNERS catches David + Atlas only, never
-   Apps. But worth knowing for future path-specific routing if we ever want
-   Sage to *also* be a path codeowner. (Empirically: GitHub UI shows
-   `[bot]` approvals as legitimate codeowner approvals **when** the bot is a
-   member of a code-owner team. Verify on first run.)
+1. **Does an App's `event: APPROVE` count toward CODEOWNERS satisfaction
+   when the bot is the sole member of a code-owner team?** Empirically the
+   GitHub UI shows `[bot]` approvals as legitimate codeowner approvals when
+   the bot is a team member — verify on first run by adding `bluesky-magnus[bot]`'s
+   team to `/docs/standards/` and watching whether a Magnus App approval
+   satisfies the codeowner-review gate.
 2. **Stale review dismissal on bot approvals.** `dismiss_stale_reviews_on_push`
-   should dismiss bot approvals the same as user approvals; verify by force-pushing
-   after a bot approval and checking the review status.
-3. **Fork PRs.** GitHub Apps installed on the head repo do not run on PRs from
-   external forks by default. We don't take external-fork PRs on
-   `experance-dev/blue_sky` (private workspace), so not blocking; flag if posture
-   changes.
+   should dismiss bot approvals identically to user approvals; verify by
+   force-pushing after a bot approval.
+3. **Fork PRs.** GitHub Apps installed on the head repo do not run on PRs
+   from external forks by default. `experance-dev/blue_sky` is private — no
+   external forks expected; flag if posture changes.
 4. **App user-ID vs Team-ID drift.** If a team's sole member changes (e.g.,
-   App reinstalled with new bot user), the Ruleset still pins the Team, so it
-   keeps working — but verify the bot is re-added to the team after any App
-   reinstall.
+   App reinstalled with new bot user), the Ruleset still pins the Team, so
+   it keeps working — but verify the bot is re-added to the team after any
+   App reinstall.
+5. **Exact bot-login string for `gh api … memberships/`.** Most GitHub API
+   surfaces use `bluesky-<slug>[bot]` with the brackets URL-encoded; a few
+   accept the bare slug. Verify on the first Tier A App and adjust the
+   `add_bot` helper if needed.
+6. **Org-secret scoping.** Confirm `experance-dev` is on a plan that supports
+   organization secrets with per-repo scoping (Team plan and above; Free orgs
+   are public-only). If not, fall back to repo-scoped secrets.
+7. **Worker-App PR-approval ambiguity.** Worker Apps have `pull_requests:
+   write` so they can comment on review threads. That permission also lets
+   them *post* approvals — confirm the Ruleset only counts Tier B teams'
+   approvals (it does, via the explicit `required_reviewers` shape pinning
+   reviewer-sage/iris/magnus team-IDs), so a stray worker `APPROVE` posts
+   but doesn't satisfy the gate. Belt-and-suspenders: workflows should never
+   issue `event: APPROVE` from a worker App; restrict to `COMMENT` /
+   `REQUEST_CHANGES`.
 
-### 7.7 Verification commands David can run
+### 7.8 Rotation runbook (stub)
+
+One App = one private key = one rotation cycle. Annual rotation cadence
+(or immediately on suspected compromise). Per App:
+
+1. Generate a new private key in the App's settings page (Apps support
+   multiple active keys, so add-then-remove is zero-downtime).
+2. Update the matching `APP_PRIVATE_KEY_<SLUG>` organization secret.
+3. Trigger a smoke workflow run that mints a token with the new key and
+   posts a non-approving comment to a sentinel PR.
+4. Revoke the old key in the App's settings.
+5. Log the rotation in `docs/operations/app-key-rotation.log` (to be
+   created on first rotation): `<UTC-timestamp> | <slug> | <human-actor> | <reason>`.
+
+**Bulk rotation** — `gh api` cannot generate App private keys (UI-only
+operation per GitHub design). For all-27-at-once rotation, the bottleneck
+is the GH UI clicks; budget ~1 hour. Recommend staggered rotation (one
+tier per quarter) to avoid the bulk burden.
+
+### 7.9 Verification commands David can run
 
 ```bash
-# Confirm the Apps are installed on the repo
-gh api /repos/experance-dev/blue_sky/installation
+ORG=experance-dev
+REPO=blue_sky
 
-# Confirm each team exists and has one member
-for t in reviewer-sage reviewer-iris reviewer-magnus; do
+# Confirm Apps are installed on the repo (one entry per App)
+gh api /repos/$ORG/$REPO/installations 2>/dev/null \
+  || gh api /repos/$ORG/$REPO/installation   # singular if only one App installed
+
+# Confirm every team exists and has exactly one member
+ALL_TEAMS=(
+  $(printf 'orchestrator-%s\n' atlas reeve)
+  $(printf 'reviewer-%s\n'     sage iris magnus)
+  $(printf 'worker-%s\n'       dash boomer tex finn coda kit robin pippa wren \
+                               marlowe lyric astrid vista nova scarlet helix \
+                               ezra tally quill beacon otto mira echo vera \
+                               marlo argus saba verity)
+)
+for t in "${ALL_TEAMS[@]}"; do
   echo "=== $t ==="
-  gh api orgs/experance-dev/teams/$t --jq '{id, name, slug}'
-  gh api orgs/experance-dev/teams/$t/members --jq '.[].login'
+  gh api orgs/$ORG/teams/$t --jq '{id, name, slug}'
+  gh api orgs/$ORG/teams/$t/members --jq '.[].login'
 done
 
-# Confirm the Ruleset pins the three teams
-gh api repos/experance-dev/blue_sky/rulesets \
+# Confirm the review-team Ruleset pins the three reviewer teams
+gh api repos/$ORG/$REPO/rulesets \
   --jq '.[] | select(.name=="review-team-gate") | .id' \
-  | xargs -I{} gh api repos/experance-dev/blue_sky/rulesets/{}
+  | xargs -I{} gh api repos/$ORG/$REPO/rulesets/{}
 ```
 
 ---
