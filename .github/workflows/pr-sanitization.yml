@@ -1,0 +1,113 @@
+# Gate — block PRs that ship AI-tool attribution or internal persona names
+#
+# Enforces docs/standards/sf-best-practices.md §15. Shipped artifacts must not
+# reference AI tools (Claude / GPT / Copilot / Cursor / Aider / Cody / Gemini /
+# Anthropic / OpenAI) or internal workflow persona names (Atlas / Pippa / Sage
+# / Nova / Boomer / Vista / Magnus / Helix / Tally / Quill / Beacon / Ezra /
+# Scarlet / Astrid / Iris / Mira / Otto / Reeve / Dash / Echo / Vera / Marlo /
+# Saba / Argus / Verity / Wren / Lyric / Marlowe / Tex / Finn / Robin / Kit /
+# Coda / Halsey).
+#
+# Surfaces violations across three axes:
+#   1. Commit messages on the PR (subject + body + trailers)
+#   2. Content of files changed by the PR
+#   3. PR title + body text
+#
+# Exempted from grep:
+#   - docs/standards/sf-best-practices.md  (§15 must name what it prohibits)
+#   - .github/workflows/pr-sanitization.yml (this workflow must name them too)
+#   - .gitignore (broad ignore; comments may mention the tools)
+#   - LICENSE / NOTICE files
+#   - best-practices/ legacy seed doc (predates §15)
+#
+# Mark as a required status check on develop / UAT / main.
+
+name: pr-sanitization
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited, reopened]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  no-ai-attribution:
+    name: pr-sanitization
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR commits + changed files + PR text for forbidden tokens
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+
+          # Patterns per §15.2. Kept as separate variables so failure messages
+          # cite which pattern hit; case-insensitive grep applies to all.
+          AI_TRAILER='Co-Authored-By:.*(Claude|GPT|Copilot|Cursor|Aider|Cody|Gemini|Anthropic|OpenAI)'
+          AI_INLINE='\b(Claude|GPT-4|Copilot|Cursor AI|Aider|Cody)\b'
+          PERSONAS='\b(Atlas|Halsey|Pippa|Sage|Nova|Boomer|Vista|Magnus|Helix|Tally|Quill|Beacon|Ezra|Scarlet|Astrid|Iris|Mira|Otto|Reeve|Dash|Echo|Vera|Marlo|Saba|Argus|Verity|Wren|Lyric|Marlowe|Tex|Finn|Robin|Kit|Coda)\b'
+
+          FAILED=0
+
+          # ── 1. Commit messages on the PR ──────────────────────────────
+          MSGS=$(git log --format='%H %s%n%b%n--END--' "$BASE_SHA..$HEAD_SHA" || true)
+          if echo "$MSGS" | grep -iE "$AI_TRAILER" > /tmp/trailer-hits.txt 2>/dev/null; then
+            echo "::error title=AI-tool Co-Authored-By trailer in commits (§15.2)::Strip AI-tool attribution from commit messages — the work is yours, not the tool's."
+            cat /tmp/trailer-hits.txt
+            FAILED=1
+          fi
+          if echo "$MSGS" | grep -iE "$AI_INLINE" > /tmp/inline-hits.txt 2>/dev/null; then
+            echo "::error title=AI-tool name in commit message (§15.2)::"
+            cat /tmp/inline-hits.txt
+            FAILED=1
+          fi
+          if echo "$MSGS" | grep -iE "$PERSONAS" > /tmp/persona-hits.txt 2>/dev/null; then
+            echo "::error title=Internal persona name in commit message (§15.2)::Rewrite the commit attributing to David Wood."
+            cat /tmp/persona-hits.txt
+            FAILED=1
+          fi
+
+          # ── 2. Changed file content ──────────────────────────────────
+          # Exempt paths: standards doc + this workflow (must name the tokens)
+          # + .gitignore + LICENSE/NOTICE + best-practices/ legacy.
+          CHANGED=$(git diff --name-only "$BASE_SHA..$HEAD_SHA" \
+            | grep -vE '^(\.gitignore|docs/standards/sf-best-practices\.md|\.github/workflows/pr-sanitization\.yml|LICENSE.*|NOTICE.*|best-practices/.*)$' \
+            || true)
+
+          if [ -n "$CHANGED" ]; then
+            while IFS= read -r FILE; do
+              [ -z "$FILE" ] && continue
+              [ -f "$FILE" ] || continue
+              if grep -iEn "$AI_TRAILER|$AI_INLINE|$PERSONAS" "$FILE" > /tmp/file-hits.txt 2>/dev/null; then
+                echo "::error title=Forbidden token in $FILE (§15.2)::"
+                head -10 /tmp/file-hits.txt
+                FAILED=1
+              fi
+            done <<< "$CHANGED"
+          fi
+
+          # ── 3. PR title + body ──────────────────────────────────────
+          PR_TEXT="${PR_TITLE} ${PR_BODY:-}"
+          if echo "$PR_TEXT" | grep -iE "$AI_TRAILER|$AI_INLINE|$PERSONAS" > /tmp/pr-text-hits.txt 2>/dev/null; then
+            echo "::error title=Forbidden token in PR title or body (§15.2)::Edit the PR via gh pr edit."
+            cat /tmp/pr-text-hits.txt
+            FAILED=1
+          fi
+
+          if [ $FAILED -ne 0 ]; then
+            echo ""
+            echo "::error::Canon ref: docs/standards/sf-best-practices.md §15"
+            echo "::error::Fix: amend or rebase commits, rewrite file content, gh pr edit title/body — then force-push the feature branch."
+            exit 1
+          fi
+
+          echo "✓ pr-sanitization: no forbidden tokens found"
