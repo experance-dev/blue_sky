@@ -114,7 +114,7 @@ for (Touch_Routing_Rule__mdt rule : rulesByName.values()) {
 
 ### 2.4 — Cross-permset USER_MODE SOQL on feature-gated fields requires `isAccessible()` guard EVERYWHERE the field is queried
 
-**Rule.** When ANY code path issues `WITH USER_MODE` SOQL referencing a custom field that may not be in the running user's FLS (because it's gated by a feature permset), the SOQL raises `QueryException: "No such column"` for users without FLS — USER_MODE _hides the field from the schema_, it doesn't just block reads. Guard with `Schema.sObjectType.X.fields.Y.isAccessible()` at the top of every method that issues such a query.
+**Rule.** When ANY code path issues `WITH USER_MODE` SOQL referencing a custom field that may not be in the running user's FLS (because it's gated by a feature permset), the SOQL raises `QueryException: "No such column"` for users without FLS — USER*MODE \_hides the field from the schema*, it doesn't just block reads. Guard with `Schema.sObjectType.X.fields.Y.isAccessible()` at the top of every method that issues such a query.
 
 **"We ran USER_MODE, we're done" is the wrong mental model.** The guard is REQUIRED, not optional. Applies to triggers (Lead, Contact, Account before-delete and after-update), cascade services called from triggers, batches that re-process records, and any other code path a non-feature-permsetted user might cause to fire.
 
@@ -863,6 +863,66 @@ Per [`COMMS.md`](../../.claude/agents/COMMS.md). Team agents communicate by appe
 - Undated notes (age badly).
 - Generic praise ("looks great") — teaches nothing.
 - Single-artifact updates when the work crossed boundaries.
+
+---
+
+## §15 Sanitization — No AI-Tool Attribution in Shipped Artifacts
+
+Shipped artifacts (committed code, docs, runbooks, BRDs/TDDs, comments, commit messages, PR titles/bodies, design files) **MUST NOT** reference AI tools used to author them or internal persona names used in workflow scaffolding. The author of record is the human (David Wood). No `Co-Authored-By:` trailers for AI tools, no Claude/GPT/Copilot branding, no internal persona names (Atlas, Pippa, Sage, Nova, Boomer, Vista, Magnus, Helix, etc.) in shipped content.
+
+**Why.** Client repos are commercial product code; this codebase is one. Internal agent identifiers are workflow scaffolding — they belong inside `.claude/`, never in repo content the client / consumer / auditor sees. Tool branding in client artifacts mis-attributes work (the work is David's; the tool is paid infrastructure), creates downstream IP-perception questions, and noises up commit history future maintainers must filter through. "I pay for this tool; lots of tools are used for coding; they don't get to put their names in the repo." (David, 2026-05-17.)
+
+### 15.1 — Scope
+
+Sanitization applies to every **shipped** artifact:
+
+- Apex / LWC code — class names, method names, comments, headers (`@author` MUST be `David Wood`)
+- Tracked docs (`docs/**`)
+- Runbooks / BRDs / TDDs / design notes
+- Commit messages — subject + body + trailers (NO `Co-Authored-By:` for AI tools, period)
+- PR titles + PR bodies + PR comments
+- Files under `force-app/`, `manifest/`, `scripts/`, `.github/`
+- Test fixtures / mock data / sample payloads
+
+Exempt:
+
+- `.claude/` (gitignored — workflow scaffolding, not shipped)
+- `best-practices/` legacy seed doc (predates the rule)
+- This canon section (§15) itself + the [`pr-sanitization.yml`](../../.github/workflows/pr-sanitization.yml) workflow — both must name the things they prohibit
+- `LICENSE` / `NOTICE` files documenting genuinely-imported third-party dependencies (e.g., Anthropic SDK if it actually ships as a runtime dep, not as a development tool)
+
+### 15.2 — Forbidden tokens (case-insensitive)
+
+| Pattern                                                                                                                                                                                                                                               | Where it matters                                         | Reason                                             |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | -------------------------------------------------- |
+| `Co-Authored-By:.*(Claude\|GPT\|Copilot\|Cursor\|Aider\|Cody\|Gemini\|Anthropic\|OpenAI)`                                                                                                                                                             | Commit message trailers                                  | AI-tool commit attribution — the work is David's   |
+| `\bClaude\b`, `\bGPT-4\b`, `\bCopilot\b`, `\bCursor AI\b`, `\bAider\b`, `\bCody\b`                                                                                                                                                                    | Commit subject/body, PR title/body, shipped file content | AI-tool name in narrative                          |
+| `\b(Atlas\|Halsey\|Pippa\|Sage\|Nova\|Boomer\|Vista\|Magnus\|Helix\|Tally\|Quill\|Beacon\|Ezra\|Scarlet\|Astrid\|Iris\|Mira\|Otto\|Reeve\|Dash\|Echo\|Vera\|Marlo\|Saba\|Argus\|Verity\|Wren\|Lyric\|Marlowe\|Tex\|Finn\|Robin\|Kit\|Coda\|Halsey)\b` | Shipped files + commits + PR text                        | Internal persona names — workflow scaffolding only |
+
+### 15.3 — Permitted attribution
+
+- `@author David Wood` — the only sanctioned author tag in code headers
+- "Built with fosFoundry" branding in fosFoundry product artifacts only (NOT in client work)
+- Vendor LICENSE / NOTICE entries for genuinely-imported runtime dependencies
+
+### 15.4 — Enforcement
+
+CI gate at [`.github/workflows/pr-sanitization.yml`](../../.github/workflows/pr-sanitization.yml) runs on every `pull_request` event. Greps PR commit messages + changed file content + PR title/body against §15.2 forbidden-tokens regex. Hard-fail on any match. Required status check on `develop`, `UAT`, `main`.
+
+### 15.5 — Migration of existing artifacts
+
+Historical commits (merged before §15 landed) are tracked as non-urgent cleanup. The CI gate prevents NEW violations from landing; existing violations get scrubbed in a dedicated rewrite-history pass when David authorizes. Local backup refs at `refs/backup/pre-scrub/2026-05-17/*` snapshot the pre-rule state.
+
+### 15.6 — When a violation is detected
+
+Workflow fails the PR with annotated message pointing at §15.2. To unstick:
+
+1. Identify the violation (commit, file, or PR text)
+2. Rewrite the commit (`git commit --amend` or `git rebase -i`) stripping the offending content
+3. Force-push the feature branch
+4. PR auto-recheck passes
+
+**Do NOT** add suppress-comments or workflow exceptions to bypass the rule. The rule is the canon.
 
 ---
 
